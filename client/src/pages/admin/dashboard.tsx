@@ -117,7 +117,7 @@ export default function AdminDashboard() {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center">
             <img
-              src="/attached_assets/abused (google).png"
+              src="/assets/logo.png"
               alt="Abused Goods Logo"
               className="h-8"
             />

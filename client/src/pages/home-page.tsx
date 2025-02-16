@@ -20,7 +20,6 @@ export default function HomePage() {
   });
 
   const handleAddToCart = (product: Product) => {
-    // Check if item already exists in cart
     if (cartItems.some(item => item.id === product.id)) {
       toast({
         title: "Item already in cart",
@@ -44,7 +43,13 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Abused Goods</h1>
+          <div className="flex items-center">
+            <img
+              src="/assets/logo.png"
+              alt="Abused Goods Logo"
+              className="h-8"
+            />
+          </div>
           <div className="flex items-center gap-4">
             {user?.isAdmin ? (
               <Link href="/admin">
