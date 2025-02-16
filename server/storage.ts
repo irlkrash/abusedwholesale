@@ -14,7 +14,7 @@ export interface IStorage {
   getUsers(): Promise<User[]>;
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser & { isAdmin: boolean }): Promise<User>;
+  createUser(user: InsertUser & { isAdmin?: boolean }): Promise<User>;
 
   // Product operations
   getProducts(): Promise<Product[]>;
@@ -57,8 +57,14 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async createUser(insertUser: InsertUser & { isAdmin: boolean }): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
+  async createUser(insertUser: InsertUser & { isAdmin?: boolean }): Promise<User> {
+    const users = await this.getUsers();
+    const isFirstUser = users.length === 0;
+
+    const [user] = await db.insert(users).values({
+      ...insertUser,
+      isAdmin: insertUser.isAdmin ?? isFirstUser // First user is admin by default
+    }).returning();
     return user;
   }
 
