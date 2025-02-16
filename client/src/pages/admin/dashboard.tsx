@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Product } from "@shared/schema";
@@ -6,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Link } from "wouter";
-import { useState } from "react";
 import {
   Package,
   ShoppingBag,
@@ -15,6 +15,7 @@ import {
   CheckCircle,
   XCircle,
   ShoppingCart,
+  Edit,
 } from "lucide-react";
 import {
   Card,
@@ -37,7 +38,8 @@ import { BulkUpload } from "@/components/admin/bulk-upload";
 export default function AdminDashboard() {
   const { toast } = useToast();
   const { user, logoutMutation } = useAuth();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ["/api/products"],
@@ -54,14 +56,22 @@ export default function AdminDashboard() {
         title: "Product created successfully",
         description: "The new product has been added to the catalog.",
       });
-      setIsDialogOpen(false);
+      setIsCreateDialogOpen(false);
     },
-    onError: (error: Error) => {
+  });
+
+  const updateProductMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const res = await apiRequest("PATCH", `/api/products/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       toast({
-        title: "Failed to create product",
-        description: error.message,
-        variant: "destructive",
+        title: "Product updated successfully",
+        description: "The product has been updated.",
       });
+      setEditingProduct(null);
     },
   });
 
@@ -113,7 +123,7 @@ export default function AdminDashboard() {
               Manage your wholesale product listings
             </p>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button className="flex items-center gap-2">
                 <PlusCircle className="h-4 w-4" />
@@ -165,18 +175,51 @@ export default function AdminDashboard() {
                           )}
                           {product.isAvailable ? "Available" : "Unavailable"}
                         </span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            toggleAvailabilityMutation.mutate({
-                              id: product.id,
-                              isAvailable: !product.isAvailable,
-                            })
-                          }
-                        >
-                          Toggle Availability
-                        </Button>
+                        <div className="flex gap-2">
+                          <Dialog
+                            open={editingProduct?.id === product.id}
+                            onOpenChange={(open) => !open && setEditingProduct(null)}
+                          >
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex items-center gap-2"
+                                onClick={() => setEditingProduct(product)}
+                              >
+                                <Edit className="h-4 w-4" />
+                                Edit
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-2xl">
+                              <DialogHeader>
+                                <DialogTitle>Edit Product</DialogTitle>
+                              </DialogHeader>
+                              <ProductForm
+                                initialData={product}
+                                onSubmit={(data) =>
+                                  updateProductMutation.mutate({
+                                    id: product.id,
+                                    data,
+                                  })
+                                }
+                                isLoading={updateProductMutation.isPending}
+                              />
+                            </DialogContent>
+                          </Dialog>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              toggleAvailabilityMutation.mutate({
+                                id: product.id,
+                                isAvailable: !product.isAvailable,
+                              })
+                            }
+                          >
+                            Toggle Availability
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </CardContent>

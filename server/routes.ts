@@ -68,6 +68,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(201).json(cart);
   });
 
+  // Add delete cart route
+  app.delete("/api/carts/:id", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user?.isAdmin) {
+      return res.status(403).json({ message: "Admin privileges required" });
+    }
+
+    const cartId = parseInt(req.params.id);
+    await storage.deleteCart(cartId);
+    res.sendStatus(200);
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

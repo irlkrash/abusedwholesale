@@ -26,6 +26,7 @@ export interface IStorage {
   getCarts(): Promise<Cart[]>;
   createCart(cart: InsertCart): Promise<Cart>;
   updateCart(id: number, cart: Partial<Cart>): Promise<Cart>;
+  deleteCart(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -131,6 +132,10 @@ export class DatabaseStorage implements IStorage {
       .returning();
     if (!cart) throw new Error("Cart not found");
     return cart;
+  }
+
+  async deleteCart(id: number): Promise<void> {
+    await db.delete(carts).where(eq(carts.id, id));
   }
 }
 

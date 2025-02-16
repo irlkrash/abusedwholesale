@@ -19,19 +19,24 @@ import { ImagePlus, X } from "lucide-react";
 interface ProductFormProps {
   onSubmit: (data: any) => void;
   isLoading?: boolean;
-  initialImages?: string[];
+  initialData?: {
+    name?: string;
+    description?: string;
+    images?: string[];
+    isAvailable?: boolean;
+  };
 }
 
-export function ProductForm({ onSubmit, isLoading, initialImages = [] }: ProductFormProps) {
-  const [uploadedImages, setUploadedImages] = useState<string[]>(initialImages);
+export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormProps) {
+  const [uploadedImages, setUploadedImages] = useState<string[]>(initialData?.images || []);
 
   const form = useForm({
     resolver: zodResolver(insertProductSchema),
     defaultValues: {
-      name: "",
-      description: "",
-      images: initialImages,
-      isAvailable: true,
+      name: initialData?.name || "",
+      description: initialData?.description || "",
+      images: initialData?.images || [],
+      isAvailable: initialData?.isAvailable ?? true,
     },
   });
 
@@ -44,7 +49,7 @@ export function ProductForm({ onSubmit, isLoading, initialImages = [] }: Product
       reader.onload = (e) => {
         const result = e.target?.result as string;
         setUploadedImages(prev => [...prev, result]);
-        form.setValue("images", [...uploadedImages, result]);
+        form.setValue("images", [...uploadedImages, result], { shouldValidate: true });
       };
       reader.readAsDataURL(file);
     });
@@ -53,7 +58,7 @@ export function ProductForm({ onSubmit, isLoading, initialImages = [] }: Product
   const removeImage = (index: number) => {
     const newImages = uploadedImages.filter((_, i) => i !== index);
     setUploadedImages(newImages);
-    form.setValue("images", newImages);
+    form.setValue("images", newImages, { shouldValidate: true });
   };
 
   return (
@@ -152,7 +157,7 @@ export function ProductForm({ onSubmit, isLoading, initialImages = [] }: Product
         </div>
 
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Creating..." : "Create Product"}
+          {isLoading ? (initialData ? "Updating..." : "Creating...") : (initialData ? "Update Product" : "Create Product")}
         </Button>
       </form>
     </Form>

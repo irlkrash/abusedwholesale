@@ -1,9 +1,11 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Cart, Product } from "@shared/schema";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Link } from "wouter";
-import { ShoppingCart, ArrowLeft } from "lucide-react";
+import { ShoppingCart, ArrowLeft, Trash2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -11,6 +13,17 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -22,12 +35,26 @@ type CartItem = {
 
 export default function AdminCarts() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ["/api/products"],
   });
 
   const { data: carts = [] } = useQuery<Cart[]>({
     queryKey: ["/api/carts"],
+  });
+
+  const deleteCartMutation = useMutation({
+    mutationFn: async (cartId: number) => {
+      await apiRequest("DELETE", `/api/carts/${cartId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/carts"] });
+      toast({
+        title: "Cart deleted",
+        description: "The cart has been successfully deleted.",
+      });
+    },
   });
 
   // Function to get product image for a cart item
@@ -62,6 +89,30 @@ export default function AdminCarts() {
                       Created on {format(new Date(cart.createdAt), "PPP")}
                     </CardDescription>
                   </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="sm">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Cart</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete this cart? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => deleteCartMutation.mutate(cart.id)}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </CardHeader>
               <CardContent>
