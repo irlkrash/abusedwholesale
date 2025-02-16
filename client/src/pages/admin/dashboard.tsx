@@ -14,6 +14,7 @@ import {
   PlusCircle,
   CheckCircle,
   XCircle,
+  Store
 } from "lucide-react";
 import {
   Card,
@@ -78,11 +79,11 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+          <h1 className="text-2xl font-bold">Abused Goods Admin</h1>
           <div className="flex items-center gap-4">
             <Link href="/">
               <Button variant="outline" className="flex items-center gap-2">
-                <ShoppingBag className="h-4 w-4" />
+                <Store className="h-4 w-4" />
                 Shop
               </Button>
             </Link>
