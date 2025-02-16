@@ -58,13 +58,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser & { isAdmin?: boolean }): Promise<User> {
-    const users = await this.getUsers();
-    const isFirstUser = users.length === 0;
+    const existingUsers = await this.getUsers();
+    const isFirstUser = existingUsers.length === 0;
 
-    const [user] = await db.insert(users).values({
-      ...insertUser,
-      isAdmin: insertUser.isAdmin ?? isFirstUser // First user is admin by default
-    }).returning();
+    const [user] = await db
+      .insert(users)
+      .values({
+        username: insertUser.username,
+        password: insertUser.password,
+        isAdmin: insertUser.isAdmin ?? isFirstUser,
+      })
+      .returning();
     return user;
   }
 
@@ -78,10 +82,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProduct(insertProduct: InsertProduct): Promise<Product> {
-    const [product] = await db.insert(products).values({
-      ...insertProduct,
-      isAvailable: insertProduct.isAvailable ?? true
-    }).returning();
+    const [product] = await db
+      .insert(products)
+      .values({
+        name: insertProduct.name,
+        description: insertProduct.description,
+        images: insertProduct.images,
+        isAvailable: insertProduct.isAvailable ?? true,
+      })
+      .returning();
     return product;
   }
 
@@ -100,11 +109,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createOrder(insertOrder: InsertOrder): Promise<Order> {
-    const [order] = await db.insert(orders)
+    const [order] = await db
+      .insert(orders)
       .values({
         ...insertOrder,
         status: "pending",
-        createdAt: new Date()
+        createdAt: new Date(),
       })
       .returning();
     return order;
