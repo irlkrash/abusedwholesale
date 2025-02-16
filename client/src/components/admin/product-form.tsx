@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { useCallback, useState } from "react";
+import { useCallback, useState, useRef } from "react";
 import { ImagePlus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -31,6 +31,7 @@ interface ProductFormProps {
 export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormProps) {
   const { toast } = useToast();
   const [uploadedImages, setUploadedImages] = useState<string[]>(initialData?.images || []);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm({
     resolver: zodResolver(insertProductSchema),
@@ -111,6 +112,10 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
     });
   }, [form, toast]);
 
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -162,26 +167,23 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-medium">Product Images</h3>
-            <FormItem>
-              <FormControl>
-                <div className="flex items-center gap-2">
-                  <label htmlFor="image-upload" className="cursor-pointer">
-                    <Button type="button" variant="outline" className="flex items-center gap-2">
-                      <ImagePlus className="h-4 w-4" />
-                      Add Images
-                    </Button>
-                    <input
-                      id="image-upload"
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      onChange={handleImageUpload}
-                    />
-                  </label>
-                </div>
-              </FormControl>
-            </FormItem>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={triggerFileInput}
+              className="flex items-center gap-2"
+            >
+              <ImagePlus className="h-4 w-4" />
+              Add Images
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleImageUpload}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
