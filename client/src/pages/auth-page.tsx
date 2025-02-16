@@ -44,7 +44,7 @@ export default function AuthPage() {
       <div className="hidden md:block bg-muted">
         <div className="h-full flex flex-col justify-center p-8">
           <h1 className="text-4xl font-bold mb-4">
-            Wholesale Clothing Admin Portal
+            Abused Goods Admin Portal
           </h1>
           <p className="text-lg text-muted-foreground">
             Manage your product catalog and wholesale orders efficiently with our
