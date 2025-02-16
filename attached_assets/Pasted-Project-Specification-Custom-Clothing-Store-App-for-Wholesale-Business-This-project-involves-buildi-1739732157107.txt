@@ -1,0 +1,45 @@
+Project Specification: Custom Clothing Store App for Wholesale Business
+This project involves building a custom clothing store web application with client-facing and admin-facing user interfaces (UI). The app will primarily serve as an image gallery for customers to browse products and create wholesale orders. Below are the detailed specifications:
+
+Key Features:
+Client-Facing UI
+
+Displays a gallery of products with image-based listings.
+Each product listing can contain multiple images for a detailed view.
+Customers can select multiple products and add them to their cart to create an order.
+Multiple customers can select the same product for different orders simultaneously.
+Products that are marked as unavailable by the admin should still be visible in the gallery but not selectable for orders.
+Customers can review their cart before submitting an order.
+Admin-Facing UI
+
+Provides a dashboard for the admin to manage product listings and view customer orders.
+Admin should be able to upload new product listings with multiple images per product.
+Admin can set the availability status of each product:
+Available: Visible and selectable by customers.
+Unavailable: Still visible in the product gallery but not selectable by customers.
+Admin should be able to view all customer orders, including product selections and relevant order details.
+Functional Requirements:
+Product Listings:
+
+Each product listing should support multiple images.
+Listings should include a title/description field and an availability toggle (available/unavailable).
+Customer Order Process:
+
+Customers should be able to browse the product gallery, select products, and add items to their cart.
+Once items are added, the customer can review and submit their order.
+Order Management (Admin UI):
+
+Admin should have access to a list of all submitted orders.
+Orders should include customer information and selected products for easy reference.
+Technical Considerations:
+Tech Stack: Ensure compatibility with modern web standards (React, Node.js, etc.).
+Scalability: The app should handle multiple concurrent users without performance issues.
+Security: Ensure customer data is handled securely, especially during the order process.
+User Experience (UX) Considerations:
+Client UI:
+
+Simple, clean, and easy to navigate. Focus on a visual gallery with product images.
+Mobile-friendly and responsive design for easy browsing on various devices.
+Admin UI:
+
+Intuitive and user-friendly dashboard for managing listings and reviewing orders.
