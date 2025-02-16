@@ -66,20 +66,20 @@ export function BulkUpload() {
       <CardContent className="p-6">
         <div className="space-y-4">
           <div className="flex items-center gap-4">
-            <label htmlFor="bulk-upload" className="cursor-pointer">
-              <Button variant="outline" className="flex items-center gap-2">
-                <ImagePlus className="h-4 w-4" />
-                Select Images
-              </Button>
+            <div className="relative">
               <input
                 id="bulk-upload"
                 type="file"
                 accept="image/*"
                 multiple
-                className="hidden"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 onChange={handleFileSelect}
               />
-            </label>
+              <Button variant="outline" className="flex items-center gap-2">
+                <ImagePlus className="h-4 w-4" />
+                Select Images
+              </Button>
+            </div>
             <Button
               onClick={handleUpload}
               disabled={uploadedFiles.length === 0 || bulkUploadMutation.isPending}
