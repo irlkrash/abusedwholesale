@@ -9,9 +9,10 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 interface ProductCarouselProps {
   images: string[];
+  onImageClick?: (image: string) => void;
 }
 
-export function ProductCarousel({ images }: ProductCarouselProps) {
+export function ProductCarousel({ images, onImageClick }: ProductCarouselProps) {
   return (
     <Carousel className="relative">
       <CarouselContent>
@@ -21,7 +22,8 @@ export function ProductCarousel({ images }: ProductCarouselProps) {
               <img 
                 src={image} 
                 alt={`Product view ${index + 1}`}
-                className="object-cover w-full h-full rounded-t-lg"
+                className="object-cover w-full h-full rounded-t-lg cursor-pointer"
+                onClick={() => onImageClick?.(image)}
               />
             </AspectRatio>
           </CarouselItem>

@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Product } from "@shared/schema";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ProductCarousel } from "./product-carousel";
+import { ImageViewer } from "./image-viewer";
 
 interface ProductCardProps {
   product: Product;
@@ -9,10 +11,15 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onAddToCart }: ProductCardProps) {
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-0">
-        <ProductCarousel images={product.images} />
+        <ProductCarousel 
+          images={product.images} 
+          onImageClick={(image) => setSelectedImage(image)}
+        />
       </CardContent>
       <CardFooter className="p-6">
         <Button 
@@ -23,6 +30,15 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
           {product.isAvailable ? "Add to Cart" : "Currently Unavailable"}
         </Button>
       </CardFooter>
+
+      {selectedImage && (
+        <ImageViewer
+          src={selectedImage}
+          alt={product.name}
+          isOpen={!!selectedImage}
+          onOpenChange={(open) => !open && setSelectedImage(null)}
+        />
+      )}
     </Card>
   );
 }
