@@ -2,7 +2,7 @@ import { InsertUser, User, Product, Cart, InsertProduct, InsertCart } from "@sha
 import { users, products, carts } from "@shared/schema";
 import session from "express-session";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 
 const PostgresSessionStore = connectPg(session);
@@ -39,9 +39,9 @@ export class DatabaseStorage implements IStorage {
       conObject: {
         connectionString: process.env.DATABASE_URL,
       },
-      tableName: 'session_store', 
+      tableName: 'session_store',
       createTableIfMissing: true,
-      pruneSessionInterval: false 
+      pruneSessionInterval: false
     });
   }
 
@@ -107,7 +107,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCarts(): Promise<Cart[]> {
-    return await db.select().from(carts);
+    return await db.select().from(carts).orderBy(desc(carts.createdAt));
   }
 
   async createCart(insertCart: InsertCart): Promise<Cart> {
