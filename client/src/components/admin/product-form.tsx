@@ -48,13 +48,15 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result as string;
-        setUploadedImages(prev => [...prev, result]);
-        // Update form value with all images including the new one
-        form.setValue("images", [...uploadedImages, result], { shouldValidate: true });
+        setUploadedImages(prev => {
+          const newImages = [...prev, result];
+          form.setValue("images", newImages, { shouldValidate: true });
+          return newImages;
+        });
       };
       reader.readAsDataURL(file);
     });
-  }, [uploadedImages, form]);
+  }, [form]);
 
   const removeImage = (index: number) => {
     const newImages = uploadedImages.filter((_, i) => i !== index);
