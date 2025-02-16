@@ -79,6 +79,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendStatus(200);
   });
 
+  // Add delete product route and make cart items unavailable route
+  app.delete("/api/products/:id", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user?.isAdmin) {
+      return res.status(403).json({ message: "Admin privileges required" });
+    }
+
+    const productId = parseInt(req.params.id);
+    await storage.deleteProduct(productId);
+    res.sendStatus(200);
+  });
+
+  app.post("/api/carts/:id/make-items-unavailable", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user?.isAdmin) {
+      return res.status(403).json({ message: "Admin privileges required" });
+    }
+
+    const cartId = parseInt(req.params.id);
+    const cart = await storage.getCart(cartId);
+    if (!cart) {
+      return res.status(404).json({ message: "Cart not found" });
+    }
+
+    // Make all products in the cart unavailable
+    const updates = await Promise.all(
+      cart.items.map((item: any) =>
+        storage.updateProduct(item.productId, { isAvailable: false })
+      )
+    );
+
+    res.json(updates);
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
