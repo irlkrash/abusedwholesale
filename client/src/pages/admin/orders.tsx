@@ -9,7 +9,6 @@ import { Package, ArrowLeft } from "lucide-react";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -43,21 +42,6 @@ export default function AdminOrders() {
       });
     },
   });
-
-  if (!user?.isAdmin) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-destructive">Access Denied</CardTitle>
-            <CardDescription>
-              You need administrator privileges to access this page.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background">
