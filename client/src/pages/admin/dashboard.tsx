@@ -114,10 +114,13 @@ export default function AdminDashboard() {
 
   const toggleAvailabilityMutation = useMutation({
     mutationFn: async ({ ids, isAvailable }: { ids: number[]; isAvailable: boolean }) => {
-      const promises = ids.map(id => 
-        apiRequest("PATCH", `/api/products/${id}`, { isAvailable })
+      const responses = await Promise.all(
+        ids.map(id => 
+          apiRequest("PATCH", `/api/products/${id}`, { isAvailable })
+            .then(res => res.json())
+        )
       );
-      await Promise.all(promises);
+      return responses;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
@@ -127,14 +130,24 @@ export default function AdminDashboard() {
       });
       clearSelection();
     },
+    onError: (error: Error) => {
+      toast({
+        title: "Error updating products",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const deleteProductMutation = useMutation({
     mutationFn: async (productIds: number[]) => {
-      const promises = productIds.map(id => 
-        apiRequest("DELETE", `/api/products/${id}`)
+      const responses = await Promise.all(
+        productIds.map(id => 
+          apiRequest("DELETE", `/api/products/${id}`)
+            .then(res => res.ok ? id : Promise.reject(`Failed to delete product ${id}`))
+        )
       );
-      await Promise.all(promises);
+      return responses;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
@@ -143,6 +156,13 @@ export default function AdminDashboard() {
         description: "The selected products have been removed from the catalog.",
       });
       clearSelection();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error deleting products",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
