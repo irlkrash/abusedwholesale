@@ -39,8 +39,9 @@ export class DatabaseStorage implements IStorage {
       conObject: {
         connectionString: process.env.DATABASE_URL,
       },
+      tableName: 'session_store', 
       createTableIfMissing: true,
-      tableName: 'sessions' // Using a different table name to avoid conflicts
+      pruneSessionInterval: false 
     });
   }
 
