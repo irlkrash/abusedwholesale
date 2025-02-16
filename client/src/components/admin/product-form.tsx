@@ -13,40 +13,47 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-
-const SAMPLE_IMAGES = [
-  "https://images.unsplash.com/photo-1523194258983-4ef0203f0c47",
-  "https://images.unsplash.com/photo-1525383666937-f1090096ca3a",
-  "https://images.unsplash.com/3/www.madebyvadim.com.jpg",
-  "https://images.unsplash.com/photo-1565191262855-2e6c531f3867",
-  "https://images.unsplash.com/photo-1581922730118-2c9bcc450def",
-  "https://images.unsplash.com/photo-1545312981-de7f4d7cb816",
-];
+import { useCallback, useState } from "react";
+import { ImagePlus, X } from "lucide-react";
 
 interface ProductFormProps {
   onSubmit: (data: any) => void;
   isLoading?: boolean;
+  initialImages?: string[];
 }
 
-export function ProductForm({ onSubmit, isLoading }: ProductFormProps) {
+export function ProductForm({ onSubmit, isLoading, initialImages = [] }: ProductFormProps) {
+  const [uploadedImages, setUploadedImages] = useState<string[]>(initialImages);
+
   const form = useForm({
     resolver: zodResolver(insertProductSchema),
     defaultValues: {
       name: "",
       description: "",
-      images: [SAMPLE_IMAGES[0]], // Start with one image
+      images: initialImages,
       isAvailable: true,
     },
   });
 
-  const handleAddImage = () => {
-    const currentImages = form.getValues("images");
-    if (currentImages.length < SAMPLE_IMAGES.length) {
-      form.setValue("images", [
-        ...currentImages,
-        SAMPLE_IMAGES[currentImages.length],
-      ]);
-    }
+  const handleImageUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setUploadedImages(prev => [...prev, result]);
+        form.setValue("images", [...uploadedImages, result]);
+      };
+      reader.readAsDataURL(file);
+    });
+  }, [uploadedImages, form]);
+
+  const removeImage = (index: number) => {
+    const newImages = uploadedImages.filter((_, i) => i !== index);
+    setUploadedImages(newImages);
+    form.setValue("images", newImages);
   };
 
   return (
@@ -100,24 +107,46 @@ export function ProductForm({ onSubmit, isLoading }: ProductFormProps) {
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-medium">Product Images</h3>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleAddImage}
-              disabled={form.getValues("images").length >= SAMPLE_IMAGES.length}
-            >
-              Add Image
-            </Button>
+            <FormItem>
+              <FormControl>
+                <div className="flex items-center gap-2">
+                  <label htmlFor="image-upload" className="cursor-pointer">
+                    <Button type="button" variant="outline" className="flex items-center gap-2">
+                      <ImagePlus className="h-4 w-4" />
+                      Add Images
+                    </Button>
+                    <input
+                      id="image-upload"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={handleImageUpload}
+                    />
+                  </label>
+                </div>
+              </FormControl>
+            </FormItem>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
-            {form.getValues("images").map((url, index) => (
-              <img
-                key={index}
-                src={url}
-                alt={`Product image ${index + 1}`}
-                className="w-full h-40 object-cover rounded-lg"
-              />
+            {uploadedImages.map((image, index) => (
+              <div key={index} className="relative group">
+                <img
+                  src={image}
+                  alt={`Product image ${index + 1}`}
+                  className="w-full h-40 object-cover rounded-lg"
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={() => removeImage(index)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             ))}
           </div>
         </div>

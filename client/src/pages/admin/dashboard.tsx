@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ProductCarousel } from "@/components/product-carousel";
+import { BulkUpload } from "@/components/admin/bulk-upload";
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -109,7 +110,7 @@ export default function AdminDashboard() {
             <DialogTrigger asChild>
               <Button className="flex items-center gap-2">
                 <PlusCircle className="h-4 w-4" />
-                Add New Product
+                Add Single Product
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
@@ -124,48 +125,58 @@ export default function AdminDashboard() {
           </Dialog>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {products.map((product) => (
-            <Card key={product.id}>
-              <CardContent className="p-0">
-                <ProductCarousel images={product.images} />
-                <div className="p-6">
-                  <h3 className="text-lg font-semibold">{product.name}</h3>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    {product.description}
-                  </p>
-                  <div className="mt-4 flex justify-between items-center">
-                    <span
-                      className={`inline-flex items-center gap-1 text-sm ${
-                        product.isAvailable
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }`}
-                    >
-                      {product.isAvailable ? (
-                        <CheckCircle className="h-4 w-4" />
-                      ) : (
-                        <XCircle className="h-4 w-4" />
-                      )}
-                      {product.isAvailable ? "Available" : "Unavailable"}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        toggleAvailabilityMutation.mutate({
-                          id: product.id,
-                          isAvailable: !product.isAvailable,
-                        })
-                      }
-                    >
-                      Toggle Availability
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="space-y-8">
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Bulk Upload</h3>
+            <BulkUpload />
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Product List</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {products.map((product) => (
+                <Card key={product.id}>
+                  <CardContent className="p-0">
+                    <ProductCarousel images={product.images} />
+                    <div className="p-6">
+                      <h3 className="text-lg font-semibold">{product.name}</h3>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        {product.description}
+                      </p>
+                      <div className="mt-4 flex justify-between items-center">
+                        <span
+                          className={`inline-flex items-center gap-1 text-sm ${
+                            product.isAvailable
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }`}
+                        >
+                          {product.isAvailable ? (
+                            <CheckCircle className="h-4 w-4" />
+                          ) : (
+                            <XCircle className="h-4 w-4" />
+                          )}
+                          {product.isAvailable ? "Available" : "Unavailable"}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            toggleAvailabilityMutation.mutate({
+                              id: product.id,
+                              isAvailable: !product.isAvailable,
+                            })
+                          }
+                        >
+                          Toggle Availability
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
         </div>
       </main>
     </div>
