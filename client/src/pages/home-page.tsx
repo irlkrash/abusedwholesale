@@ -4,11 +4,14 @@ import { Product } from "@shared/schema";
 import { ProductCard } from "@/components/product-card";
 import { CartOverlay } from "@/components/cart-overlay";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, LogIn } from "lucide-react";
+import { Link } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function HomePage() {
   const [cartItems, setCartItems] = useState<Product[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const { user } = useAuth();
 
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ["/api/products"],
@@ -31,14 +34,28 @@ export default function HomePage() {
       <header className="border-b">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <h1 className="text-2xl font-bold">Wholesale Clothing Store</h1>
-          <Button
-            variant="outline"
-            className="flex items-center gap-2"
-            onClick={() => setIsCartOpen(true)}
-          >
-            <ShoppingCart className="h-4 w-4" />
-            Cart ({cartItems.length})
-          </Button>
+          <div className="flex items-center gap-4">
+            {user?.isAdmin ? (
+              <Link href="/admin">
+                <Button variant="outline">Admin Dashboard</Button>
+              </Link>
+            ) : (
+              <Link href="/auth">
+                <Button variant="outline" className="flex items-center gap-2">
+                  <LogIn className="h-4 w-4" />
+                  Login / Register
+                </Button>
+              </Link>
+            )}
+            <Button
+              variant="outline"
+              className="flex items-center gap-2"
+              onClick={() => setIsCartOpen(true)}
+            >
+              <ShoppingCart className="h-4 w-4" />
+              Cart ({cartItems.length})
+            </Button>
+          </div>
         </div>
       </header>
 
