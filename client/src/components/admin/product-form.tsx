@@ -59,10 +59,10 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
         });
         return false;
       }
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      if (file.size > 10 * 1024 * 1024) { // 10MB limit
         toast({
           title: "File too large",
-          description: `${file.name} is larger than 5MB`,
+          description: `${file.name} is larger than 10MB`,
           variant: "destructive",
         });
         return false;
