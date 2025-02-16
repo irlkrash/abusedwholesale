@@ -3,6 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { insertUserSchema } from "@shared/schema";
 import { useLocation } from "wouter";
+import { useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -26,9 +27,15 @@ export default function AuthPage() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
 
-  // Redirect if already logged in
+  // Use useEffect for navigation instead of render-time redirect
+  useEffect(() => {
+    if (user) {
+      setLocation("/admin");
+    }
+  }, [user, setLocation]);
+
+  // If we're still loading, return null to avoid flash of content
   if (user) {
-    setLocation("/admin");
     return null;
   }
 
