@@ -133,7 +133,7 @@ export default function AdminCarts() {
             <img 
               src="/assets/logo.png"
               alt="Abused Goods Logo" 
-              className="h-8"
+              className="h-16"
             />
             <span className="ml-2 text-xl font-semibold">Cart Management</span>
           </div>

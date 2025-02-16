@@ -47,7 +47,7 @@ export default function HomePage() {
             <img
               src="/assets/logo.png"
               alt="Abused Goods Logo"
-              className="h-8"
+              className="h-16"
             />
           </div>
           <div className="flex items-center gap-4">

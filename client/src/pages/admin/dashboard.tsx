@@ -119,7 +119,7 @@ export default function AdminDashboard() {
             <img
               src="/assets/logo.png"
               alt="Abused Goods Logo"
-              className="h-8"
+              className="h-16"
             />
             <span className="ml-2 text-xl font-semibold">Admin</span>
           </div>
