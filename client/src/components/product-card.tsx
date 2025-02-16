@@ -13,12 +13,8 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
     <Card className="overflow-hidden">
       <CardContent className="p-0">
         <ProductCarousel images={product.images} />
-        <div className="p-6">
-          <h3 className="text-lg font-semibold">{product.name}</h3>
-          <p className="text-sm text-muted-foreground mt-2">{product.description}</p>
-        </div>
       </CardContent>
-      <CardFooter className="p-6 pt-0">
+      <CardFooter className="p-6">
         <Button 
           onClick={onAddToCart}
           disabled={!product.isAvailable}
