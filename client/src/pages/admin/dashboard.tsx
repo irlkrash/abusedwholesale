@@ -45,12 +45,17 @@ export default function AdminDashboard() {
 
   const createProductMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/products", data);
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json.message || "Failed to create product");
+      try {
+        const res = await apiRequest("POST", "/api/products", data);
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.message || "Failed to create product");
+        }
+        return await res.json();
+      } catch (error) {
+        console.error("Create product error:", error);
+        throw error;
       }
-      return json;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
@@ -61,6 +66,7 @@ export default function AdminDashboard() {
       setIsDialogOpen(false);
     },
     onError: (error: Error) => {
+      console.error("Create product mutation error:", error);
       toast({
         title: "Failed to create product",
         description: error.message,

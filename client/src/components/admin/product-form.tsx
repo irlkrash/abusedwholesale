@@ -43,14 +43,15 @@ export function ProductForm({ onSubmit, isLoading, initialImages = [] }: Product
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result as string;
-        setUploadedImages(prev => [...prev, result]);
-        // Update the form value after setting the state
-        const updatedImages = [...uploadedImages, result];
-        form.setValue("images", updatedImages, { shouldValidate: true });
+        setUploadedImages(prev => {
+          const newImages = [...prev, result];
+          form.setValue("images", newImages, { shouldValidate: true });
+          return newImages;
+        });
       };
       reader.readAsDataURL(file);
     });
-  }, [uploadedImages, form]);
+  }, [form]);
 
   const removeImage = (index: number) => {
     const newImages = uploadedImages.filter((_, i) => i !== index);
@@ -58,18 +59,17 @@ export function ProductForm({ onSubmit, isLoading, initialImages = [] }: Product
     form.setValue("images", newImages, { shouldValidate: true });
   };
 
-  const handleSubmit = form.handleSubmit((data) => {
-    // Ensure images are included in the form data
-    const formData = {
-      ...data,
-      images: uploadedImages,
-    };
-    onSubmit(formData);
-  });
-
   return (
     <Form {...form}>
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form 
+        onSubmit={form.handleSubmit((data) => {
+          onSubmit({
+            ...data,
+            images: uploadedImages,
+          });
+        })} 
+        className="space-y-6"
+      >
         <FormField
           control={form.control}
           name="name"
@@ -122,7 +122,12 @@ export function ProductForm({ onSubmit, isLoading, initialImages = [] }: Product
               <FormControl>
                 <div className="flex items-center gap-2">
                   <label htmlFor="image-upload" className="cursor-pointer">
-                    <Button type="button" variant="outline" className="flex items-center gap-2">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="flex items-center gap-2"
+                      disabled={isLoading}
+                    >
                       <ImagePlus className="h-4 w-4" />
                       Add Images
                     </Button>
@@ -133,6 +138,7 @@ export function ProductForm({ onSubmit, isLoading, initialImages = [] }: Product
                       multiple
                       className="hidden"
                       onChange={handleImageUpload}
+                      disabled={isLoading}
                     />
                   </label>
                 </div>
@@ -154,6 +160,7 @@ export function ProductForm({ onSubmit, isLoading, initialImages = [] }: Product
                   size="icon"
                   className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
                   onClick={() => removeImage(index)}
+                  disabled={isLoading}
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -168,7 +175,11 @@ export function ProductForm({ onSubmit, isLoading, initialImages = [] }: Product
           </p>
         )}
 
-        <Button type="submit" className="w-full" disabled={isLoading || uploadedImages.length === 0}>
+        <Button 
+          type="submit" 
+          className="w-full" 
+          disabled={isLoading || uploadedImages.length === 0}
+        >
           {isLoading ? "Creating..." : "Create Product"}
         </Button>
       </form>
