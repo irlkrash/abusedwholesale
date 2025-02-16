@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
-import { Cart } from "@shared/schema";
+import { Cart, Product } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { ShoppingCart, ArrowLeft } from "lucide-react";
@@ -12,13 +12,29 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { format } from "date-fns";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+type CartItem = {
+  productId: number;
+  name: string;
+  image?: string;
+};
 
 export default function AdminCarts() {
   const { user } = useAuth();
+  const { data: products = [] } = useQuery<Product[]>({
+    queryKey: ["/api/products"],
+  });
 
   const { data: carts = [] } = useQuery<Cart[]>({
     queryKey: ["/api/carts"],
   });
+
+  // Function to get product image for a cart item
+  const getProductImage = (productId: number): string | undefined => {
+    const product = products.find(p => p.id === productId);
+    return product?.images[0];
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -58,18 +74,34 @@ export default function AdminCarts() {
                   </div>
                   <div>
                     <h3 className="font-medium mb-2">Cart Items</h3>
-                    <div className="space-y-2">
-                      {Array.isArray(cart.items) &&
-                        cart.items.map((item: any, index: number) => (
-                          <div
-                            key={index}
-                            className="flex items-center gap-2 text-sm"
-                          >
-                            <ShoppingCart className="h-4 w-4" />
-                            <span>{item.name}</span>
-                          </div>
-                        ))}
-                    </div>
+                    <ScrollArea className="h-[300px] w-full">
+                      <div className="space-y-4">
+                        {Array.isArray(cart.items) &&
+                          (cart.items as CartItem[]).map((item, index) => {
+                            const image = getProductImage(item.productId);
+                            return (
+                              <div
+                                key={index}
+                                className="flex items-center gap-4 p-2 rounded-lg border"
+                              >
+                                {image && (
+                                  <img
+                                    src={image}
+                                    alt={item.name}
+                                    className="w-16 h-16 object-cover rounded"
+                                  />
+                                )}
+                                <div>
+                                  <p className="font-medium">{item.name}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    Product ID: {item.productId}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </ScrollArea>
                   </div>
                 </div>
               </CardContent>

@@ -7,17 +7,28 @@ import { Button } from "@/components/ui/button";
 import { ShoppingCart, LogIn } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 
 export default function HomePage() {
   const [cartItems, setCartItems] = useState<Product[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ["/api/products"],
   });
 
   const handleAddToCart = (product: Product) => {
+    // Check if item already exists in cart
+    if (cartItems.some(item => item.id === product.id)) {
+      toast({
+        title: "Item already in cart",
+        description: "This item is already in your cart.",
+        variant: "destructive",
+      });
+      return;
+    }
     setCartItems([...cartItems, product]);
   };
 
