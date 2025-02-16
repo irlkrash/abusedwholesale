@@ -11,9 +11,10 @@ export interface IStorage {
   sessionStore: session.Store;
 
   // User operations
+  getUsers(): Promise<User[]>;
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  createUser(user: InsertUser & { isAdmin: boolean }): Promise<User>;
 
   // Product operations
   getProducts(): Promise<Product[]>;
@@ -42,6 +43,10 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
+  async getUsers(): Promise<User[]> {
+    return await db.select().from(users);
+  }
+
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
@@ -52,7 +57,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async createUser(insertUser: InsertUser & { isAdmin: boolean }): Promise<User> {
     const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
