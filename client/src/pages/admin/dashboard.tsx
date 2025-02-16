@@ -183,12 +183,12 @@ export default function AdminDashboard() {
 
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Product List</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {products.map((product) => (
                 <Card key={product.id}>
                   <CardContent className="p-0">
                     <ProductCarousel images={product.images} />
-                    <div className="p-6">
+                    <div className="p-4">
                       <h3 className="text-lg font-semibold">{product.name}</h3>
                       <p className="text-sm text-muted-foreground mt-2">
                         {product.description}
@@ -279,7 +279,7 @@ export default function AdminDashboard() {
                               })
                             }
                           >
-                            Toggle Availability
+                            Toggle
                           </Button>
                         </div>
                       </div>
