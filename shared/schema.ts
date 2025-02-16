@@ -17,13 +17,13 @@ export const products = pgTable("products", {
   isAvailable: boolean("is_available").notNull().default(true),
 });
 
-export const orders = pgTable("orders", {
+export const carts = pgTable("carts", {
   id: serial("id").primaryKey(),
   customerName: text("customer_name").notNull(),
   customerEmail: text("customer_email").notNull(),
   items: jsonb("items").notNull(),
-  status: text("status").notNull().default("pending"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -38,7 +38,7 @@ export const insertProductSchema = createInsertSchema(products).pick({
   isAvailable: true,
 });
 
-export const insertOrderSchema = createInsertSchema(orders).pick({
+export const insertCartSchema = createInsertSchema(carts).pick({
   customerName: true,
   customerEmail: true,
   items: true,
@@ -46,7 +46,7 @@ export const insertOrderSchema = createInsertSchema(orders).pick({
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
-export type InsertOrder = z.infer<typeof insertOrderSchema>;
+export type InsertCart = z.infer<typeof insertCartSchema>;
 export type User = typeof users.$inferSelect;
 export type Product = typeof products.$inferSelect;
-export type Order = typeof orders.$inferSelect;
+export type Cart = typeof carts.$inferSelect;

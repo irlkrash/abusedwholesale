@@ -14,6 +14,7 @@ import {
   PlusCircle,
   CheckCircle,
   XCircle,
+  ShoppingCart,
 } from "lucide-react";
 import {
   Card,
@@ -86,10 +87,10 @@ export default function AdminDashboard() {
                 Shop
               </Button>
             </Link>
-            <Link href="/admin/orders">
+            <Link href="/admin/carts">
               <Button variant="outline" className="flex items-center gap-2">
-                <ShoppingBag className="h-4 w-4" />
-                View Orders
+                <ShoppingCart className="h-4 w-4" />
+                View Carts
               </Button>
             </Link>
             <Button

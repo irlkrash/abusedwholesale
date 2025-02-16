@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertProductSchema, insertOrderSchema } from "@shared/schema";
+import { insertProductSchema, insertCartSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -48,35 +48,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(product);
   });
 
-  // Orders routes
-  app.get("/api/orders", async (req, res) => {
+  // Cart routes
+  app.get("/api/carts", async (req, res) => {
     if (!req.isAuthenticated() || !req.user?.isAdmin) {
       return res.status(403).json({ message: "Admin privileges required" });
     }
 
-    const orders = await storage.getOrders();
-    res.json(orders);
+    const carts = await storage.getCarts();
+    res.json(carts);
   });
 
-  app.post("/api/orders", async (req, res) => {
-    const parsed = insertOrderSchema.safeParse(req.body);
+  app.post("/api/carts", async (req, res) => {
+    const parsed = insertCartSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json(parsed.error);
     }
 
-    const order = await storage.createOrder(parsed.data);
-    res.status(201).json(order);
-  });
-
-  app.patch("/api/orders/:id/status", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user?.isAdmin) {
-      return res.status(403).json({ message: "Admin privileges required" });
-    }
-
-    const orderId = parseInt(req.params.id);
-    const { status } = req.body;
-    const order = await storage.updateOrderStatus(orderId, status);
-    res.json(order);
+    const cart = await storage.createCart(parsed.data);
+    res.status(201).json(cart);
   });
 
   const httpServer = createServer(app);

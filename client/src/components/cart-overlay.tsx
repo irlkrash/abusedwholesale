@@ -34,9 +34,9 @@ export function CartOverlay({
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
 
-  const handleSubmitOrder = async () => {
+  const handleSubmitCart = async () => {
     try {
-      await apiRequest("POST", "/api/orders", {
+      await apiRequest("POST", "/api/carts", {
         customerName,
         customerEmail,
         items: items.map(item => ({ 
@@ -44,17 +44,17 @@ export function CartOverlay({
           name: item.name
         })),
       });
-      
+
       toast({
-        title: "Order submitted successfully!",
-        description: "We'll contact you soon about your wholesale order.",
+        title: "Cart submitted successfully!",
+        description: "We'll review your cart items and contact you soon.",
       });
-      
+
       onClearCart();
       onOpenChange(false);
     } catch (error) {
       toast({
-        title: "Failed to submit order",
+        title: "Failed to submit cart",
         description: "Please try again later.",
         variant: "destructive",
       });
@@ -67,7 +67,7 @@ export function CartOverlay({
         <SheetHeader>
           <SheetTitle>Your Cart</SheetTitle>
           <SheetDescription>
-            Review your selected items before submitting your wholesale order.
+            Review your selected items before submitting.
           </SheetDescription>
         </SheetHeader>
 
@@ -85,9 +85,6 @@ export function CartOverlay({
                 />
                 <div>
                   <h4 className="font-medium">{item.name}</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {item.description}
-                  </p>
                 </div>
               </div>
               <Button
@@ -120,10 +117,10 @@ export function CartOverlay({
             <Button variant="outline">Cancel</Button>
           </SheetClose>
           <Button 
-            onClick={handleSubmitOrder}
+            onClick={handleSubmitCart}
             disabled={!customerName || !customerEmail || items.length === 0}
           >
-            Submit Order
+            Submit Cart
           </Button>
         </SheetFooter>
       </SheetContent>

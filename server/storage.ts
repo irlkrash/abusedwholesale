@@ -1,5 +1,5 @@
-import { InsertUser, User, Product, Order, InsertProduct, InsertOrder } from "@shared/schema";
-import { users, products, orders } from "@shared/schema";
+import { InsertUser, User, Product, Cart, InsertProduct, InsertCart } from "@shared/schema";
+import { users, products, carts } from "@shared/schema";
 import session from "express-session";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -22,10 +22,10 @@ export interface IStorage {
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: number, product: Partial<Product>): Promise<Product>;
 
-  // Order operations
-  getOrders(): Promise<Order[]>;
-  createOrder(order: InsertOrder): Promise<Order>;
-  updateOrderStatus(id: number, status: string): Promise<Order>;
+  // Cart operations
+  getCarts(): Promise<Cart[]>;
+  createCart(cart: InsertCart): Promise<Cart>;
+  updateCart(id: number, cart: Partial<Cart>): Promise<Cart>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -106,30 +106,31 @@ export class DatabaseStorage implements IStorage {
     return product;
   }
 
-  async getOrders(): Promise<Order[]> {
-    return await db.select().from(orders);
+  async getCarts(): Promise<Cart[]> {
+    return await db.select().from(carts);
   }
 
-  async createOrder(insertOrder: InsertOrder): Promise<Order> {
-    const [order] = await db
-      .insert(orders)
+  async createCart(insertCart: InsertCart): Promise<Cart> {
+    const now = new Date();
+    const [cart] = await db
+      .insert(carts)
       .values({
-        ...insertOrder,
-        status: "pending",
-        createdAt: new Date(),
+        ...insertCart,
+        createdAt: now,
+        updatedAt: now,
       })
       .returning();
-    return order;
+    return cart;
   }
 
-  async updateOrderStatus(id: number, status: string): Promise<Order> {
-    const [order] = await db
-      .update(orders)
-      .set({ status })
-      .where(eq(orders.id, id))
+  async updateCart(id: number, updates: Partial<Cart>): Promise<Cart> {
+    const [cart] = await db
+      .update(carts)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(carts.id, id))
       .returning();
-    if (!order) throw new Error("Order not found");
-    return order;
+    if (!cart) throw new Error("Cart not found");
+    return cart;
   }
 }
 
