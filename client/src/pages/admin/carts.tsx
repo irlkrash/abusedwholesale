@@ -62,13 +62,6 @@ export default function AdminCarts() {
         description: "The cart has been successfully deleted.",
       });
     },
-    onError: (error: Error) => {
-      toast({
-        title: "Error deleting cart",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
   });
 
   const makeItemsUnavailableMutation = useMutation({
@@ -83,64 +76,29 @@ export default function AdminCarts() {
         description: "All items in the cart have been marked as unavailable.",
       });
     },
-    onError: (error: Error) => {
-      toast({
-        title: "Error updating items",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
   });
 
-  // Function to get product image for a cart item
   const getProductImage = (productId: number): string | undefined => {
     const product = products.find(p => p.id === productId);
     return product?.images[0];
   };
 
-  if (isError) {
-    return (
-      <div className="min-h-screen bg-background">
-        <header className="border-b">
-          <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-            <h1 className="text-2xl font-bold">Cart Management</h1>
-            <Link href="/admin">
-              <Button variant="outline" className="flex items-center gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Back to Dashboard
-              </Button>
-            </Link>
-          </div>
-        </header>
-        <main className="container mx-auto px-4 py-8">
-          <Card>
-            <CardContent className="p-6">
-              <p className="text-center text-muted-foreground">
-                Error loading carts. Please try again later.
-              </p>
-            </CardContent>
-          </Card>
-        </main>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center">
+          <div className="flex items-center gap-2">
             <img 
               src="/assets/logo.png"
               alt="Abused Goods Logo" 
-              className="h-16"
+              className="h-12"
             />
-            <span className="ml-2 text-xl font-semibold">Cart Management</span>
+            <span className="text-lg font-medium">Cart Management</span>
           </div>
           <Link href="/admin">
             <Button variant="outline" className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
-              Back to Dashboard
+              Back
             </Button>
           </Link>
         </div>
@@ -149,27 +107,32 @@ export default function AdminCarts() {
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-6">
           {carts.map((cart) => (
-            <Card key={cart.id}>
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle>Cart #{cart.id}</CardTitle>
+            <Card key={cart.id} className="overflow-hidden">
+              <CardHeader className="space-y-0 pb-4">
+                <div className="flex flex-wrap justify-between items-center gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-xl">Cart #{cart.id}</CardTitle>
+                      <span className="text-sm text-muted-foreground">
+                        {format(new Date(cart.createdAt), "PPp")}
+                      </span>
+                    </div>
                     <CardDescription>
-                      Created on {format(new Date(cart.createdAt), "PPP")}
+                      Customer: {cart.customerName} ({cart.customerEmail})
                     </CardDescription>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="outline" size="sm">
-                          Make Items Unavailable
+                          Make Unavailable
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
                           <AlertDialogTitle>Make Items Unavailable</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Are you sure you want to mark all items in this cart as unavailable? This will affect the products' availability in the store.
+                            This will mark all items in this cart as unavailable in the store.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -193,7 +156,7 @@ export default function AdminCarts() {
                         <AlertDialogHeader>
                           <AlertDialogTitle>Delete Cart</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Are you sure you want to delete this cart? This action cannot be undone.
+                            Are you sure you want to delete this cart?
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -211,45 +174,34 @@ export default function AdminCarts() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-medium mb-2">Customer Information</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {cart.customerName} ({cart.customerEmail})
-                    </p>
+                <ScrollArea className="h-[300px]">
+                  <div className="grid gap-4">
+                    {Array.isArray(cart.items) &&
+                      (cart.items as CartItem[]).map((item, index) => {
+                        const image = getProductImage(item.productId);
+                        return (
+                          <div
+                            key={index}
+                            className="flex items-center gap-4 p-2 rounded-lg border"
+                          >
+                            {image && (
+                              <img
+                                src={image}
+                                alt={item.name}
+                                className="w-16 h-16 object-cover rounded"
+                              />
+                            )}
+                            <div>
+                              <p className="font-medium">{item.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                ID: {item.productId}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
                   </div>
-                  <div>
-                    <h3 className="font-medium mb-2">Cart Items</h3>
-                    <ScrollArea className="h-[300px] w-full">
-                      <div className="space-y-4">
-                        {Array.isArray(cart.items) &&
-                          (cart.items as CartItem[]).map((item, index) => {
-                            const image = getProductImage(item.productId);
-                            return (
-                              <div
-                                key={index}
-                                className="flex items-center gap-4 p-2 rounded-lg border"
-                              >
-                                {image && (
-                                  <img
-                                    src={image}
-                                    alt={item.name}
-                                    className="w-16 h-16 object-cover rounded"
-                                  />
-                                )}
-                                <div>
-                                  <p className="font-medium">{item.name}</p>
-                                  <p className="text-sm text-muted-foreground">
-                                    Product ID: {item.productId}
-                                  </p>
-                                </div>
-                              </div>
-                            );
-                          })}
-                      </div>
-                    </ScrollArea>
-                  </div>
-                </div>
+                </ScrollArea>
               </CardContent>
             </Card>
           ))}
