@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { useCallback, useState } from "react";
 import { ImagePlus, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProductFormProps {
   onSubmit: (data: any) => void;
@@ -28,6 +29,7 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormProps) {
+  const { toast } = useToast();
   const [uploadedImages, setUploadedImages] = useState<string[]>(initialData?.images || []);
 
   const form = useForm({
@@ -42,27 +44,72 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
 
   const handleImageUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0) {
+      return;
+    }
 
-    Array.from(files).forEach(file => {
+    // Validate file types and sizes
+    const validFiles = Array.from(files).filter(file => {
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid file type",
+          description: `${file.name} is not an image file`,
+          variant: "destructive",
+        });
+        return false;
+      }
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({
+          title: "File too large",
+          description: `${file.name} is larger than 5MB`,
+          variant: "destructive",
+        });
+        return false;
+      }
+      return true;
+    });
+
+    validFiles.forEach(file => {
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result as string;
-        setUploadedImages(prev => {
-          const newImages = [...prev, result];
-          form.setValue("images", newImages, { shouldValidate: true });
-          return newImages;
+        if (result) {
+          setUploadedImages(prev => {
+            const newImages = [...prev, result];
+            form.setValue("images", newImages, { shouldValidate: true });
+            return newImages;
+          });
+          toast({
+            title: "Image uploaded",
+            description: `${file.name} has been added`,
+          });
+        }
+      };
+      reader.onerror = () => {
+        toast({
+          title: "Upload failed",
+          description: `Failed to upload ${file.name}`,
+          variant: "destructive",
         });
       };
       reader.readAsDataURL(file);
     });
-  }, [form]);
 
-  const removeImage = (index: number) => {
-    const newImages = uploadedImages.filter((_, i) => i !== index);
-    setUploadedImages(newImages);
-    form.setValue("images", newImages, { shouldValidate: true });
-  };
+    // Reset the input
+    event.target.value = '';
+  }, [form, toast]);
+
+  const removeImage = useCallback((index: number) => {
+    setUploadedImages(prev => {
+      const newImages = prev.filter((_, i) => i !== index);
+      form.setValue("images", newImages, { shouldValidate: true });
+      return newImages;
+    });
+    toast({
+      title: "Image removed",
+      description: "The image has been removed from the product",
+    });
+  }, [form, toast]);
 
   return (
     <Form {...form}>
