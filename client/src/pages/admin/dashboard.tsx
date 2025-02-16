@@ -18,6 +18,8 @@ import {
   Edit,
   Trash2,
   Menu,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import {
   Card,
@@ -55,16 +57,30 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 
-
 export default function AdminDashboard() {
   const { toast } = useToast();
   const { user, logoutMutation } = useAuth();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
 
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ["/api/products"],
   });
+
+  const toggleSelection = (productId: number) => {
+    const newSelection = new Set(selectedProducts);
+    if (newSelection.has(productId)) {
+      newSelection.delete(productId);
+    } else {
+      newSelection.add(productId);
+    }
+    setSelectedProducts(newSelection);
+  };
+
+  const clearSelection = () => {
+    setSelectedProducts(new Set());
+  };
 
   const createProductMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -97,25 +113,36 @@ export default function AdminDashboard() {
   });
 
   const toggleAvailabilityMutation = useMutation({
-    mutationFn: async ({ id, isAvailable }: { id: number; isAvailable: boolean }) => {
-      const res = await apiRequest("PATCH", `/api/products/${id}`, { isAvailable });
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
-    },
-  });
-
-  const deleteProductMutation = useMutation({
-    mutationFn: async (productId: number) => {
-      await apiRequest("DELETE", `/api/products/${productId}`);
+    mutationFn: async ({ ids, isAvailable }: { ids: number[]; isAvailable: boolean }) => {
+      const promises = ids.map(id => 
+        apiRequest("PATCH", `/api/products/${id}`, { isAvailable })
+      );
+      await Promise.all(promises);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       toast({
-        title: "Product deleted",
-        description: "The product has been removed from the catalog.",
+        title: "Products updated",
+        description: "The selected products have been updated.",
       });
+      clearSelection();
+    },
+  });
+
+  const deleteProductMutation = useMutation({
+    mutationFn: async (productIds: number[]) => {
+      const promises = productIds.map(id => 
+        apiRequest("DELETE", `/api/products/${id}`)
+      );
+      await Promise.all(promises);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      toast({
+        title: "Products deleted",
+        description: "The selected products have been removed from the catalog.",
+      });
+      clearSelection();
     },
   });
 
@@ -191,23 +218,79 @@ export default function AdminDashboard() {
               Manage your wholesale product listings
             </p>
           </div>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="flex items-center gap-2">
-                <PlusCircle className="h-4 w-4" />
-                Add Single Product
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Create New Product</DialogTitle>
-              </DialogHeader>
-              <ProductForm
-                onSubmit={(data) => createProductMutation.mutate(data)}
-                isLoading={createProductMutation.isPending}
-              />
-            </DialogContent>
-          </Dialog>
+          <div className="flex flex-wrap gap-2">
+            {selectedProducts.size > 0 && (
+              <>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" className="flex items-center gap-2">
+                      <Trash2 className="h-4 w-4" />
+                      Delete Selected ({selectedProducts.size})
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Products</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete {selectedProducts.size} products? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => deleteProductMutation.mutate(Array.from(selectedProducts))}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                <Button
+                  variant="outline"
+                  onClick={() => 
+                    toggleAvailabilityMutation.mutate({
+                      ids: Array.from(selectedProducts),
+                      isAvailable: true,
+                    })
+                  }
+                >
+                  Make Available
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => 
+                    toggleAvailabilityMutation.mutate({
+                      ids: Array.from(selectedProducts),
+                      isAvailable: false,
+                    })
+                  }
+                >
+                  Make Unavailable
+                </Button>
+                <Button variant="outline" onClick={clearSelection}>
+                  Clear Selection
+                </Button>
+              </>
+            )}
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="flex items-center gap-2">
+                  <PlusCircle className="h-4 w-4" />
+                  Add Single Product
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Create New Product</DialogTitle>
+                </DialogHeader>
+                <ProductForm
+                  onSubmit={(data) => createProductMutation.mutate(data)}
+                  isLoading={createProductMutation.isPending}
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         <div className="space-y-8">
@@ -220,9 +303,25 @@ export default function AdminDashboard() {
             <h3 className="text-lg font-medium">Product List</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {products.map((product) => (
-                <Card key={product.id}>
+                <Card key={product.id} className={`overflow-hidden ${
+                  selectedProducts.has(product.id) ? 'ring-2 ring-primary' : ''
+                }`}>
                   <CardContent className="p-0">
-                    <ProductCarousel images={product.images} />
+                    <div className="relative">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-sm"
+                        onClick={() => toggleSelection(product.id)}
+                      >
+                        {selectedProducts.has(product.id) ? (
+                          <CheckSquare className="h-4 w-4" />
+                        ) : (
+                          <Square className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <ProductCarousel images={product.images} />
+                    </div>
                     <div className="p-4">
                       <h3 className="text-lg font-semibold">{product.name}</h3>
                       <p className="text-sm text-muted-foreground mt-2">
@@ -275,47 +374,6 @@ export default function AdminDashboard() {
                               />
                             </DialogContent>
                           </Dialog>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                className="flex items-center gap-2"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                Delete
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Product</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete this product? This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => deleteProductMutation.mutate(product.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              toggleAvailabilityMutation.mutate({
-                                id: product.id,
-                                isAvailable: !product.isAvailable,
-                              })
-                            }
-                          >
-                            Toggle
-                          </Button>
                         </div>
                       </div>
                     </div>
