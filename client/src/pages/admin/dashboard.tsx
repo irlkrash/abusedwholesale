@@ -17,6 +17,7 @@ import {
   ShoppingCart,
   Edit,
   Trash2,
+  Menu,
 } from "lucide-react";
 import {
   Card,
@@ -46,6 +47,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader as SheetHeader2,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 
 export default function AdminDashboard() {
@@ -111,6 +119,31 @@ export default function AdminDashboard() {
     },
   });
 
+  const NavLinks = () => (
+    <>
+      <Link href="/">
+        <Button variant="outline" className="flex items-center gap-2">
+          <ShoppingBag className="h-4 w-4" />
+          Shop
+        </Button>
+      </Link>
+      <Link href="/admin/carts">
+        <Button variant="outline" className="flex items-center gap-2">
+          <ShoppingCart className="h-4 w-4" />
+          View Carts
+        </Button>
+      </Link>
+      <Button
+        variant="ghost"
+        onClick={() => logoutMutation.mutate()}
+        className="flex items-center gap-2"
+      >
+        <LogOut className="h-4 w-4" />
+        Logout
+      </Button>
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
@@ -123,33 +156,35 @@ export default function AdminDashboard() {
             />
             <span className="ml-2 text-xl font-semibold">Admin</span>
           </div>
-          <div className="flex items-center gap-4">
-            <Link href="/">
-              <Button variant="outline" className="flex items-center gap-2">
-                <ShoppingBag className="h-4 w-4" />
-                Shop
-              </Button>
-            </Link>
-            <Link href="/admin/carts">
-              <Button variant="outline" className="flex items-center gap-2">
-                <ShoppingCart className="h-4 w-4" />
-                View Carts
-              </Button>
-            </Link>
-            <Button
-              variant="ghost"
-              onClick={() => logoutMutation.mutate()}
-              className="flex items-center gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              Logout
-            </Button>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-4">
+            <NavLinks />
+          </div>
+
+          {/* Mobile Navigation */}
+          <div className="md:hidden">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <Menu className="h-4 w-4" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent>
+                <SheetHeader2>
+                  <SheetTitle>Menu</SheetTitle>
+                </SheetHeader2>
+                <div className="flex flex-col gap-4 mt-4">
+                  <NavLinks />
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
             <h2 className="text-3xl font-bold">Product Catalog</h2>
             <p className="text-muted-foreground mt-1">

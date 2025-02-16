@@ -4,10 +4,17 @@ import { Product } from "@shared/schema";
 import { ProductCard } from "@/components/product-card";
 import { CartOverlay } from "@/components/cart-overlay";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, LogIn } from "lucide-react";
+import { Menu, ShoppingCart, LogIn } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 export default function HomePage() {
   const [cartItems, setCartItems] = useState<Product[]>([]);
@@ -39,6 +46,31 @@ export default function HomePage() {
     setCartItems([]);
   };
 
+  const NavLinks = () => (
+    <>
+      {user?.isAdmin ? (
+        <Link href="/admin">
+          <Button variant="outline">Admin Dashboard</Button>
+        </Link>
+      ) : (
+        <Link href="/auth">
+          <Button variant="outline" className="flex items-center gap-2">
+            <LogIn className="h-4 w-4" />
+            Login / Register
+          </Button>
+        </Link>
+      )}
+      <Button
+        variant="outline"
+        className="flex items-center gap-2"
+        onClick={() => setIsCartOpen(true)}
+      >
+        <ShoppingCart className="h-4 w-4" />
+        Cart ({cartItems.length})
+      </Button>
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
@@ -50,27 +82,37 @@ export default function HomePage() {
               className="h-16"
             />
           </div>
-          <div className="flex items-center gap-4">
-            {user?.isAdmin ? (
-              <Link href="/admin">
-                <Button variant="outline">Admin Dashboard</Button>
-              </Link>
-            ) : (
-              <Link href="/auth">
-                <Button variant="outline" className="flex items-center gap-2">
-                  <LogIn className="h-4 w-4" />
-                  Login / Register
-                </Button>
-              </Link>
-            )}
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-4">
+            <NavLinks />
+          </div>
+
+          {/* Mobile Navigation */}
+          <div className="md:hidden flex items-center gap-4">
             <Button
               variant="outline"
               className="flex items-center gap-2"
               onClick={() => setIsCartOpen(true)}
             >
               <ShoppingCart className="h-4 w-4" />
-              Cart ({cartItems.length})
+              {cartItems.length}
             </Button>
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <Menu className="h-4 w-4" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent>
+                <SheetHeader>
+                  <SheetTitle>Menu</SheetTitle>
+                </SheetHeader>
+                <div className="flex flex-col gap-4 mt-4">
+                  <NavLinks />
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </header>
