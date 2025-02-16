@@ -40,6 +40,7 @@ export class DatabaseStorage implements IStorage {
         connectionString: process.env.DATABASE_URL,
       },
       createTableIfMissing: true,
+      tableName: 'sessions' // Using a different table name to avoid conflicts
     });
   }
 
