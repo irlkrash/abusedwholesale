@@ -46,7 +46,11 @@ export default function AdminDashboard() {
   const createProductMutation = useMutation({
     mutationFn: async (data: any) => {
       const res = await apiRequest("POST", "/api/products", data);
-      return res.json();
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.message || "Failed to create product");
+      }
+      return json;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });

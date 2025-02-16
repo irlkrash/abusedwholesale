@@ -44,7 +44,9 @@ export function ProductForm({ onSubmit, isLoading, initialImages = [] }: Product
       reader.onload = (e) => {
         const result = e.target?.result as string;
         setUploadedImages(prev => [...prev, result]);
-        form.setValue("images", [...uploadedImages, result]);
+        // Update the form value after setting the state
+        const updatedImages = [...uploadedImages, result];
+        form.setValue("images", updatedImages, { shouldValidate: true });
       };
       reader.readAsDataURL(file);
     });
@@ -53,12 +55,21 @@ export function ProductForm({ onSubmit, isLoading, initialImages = [] }: Product
   const removeImage = (index: number) => {
     const newImages = uploadedImages.filter((_, i) => i !== index);
     setUploadedImages(newImages);
-    form.setValue("images", newImages);
+    form.setValue("images", newImages, { shouldValidate: true });
   };
+
+  const handleSubmit = form.handleSubmit((data) => {
+    // Ensure images are included in the form data
+    const formData = {
+      ...data,
+      images: uploadedImages,
+    };
+    onSubmit(formData);
+  });
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
         <FormField
           control={form.control}
           name="name"
@@ -151,7 +162,13 @@ export function ProductForm({ onSubmit, isLoading, initialImages = [] }: Product
           </div>
         </div>
 
-        <Button type="submit" className="w-full" disabled={isLoading}>
+        {form.formState.errors.images && (
+          <p className="text-sm text-destructive">
+            {form.formState.errors.images.message}
+          </p>
+        )}
+
+        <Button type="submit" className="w-full" disabled={isLoading || uploadedImages.length === 0}>
           {isLoading ? "Creating..." : "Create Product"}
         </Button>
       </form>
