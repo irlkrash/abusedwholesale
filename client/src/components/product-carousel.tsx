@@ -17,7 +17,7 @@ export function ProductCarousel({ images }: ProductCarouselProps) {
       <CarouselContent>
         {images.map((image, index) => (
           <CarouselItem key={index}>
-            <AspectRatio ratio={4/3}>
+            <AspectRatio ratio={1}>
               <img 
                 src={image} 
                 alt={`Product view ${index + 1}`}
