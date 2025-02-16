@@ -14,18 +14,29 @@ export function BulkUpload() {
     mutationFn: async (files: File[]) => {
       const products = await Promise.all(
         files.map(async (file) => {
-          return new Promise((resolve) => {
+          return new Promise<any>((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = async (e) => {
-              const imageData = e.target?.result as string;
-              const res = await apiRequest("POST", "/api/products", {
-                name: file.name.split('.')[0],
-                description: `Product created from ${file.name}`,
-                images: [imageData],
-                isAvailable: true,
-              });
-              resolve(await res.json());
+              try {
+                const imageData = e.target?.result as string;
+                const res = await apiRequest("POST", "/api/products", {
+                  name: file.name.split('.')[0],
+                  description: `Product created from ${file.name}`,
+                  images: [imageData],
+                  isAvailable: true,
+                });
+
+                if (!res.ok) {
+                  const errorData = await res.json();
+                  throw new Error(errorData.message || 'Failed to create product');
+                }
+
+                resolve(await res.json());
+              } catch (error) {
+                reject(error);
+              }
             };
+            reader.onerror = () => reject(new Error('Failed to read file'));
             reader.readAsDataURL(file);
           });
         })
@@ -74,8 +85,13 @@ export function BulkUpload() {
                 multiple
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 onChange={handleFileSelect}
+                disabled={bulkUploadMutation.isPending}
               />
-              <Button variant="outline" className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-2"
+                disabled={bulkUploadMutation.isPending}
+              >
                 <ImagePlus className="h-4 w-4" />
                 Select Images
               </Button>
