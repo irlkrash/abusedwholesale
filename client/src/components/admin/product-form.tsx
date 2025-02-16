@@ -42,13 +42,14 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
 
   const handleImageUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (!files) return;
+    if (!files || files.length === 0) return;
 
     Array.from(files).forEach(file => {
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result as string;
         setUploadedImages(prev => [...prev, result]);
+        // Update form value with all images including the new one
         form.setValue("images", [...uploadedImages, result], { shouldValidate: true });
       };
       reader.readAsDataURL(file);
