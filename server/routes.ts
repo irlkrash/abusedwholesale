@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertProductSchema, insertCartSchema } from "@shared/schema";
+import { insertProductSchema, insertCartSchema, type Cart } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -14,7 +14,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/products", async (req, res) => {
-    // Log authentication status for debugging
+    // Log authentication status for debugging 
     console.log("Auth status:", {
       isAuthenticated: req.isAuthenticated(),
       user: req.user,
@@ -101,9 +101,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(404).json({ message: "Cart not found" });
     }
 
-    // Make all products in the cart unavailable
+    // Type check and make all products in the cart unavailable
+    const cartItems = cart.items as { productId: number }[];
     const updates = await Promise.all(
-      cart.items.map((item: any) =>
+      cartItems.map(item => 
         storage.updateProduct(item.productId, { isAvailable: false })
       )
     );

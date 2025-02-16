@@ -40,8 +40,15 @@ export default function AdminCarts() {
     queryKey: ["/api/products"],
   });
 
-  const { data: carts = [] } = useQuery<Cart[]>({
+  const { data: carts = [], isError } = useQuery<Cart[]>({
     queryKey: ["/api/carts"],
+    onError: (error: Error) => {
+      toast({
+        title: "Error loading carts",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const deleteCartMutation = useMutation({
@@ -55,6 +62,13 @@ export default function AdminCarts() {
         description: "The cart has been successfully deleted.",
       });
     },
+    onError: (error: Error) => {
+      toast({
+        title: "Error deleting cart",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const makeItemsUnavailableMutation = useMutation({
@@ -63,9 +77,17 @@ export default function AdminCarts() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/carts"] });
       toast({
         title: "Items marked unavailable",
         description: "All items in the cart have been marked as unavailable.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error updating items",
+        description: error.message,
+        variant: "destructive",
       });
     },
   });
@@ -75,6 +97,33 @@ export default function AdminCarts() {
     const product = products.find(p => p.id === productId);
     return product?.images[0];
   };
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="border-b">
+          <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+            <h1 className="text-2xl font-bold">Cart Management</h1>
+            <Link href="/admin">
+              <Button variant="outline" className="flex items-center gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Dashboard
+              </Button>
+            </Link>
+          </div>
+        </header>
+        <main className="container mx-auto px-4 py-8">
+          <Card>
+            <CardContent className="p-6">
+              <p className="text-center text-muted-foreground">
+                Error loading carts. Please try again later.
+              </p>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
