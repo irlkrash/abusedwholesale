@@ -66,6 +66,8 @@ export class DatabaseStorage implements IStorage {
       const validPageLimit = Math.max(1, Math.min(pageLimit, 50)); // Cap at 50 items per page
       const offset = (validPageOffset - 1) * validPageLimit;
 
+      console.log(`Calculating offset: (${validPageOffset} - 1) * ${validPageLimit} = ${offset}`);
+
       const productsResult = await db
         .select()
         .from(productsTable)
@@ -87,7 +89,7 @@ export class DatabaseStorage implements IStorage {
         }))
       );
 
-      console.log(`Retrieved ${productsWithCategories.length} available products`);
+      console.log(`Retrieved ${productsWithCategories.length} products from database`);
       return productsWithCategories;
     } catch (error) {
       console.error('Error in getProducts:', error);
