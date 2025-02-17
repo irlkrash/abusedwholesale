@@ -23,9 +23,16 @@ export default function HomePage() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const { data: products, isLoading, error } = useQuery<Product[]>({
+  const { data: products = [], isLoading, error } = useQuery<Product[]>({
     queryKey: ["/api/products"],
-    initialData: [],
+    onError: (error: any) => {
+      console.error("Failed to fetch products:", error);
+      toast({
+        title: "Error loading products",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const handleAddToCart = (product: Product) => {
