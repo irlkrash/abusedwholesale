@@ -59,7 +59,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProducts(pageOffset = 0, pageLimit = 12, categoryId: number | null = null): Promise<(Product & { categories?: Category[] })[]> {
-    console.log(`Getting products with offset ${pageOffset} and limit ${pageLimit}`);
+    console.log(`Getting products with offset ${pageOffset} and limit ${pageLimit}, categoryId: ${categoryId}`);
     let query = db
       .select({
         id: productsTable.id,
@@ -84,7 +84,7 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(categories, eq(productCategories.categoryId, categories.id));
 
     if (categoryId) {
-      query = query.where(eq(productCategories.categoryId, categoryId));
+      query = query.where(eq(categories.id, categoryId));
     }
 
     query = query.groupBy(

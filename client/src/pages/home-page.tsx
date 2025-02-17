@@ -109,7 +109,8 @@ export default function HomePage() {
   const allProducts = data?.pages?.flatMap(page => page.data) ?? [];
 
   // Filter products based on selected category
-  const filteredProducts = allProducts;
+  // No need for additional filtering since the server handles it
+  const filteredProducts = data?.pages?.flatMap(page => page.data) ?? [];
 
   const handleAddToCart = (product: Product) => {
     if (cartItems.some(item => item.id === product.id)) {
