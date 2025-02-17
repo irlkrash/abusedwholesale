@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import { Product } from "@shared/schema";
@@ -104,6 +104,31 @@ export default function AdminDashboard() {
     getNextPageParam: (lastPage) => lastPage.nextPage,
   });
 
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { 
+        threshold: 0.1,
+        rootMargin: '200px' 
+      }
+    );
+
+    const currentRef = loadMoreRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
   const products = data?.pages?.flatMap(page => page.data) ?? [];
 
   const toggleSelection = (productId: number) => {
@@ -118,10 +143,8 @@ export default function AdminDashboard() {
 
   const toggleSelectAll = () => {
     if (selectedProducts.size === products.length) {
-      // If all are selected, deselect all
       clearSelection();
     } else {
-      // Select all products
       const allProductIds = products.map(product => product.id);
       setSelectedProducts(new Set(allProductIds));
     }
@@ -528,16 +551,14 @@ export default function AdminDashboard() {
                   ))}
                 </div>
 
-                {hasNextPage && (
-                  <div 
-                    ref={loadMoreRef} 
-                    className="h-20 flex items-center justify-center mt-8"
-                  >
-                    {isFetchingNextPage && (
-                      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                    )}
-                  </div>
-                )}
+                <div 
+                  ref={loadMoreRef} 
+                  className="h-20 flex items-center justify-center mt-8"
+                >
+                  {isFetchingNextPage && (
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  )}
+                </div>
               </>
             ) : (
               <Card>
