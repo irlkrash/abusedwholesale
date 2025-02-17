@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Product } from "@shared/schema";
 import { ProductCard } from "@/components/product-card";
@@ -23,7 +23,7 @@ export default function HomePage() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
-  const [page, setPage] = useState(1);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
   const pageSize = 12;
 
   const {
@@ -58,6 +58,30 @@ export default function HomePage() {
     initialPageParam: 1,
     getNextPageParam: (lastPage) => lastPage.nextPage,
   });
+
+  // Set up intersection observer for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (first.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 } // Start loading when the element is 10% visible
+    );
+
+    const currentRef = loadMoreRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const allProducts = products?.pages?.flatMap(page => page.data) ?? [];
 
@@ -184,30 +208,25 @@ export default function HomePage() {
         ) : allProducts.length > 0 ? (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {allProducts.map((product) => (
+              {allProducts.map((product, index) => (
                 <ProductCard
                   key={product.id}
                   product={product}
                   onAddToCart={() => handleAddToCart(product)}
+                  priority={index < 4}
                 />
               ))}
             </div>
 
-            {hasNextPage && (
-              <div className="mt-8 flex justify-center">
-                <Button
-                  variant="outline"
-                  onClick={() => fetchNextPage()}
-                  disabled={isFetchingNextPage}
-                  className="flex items-center gap-2"
-                >
-                  {isFetchingNextPage ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : null}
-                  {isFetchingNextPage ? "Loading more..." : "Load More"}
-                </Button>
-              </div>
-            )}
+            {/* Infinite scroll trigger */}
+            <div 
+              ref={loadMoreRef} 
+              className="h-10 flex items-center justify-center mt-8"
+            >
+              {isFetchingNextPage && (
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              )}
+            </div>
           </>
         ) : (
           <Card>
