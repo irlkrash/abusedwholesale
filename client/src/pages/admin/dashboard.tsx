@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import { Product } from "@shared/schema";
@@ -81,11 +81,12 @@ export default function AdminDashboard() {
     error
   } = useInfiniteQuery({
     queryKey: ["/api/products"],
-    queryFn: async ({ pageParam }) => {
+    queryFn: async ({ pageParam = 1 }) => {
       try {
+        console.log(`Fetching products: page=${pageParam}, limit=12`);
         const response = await apiRequest(
           "GET",
-          `/api/products?page=${pageParam || 1}&limit=12`
+          `/api/products?page=${pageParam}&limit=12`
         );
         if (!response.ok) {
           throw new Error('Failed to fetch products');
@@ -93,7 +94,7 @@ export default function AdminDashboard() {
         const products = await response.json();
         return {
           data: Array.isArray(products) ? products : [],
-          nextPage: Array.isArray(products) && products.length === 12 ? (pageParam || 1) + 1 : undefined,
+          nextPage: Array.isArray(products) && products.length === 12 ? pageParam + 1 : undefined,
         };
       } catch (err) {
         console.error("Failed to fetch products:", err);
@@ -291,6 +292,35 @@ export default function AdminDashboard() {
       </Button>
     </>
   );
+
+  // Add intersection observer for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (first.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          console.log('Loading next page of products...');
+          fetchNextPage();
+        }
+      },
+      {
+        threshold: 0.1,
+        rootMargin: '100px' // Load earlier, before reaching the very bottom
+      }
+    );
+
+    const currentRef = loadMoreRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -529,8 +559,8 @@ export default function AdminDashboard() {
                 </div>
 
                 {hasNextPage && (
-                  <div 
-                    ref={loadMoreRef} 
+                  <div
+                    ref={loadMoreRef}
                     className="h-20 flex items-center justify-center mt-8"
                   >
                     {isFetchingNextPage && (
