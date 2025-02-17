@@ -17,40 +17,57 @@ import { useCallback, useState, useRef } from "react";
 import { ImagePlus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-// Helper function for image compression
+// Helper function for enhanced image compression
 async function compressImage(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.src = URL.createObjectURL(file);
+
     img.onload = () => {
       URL.revokeObjectURL(img.src);
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
+
       if (!ctx) {
         reject(new Error('Could not get canvas context'));
         return;
       }
 
-      // Calculate new dimensions (max 800px width/height while maintaining aspect ratio)
-      let width = img.width;
-      let height = img.height;
-      const maxSize = 800;
+      // Calculate dimensions while maintaining aspect ratio
+      let { width, height } = img;
+      const maxDimension = 1200; // Increased from 800 for better quality
 
-      if (width > height && width > maxSize) {
-        height = (height * maxSize) / width;
-        width = maxSize;
-      } else if (height > maxSize) {
-        width = (width * maxSize) / height;
-        height = maxSize;
+      if (width > height) {
+        if (width > maxDimension) {
+          height = Math.round((height * maxDimension) / width);
+          width = maxDimension;
+        }
+      } else {
+        if (height > maxDimension) {
+          width = Math.round((width * maxDimension) / height);
+          height = maxDimension;
+        }
       }
 
+      // Set canvas size
       canvas.width = width;
       canvas.height = height;
 
-      // Draw and compress
+      // Apply smooth scaling
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
+      // Draw with white background to handle transparency properly
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, width, height);
+
+      // Draw image with better quality
       ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/jpeg', 0.8)); // 80% quality JPEG
+
+      // Convert to JPEG with high quality
+      resolve(canvas.toDataURL('image/jpeg', 0.92)); // Increased quality to 92%
     };
+
     img.onerror = () => reject(new Error('Failed to load image'));
   });
 }

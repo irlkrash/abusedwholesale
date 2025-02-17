@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/carousel";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface ProductCarouselProps {
   images: string[];
@@ -16,9 +16,42 @@ interface ProductCarouselProps {
 
 export function ProductCarousel({ images, onImageClick }: ProductCarouselProps) {
   const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set());
+  const [preloadedImages, setPreloadedImages] = useState<Set<string>>(new Set());
+
+  // Preload next and previous images
+  useEffect(() => {
+    const preloadImage = (src: string) => {
+      if (!preloadedImages.has(src)) {
+        const img = new Image();
+        img.src = src;
+        img.onload = () => {
+          setPreloadedImages(prev => new Set([...prev, src]));
+        };
+      }
+    };
+
+    images.forEach((image, index) => {
+      // Preload current image and next 2 images
+      if (index < 3) {
+        preloadImage(image);
+      }
+    });
+  }, [images, preloadedImages]);
 
   const handleImageLoad = (index: number) => {
     setLoadedImages(prev => new Set([...prev, index]));
+
+    // Preload next image when current one loads
+    if (index < images.length - 1) {
+      const nextImage = images[index + 1];
+      if (!preloadedImages.has(nextImage)) {
+        const img = new Image();
+        img.src = nextImage;
+        img.onload = () => {
+          setPreloadedImages(prev => new Set([...prev, nextImage]));
+        };
+      }
+    }
   };
 
   return (
@@ -38,14 +71,16 @@ export function ProductCarousel({ images, onImageClick }: ProductCarouselProps) 
                   src={image} 
                   alt={`Product view ${index + 1}`}
                   loading={index === 0 ? "eager" : "lazy"}
-                  width={400}
-                  height={400}
+                  width={600}
+                  height={600}
                   className={cn(
                     "object-cover w-full h-full rounded-t-lg cursor-pointer transition-opacity duration-200",
-                    !loadedImages.has(index) && "opacity-0"
+                    !loadedImages.has(index) && "opacity-0",
+                    "hover:opacity-90 transition-opacity"
                   )}
                   onClick={() => onImageClick?.(image)}
                   onLoad={() => handleImageLoad(index)}
+                  decoding="async"
                 />
               </div>
             </AspectRatio>
