@@ -4,7 +4,7 @@ import { Product } from "@shared/schema";
 import { ProductCard } from "@/components/product-card";
 import { CartOverlay } from "@/components/cart-overlay";
 import { Button } from "@/components/ui/button";
-import { Menu, ShoppingCart, LogIn } from "lucide-react";
+import { Menu, ShoppingCart, LogIn, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +15,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function HomePage() {
   const [cartItems, setCartItems] = useState<Product[]>([]);
@@ -22,8 +23,9 @@ export default function HomePage() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const { data: products = [] } = useQuery<Product[]>({
+  const { data: products, isLoading, error } = useQuery<Product[]>({
     queryKey: ["/api/products"],
+    initialData: [],
   });
 
   const handleAddToCart = (product: Product) => {
@@ -118,15 +120,33 @@ export default function HomePage() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {products.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onAddToCart={() => handleAddToCart(product)}
-            />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center h-32">
+            <Loader2 className="w-8 h-8 animate-spin" />
+          </div>
+        ) : error ? (
+          <Card>
+            <CardContent className="p-6 text-center text-muted-foreground">
+              Error loading products. Please try again later.
+            </CardContent>
+          </Card>
+        ) : products && products.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {products.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onAddToCart={() => handleAddToCart(product)}
+              />
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="p-6 text-center text-muted-foreground">
+              No products available.
+            </CardContent>
+          </Card>
+        )}
 
         <CartOverlay
           isOpen={isCartOpen}
