@@ -526,7 +526,11 @@ export default function AdminDashboard() {
     );
   };
 
-  const filteredProducts = products;
+  const filteredProducts = selectedCategoryFilter 
+    ? products.filter(product => 
+        product.categories?.some(category => category.id === selectedCategoryFilter)
+      )
+    : products;
 
   // Add load more trigger div at the bottom
   const loadMoreTriggerRef = useRef<HTMLDivElement>(null);
