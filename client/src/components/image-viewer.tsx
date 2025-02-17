@@ -133,13 +133,13 @@ export function ImageViewer({ src, alt, isOpen, onOpenChange }: ImageViewerProps
           </div>
 
           {/* Image Container */}
-          <div
-            className="flex-1 overflow-auto"
+          <div 
+            className="flex-1 overflow-hidden relative"
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
           >
-            <div className="min-h-full w-full flex items-center justify-center bg-black/5 dark:bg-white/5 p-4">
+            <div className="absolute inset-0 flex items-center justify-center bg-black/5 dark:bg-white/5">
               {!isImageLoaded && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
@@ -148,7 +148,7 @@ export function ImageViewer({ src, alt, isOpen, onOpenChange }: ImageViewerProps
               <img
                 src={src}
                 alt={alt}
-                className="max-w-full object-contain transition-all duration-200 ease-out select-none"
+                className="max-w-full max-h-[calc(90vh-8rem)] object-contain transition-transform duration-200 ease-out select-none"
                 style={{
                   transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)`,
                   opacity: isImageLoaded ? 1 : 0,
