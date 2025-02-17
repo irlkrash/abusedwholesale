@@ -2,7 +2,7 @@ import { InsertUser, User, Product, Cart, InsertProduct, InsertCart } from "@sha
 import { users, products, carts } from "@shared/schema";
 import session from "express-session";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, limit, offset } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 
 const PostgresSessionStore = connectPg(session);
@@ -16,8 +16,8 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser & { isAdmin?: boolean }): Promise<User>;
 
-  // Product operations
-  getProducts(): Promise<Product[]>;
+  // Product operations with pagination
+  getProducts(offset?: number, limit?: number): Promise<Product[]>;
   getProduct(id: number): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: number, product: Partial<Product>): Promise<Product>;
@@ -48,39 +48,16 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async getUsers(): Promise<User[]> {
-    return await db.select().from(users);
+  // Updated getProducts with pagination
+  async getProducts(pageOffset = 0, pageLimit = 12): Promise<Product[]> {
+    return await db
+      .select()
+      .from(products)
+      .limit(pageLimit)
+      .offset(pageOffset);
   }
 
-  async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user;
-  }
-
-  async createUser(insertUser: InsertUser & { isAdmin?: boolean }): Promise<User> {
-    const existingUsers = await this.getUsers();
-    const isFirstUser = existingUsers.length === 0;
-
-    const [user] = await db
-      .insert(users)
-      .values({
-        username: insertUser.username,
-        password: insertUser.password,
-        isAdmin: insertUser.isAdmin ?? isFirstUser,
-      })
-      .returning();
-    return user;
-  }
-
-  async getProducts(): Promise<Product[]> {
-    return await db.select().from(products);
-  }
-
+  // Rest of the methods remain unchanged
   async getProduct(id: number): Promise<Product | undefined> {
     const [product] = await db.select().from(products).where(eq(products.id, id));
     return product;
@@ -113,8 +90,42 @@ export class DatabaseStorage implements IStorage {
     await db.delete(products).where(eq(products.id, id));
   }
 
+  async getUsers(): Promise<User[]> {
+    return await db.select().from(users);
+  }
+
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(insertUser: InsertUser & { isAdmin?: boolean }): Promise<User> {
+    const existingUsers = await this.getUsers();
+    const isFirstUser = existingUsers.length === 0;
+
+    const [user] = await db
+      .insert(users)
+      .values({
+        username: insertUser.username,
+        password: insertUser.password,
+        isAdmin: insertUser.isAdmin ?? isFirstUser,
+      })
+      .returning();
+    return user;
+  }
+
   async getCarts(): Promise<Cart[]> {
     return await db.select().from(carts).orderBy(desc(carts.createdAt));
+  }
+
+  async getCart(id: number): Promise<Cart | undefined> {
+    const [cart] = await db.select().from(carts).where(eq(carts.id, id));
+    return cart;
   }
 
   async createCart(insertCart: InsertCart): Promise<Cart> {
@@ -142,11 +153,6 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCart(id: number): Promise<void> {
     await db.delete(carts).where(eq(carts.id, id));
-  }
-
-  async getCart(id: number): Promise<Cart | undefined> {
-    const [cart] = await db.select().from(carts).where(eq(carts.id, id));
-    return cart;
   }
 }
 

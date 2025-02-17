@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import { Product } from "@shared/schema";
 import { ProductForm } from "@/components/admin/product-form";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import {
   Menu,
   CheckSquare,
   Square,
+  Loader2,
 } from "lucide-react";
 import {
   Card,
@@ -64,9 +65,28 @@ export default function AdminDashboard() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
 
-  const { data: products = [] } = useQuery<Product[]>({
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+  } = useInfiniteQuery({
     queryKey: ["/api/products"],
+    queryFn: async ({ pageParam = 1 }) => {
+      const response = await apiRequest(
+        "GET",
+        `/api/products?page=${pageParam}&limit=12`
+      );
+      return response.json();
+    },
+    getNextPageParam: (lastPage) => {
+      if (lastPage.length < 12) return undefined;
+      return lastPage.nextPage;
+    },
   });
+
+  const products = data?.pages.flatMap((page) => page) ?? [];
 
   const toggleSelection = (productId: number) => {
     const newSelection = new Set(selectedProducts);
@@ -368,89 +388,116 @@ export default function AdminDashboard() {
 
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Product List</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {products.map((product, index) => (
-                <Card key={product.id} className={`overflow-hidden ${
-                  selectedProducts.has(product.id) ? 'ring-2 ring-primary' : ''
-                }`}>
-                  <CardContent className="p-0">
-                    <div className="relative">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-sm"
-                        onClick={() => toggleSelection(product.id)}
-                      >
-                        {selectedProducts.has(product.id) ? (
-                          <CheckSquare className="h-4 w-4" />
-                        ) : (
-                          <Square className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <ProductCarousel
-                        images={product.images}
-                        priority={index < 4}
-                      />
-                    </div>
-                    <div className="p-4">
-                      <h3 className="text-lg font-semibold">{product.name}</h3>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        {product.description}
-                      </p>
-                      <div className="mt-4 flex justify-between items-center">
-                        <span
-                          className={`inline-flex items-center gap-1 text-sm ${
-                            product.isAvailable
-                              ? "text-green-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {product.isAvailable ? (
-                            <CheckCircle className="h-4 w-4" />
-                          ) : (
-                            <XCircle className="h-4 w-4" />
-                          )}
-                          {product.isAvailable ? "Available" : "Unavailable"}
-                        </span>
-                        <div className="flex gap-2">
-                          <Dialog
-                            open={editingProduct?.id === product.id}
-                            onOpenChange={(open) => !open && setEditingProduct(null)}
+            {isLoading ? (
+              <div className="flex items-center justify-center h-32">
+                <Loader2 className="w-8 h-8 animate-spin" />
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {products.map((product, index) => (
+                    <Card
+                      key={product.id}
+                      className={`overflow-hidden ${
+                        selectedProducts.has(product.id) ? 'ring-2 ring-primary' : ''
+                      }`}
+                    >
+                      <CardContent className="p-0">
+                        <div className="relative">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-sm"
+                            onClick={() => toggleSelection(product.id)}
                           >
-                            <DialogTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex items-center gap-2"
-                                onClick={() => setEditingProduct(product)}
-                              >
-                                <Edit className="h-4 w-4" />
-                                Edit
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-2xl">
-                              <DialogHeader>
-                                <DialogTitle>Edit Product</DialogTitle>
-                              </DialogHeader>
-                              <ProductForm
-                                initialData={product}
-                                onSubmit={(data) =>
-                                  updateProductMutation.mutate({
-                                    id: product.id,
-                                    data,
-                                  })
-                                }
-                                isLoading={updateProductMutation.isPending}
-                              />
-                            </DialogContent>
-                          </Dialog>
+                            {selectedProducts.has(product.id) ? (
+                              <CheckSquare className="h-4 w-4" />
+                            ) : (
+                              <Square className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <ProductCarousel
+                            images={product.images}
+                            priority={index < 4}
+                          />
                         </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                        <div className="p-4">
+                          <h3 className="text-lg font-semibold">{product.name}</h3>
+                          <p className="text-sm text-muted-foreground mt-2">
+                            {product.description}
+                          </p>
+                          <div className="mt-4 flex justify-between items-center">
+                            <span
+                              className={`inline-flex items-center gap-1 text-sm ${
+                                product.isAvailable
+                                  ? "text-green-600"
+                                  : "text-red-600"
+                              }`}
+                            >
+                              {product.isAvailable ? (
+                                <CheckCircle className="h-4 w-4" />
+                              ) : (
+                                <XCircle className="h-4 w-4" />
+                              )}
+                              {product.isAvailable ? "Available" : "Unavailable"}
+                            </span>
+                            <div className="flex gap-2">
+                              <Dialog
+                                open={editingProduct?.id === product.id}
+                                onOpenChange={(open) => !open && setEditingProduct(null)}
+                              >
+                                <DialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex items-center gap-2"
+                                    onClick={() => setEditingProduct(product)}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                    Edit
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-2xl">
+                                  <DialogHeader>
+                                    <DialogTitle>Edit Product</DialogTitle>
+                                  </DialogHeader>
+                                  <ProductForm
+                                    initialData={product}
+                                    onSubmit={(data) =>
+                                      updateProductMutation.mutate({
+                                        id: product.id,
+                                        data,
+                                      })
+                                    }
+                                    isLoading={updateProductMutation.isPending}
+                                  />
+                                </DialogContent>
+                              </Dialog>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                {hasNextPage && (
+                  <div className="mt-8 flex justify-center">
+                    <Button
+                      variant="outline"
+                      onClick={() => fetchNextPage()}
+                      disabled={isFetchingNextPage}
+                      className="flex items-center gap-2"
+                    >
+                      {isFetchingNextPage ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : null}
+                      {isFetchingNextPage ? "Loading more..." : "Load More"}
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       </main>

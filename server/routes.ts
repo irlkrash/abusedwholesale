@@ -7,20 +7,22 @@ import { insertProductSchema, insertCartSchema, type Cart } from "@shared/schema
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
-  // Products routes
-  app.get("/api/products", async (_req, res) => {
-    const products = await storage.getProducts();
-    res.json(products);
+  // Products routes with pagination
+  app.get("/api/products", async (req, res) => {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 12;
+    const offset = (page - 1) * limit;
+
+    try {
+      const products = await storage.getProducts(offset, limit);
+      res.json(products);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      res.status(500).json({ message: "Failed to fetch products" });
+    }
   });
 
   app.post("/api/products", async (req, res) => {
-    // Log authentication status for debugging 
-    console.log("Auth status:", {
-      isAuthenticated: req.isAuthenticated(),
-      user: req.user,
-      isAdmin: req.user?.isAdmin
-    });
-
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Not authenticated" });
     }
@@ -48,7 +50,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(product);
   });
 
-  // Cart routes
+  app.delete("/api/products/:id", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user?.isAdmin) {
+      return res.status(403).json({ message: "Admin privileges required" });
+    }
+
+    const productId = parseInt(req.params.id);
+    await storage.deleteProduct(productId);
+    res.sendStatus(200);
+  });
+
+  // Cart routes remain unchanged
   app.get("/api/carts", async (req, res) => {
     if (!req.isAuthenticated() || !req.user?.isAdmin) {
       return res.status(403).json({ message: "Admin privileges required" });
@@ -68,7 +80,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(201).json(cart);
   });
 
-  // Add delete cart route
   app.delete("/api/carts/:id", async (req, res) => {
     if (!req.isAuthenticated() || !req.user?.isAdmin) {
       return res.status(403).json({ message: "Admin privileges required" });
@@ -76,17 +87,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const cartId = parseInt(req.params.id);
     await storage.deleteCart(cartId);
-    res.sendStatus(200);
-  });
-
-  // Add delete product route and make cart items unavailable route
-  app.delete("/api/products/:id", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user?.isAdmin) {
-      return res.status(403).json({ message: "Admin privileges required" });
-    }
-
-    const productId = parseInt(req.params.id);
-    await storage.deleteProduct(productId);
     res.sendStatus(200);
   });
 
@@ -101,7 +101,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(404).json({ message: "Cart not found" });
     }
 
-    // Type check and make all products in the cart unavailable
     const cartItems = cart.items as { productId: number }[];
     const updates = await Promise.all(
       cartItems.map(item => 
