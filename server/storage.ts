@@ -68,7 +68,7 @@ export class DatabaseStorage implements IStorage {
         images: productsTable.images,
         isAvailable: productsTable.isAvailable,
         createdAt: productsTable.createdAt,
-        categories: sql<any>`json_agg(json_build_object('id', ${categories.id}, 'name', ${categories.name}))`
+        categories: sql<any>`COALESCE(json_agg(DISTINCT json_build_object('id', ${categories.id}, 'name', ${categories.name})) FILTER (WHERE ${categories.id} IS NOT NULL), '[]')`
       })
       .from(productsTable)
       .leftJoin(productCategories, eq(productsTable.id, productCategories.productId))
@@ -79,7 +79,7 @@ export class DatabaseStorage implements IStorage {
       query = query.where(eq(productCategories.categoryId, categoryId));
     }
     
-    query = query.groupBy(productsTable.id, categories.id, categories.name);
+    query = query.groupBy(productsTable.id);
 
     const result = await query
       .orderBy(desc(productsTable.createdAt))
