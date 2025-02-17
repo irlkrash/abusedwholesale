@@ -51,7 +51,7 @@ export default function HomePage() {
     isError,
     error
   } = useInfiniteQuery({
-    queryKey: ["/api/products"],
+    queryKey: ["/api/products", selectedCategory],
     queryFn: async ({ pageParam = 1 }) => {
       try {
         const queryParams = new URLSearchParams({
@@ -68,6 +68,7 @@ export default function HomePage() {
         return {
           data: Array.isArray(products) ? products : [],
           nextPage: Array.isArray(products) && products.length === 12 ? pageParam + 1 : undefined,
+          lastPage: Array.isArray(products) && products.length < 12,
         };
       } catch (err) {
         console.error("Failed to fetch products:", err);
@@ -75,19 +76,19 @@ export default function HomePage() {
       }
     },
     initialPageParam: 1,
-    getNextPageParam: (lastPage) => lastPage.nextPage,
+    getNextPageParam: (lastPage) => lastPage.lastPage ? undefined : lastPage.nextPage,
   });
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
+          void fetchNextPage();
         }
       },
       { 
         threshold: 0.1,
-        rootMargin: '200px' 
+        rootMargin: '100px' 
       }
     );
 
@@ -100,8 +101,9 @@ export default function HomePage() {
       if (currentRef) {
         observer.unobserve(currentRef);
       }
+      observer.disconnect();
     };
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, selectedCategory]);
 
   const allProducts = data?.pages?.flatMap(page => page.data) ?? [];
 
