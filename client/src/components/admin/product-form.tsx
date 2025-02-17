@@ -35,7 +35,7 @@ async function compressImage(file: File): Promise<string> {
 
       // Calculate dimensions while maintaining aspect ratio
       let { width, height } = img;
-      const maxDimension = 1200; // Increased from 800 for better quality
+      const maxDimension = 1200;
 
       if (width > height) {
         if (width > maxDimension) {
@@ -64,8 +64,8 @@ async function compressImage(file: File): Promise<string> {
       // Draw image with better quality
       ctx.drawImage(img, 0, 0, width, height);
 
-      // Convert to JPEG with high quality
-      resolve(canvas.toDataURL('image/jpeg', 0.92)); // Increased quality to 92%
+      // Convert to JPEG with 50% quality
+      resolve(canvas.toDataURL('image/jpeg', 0.5)); 
     };
 
     img.onerror = () => reject(new Error('Failed to load image'));

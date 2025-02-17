@@ -6,6 +6,58 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 
+// Helper function for image compression
+async function compressImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(img.src);
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      if (!ctx) {
+        reject(new Error('Could not get canvas context'));
+        return;
+      }
+
+      // Calculate dimensions while maintaining aspect ratio
+      let { width, height } = img;
+      const maxDimension = 1200;
+
+      if (width > height) {
+        if (width > maxDimension) {
+          height = Math.round((height * maxDimension) / width);
+          width = maxDimension;
+        }
+      } else {
+        if (height > maxDimension) {
+          width = Math.round((width * maxDimension) / height);
+          height = maxDimension;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      // Apply smooth scaling
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
+      // Draw with white background
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Convert to JPEG with 50% quality
+      resolve(canvas.toDataURL('image/jpeg', 0.5));
+    };
+
+    img.onerror = () => reject(new Error('Failed to load image'));
+  });
+}
+
 export function BulkUpload() {
   const { toast } = useToast();
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
@@ -14,10 +66,9 @@ export function BulkUpload() {
     mutationFn: async (files: File[]) => {
       const products = await Promise.all(
         files.map(async (file) => {
-          return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-              const imageData = e.target?.result as string;
+          return new Promise(async (resolve) => {
+            try {
+              const imageData = await compressImage(file);
               const res = await apiRequest("POST", "/api/products", {
                 name: file.name.split('.')[0],
                 description: `Product created from ${file.name}`,
@@ -25,18 +76,25 @@ export function BulkUpload() {
                 isAvailable: true,
               });
               resolve(await res.json());
-            };
-            reader.readAsDataURL(file);
+            } catch (error) {
+              console.error("Failed to process image:", error);
+              toast({
+                title: "Image processing failed",
+                description: `Failed to process ${file.name}`,
+                variant: "destructive",
+              });
+              resolve(null);
+            }
           });
         })
       );
-      return products;
+      return products.filter(Boolean);
     },
-    onSuccess: () => {
+    onSuccess: (products) => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       toast({
         title: "Success",
-        description: `Created ${uploadedFiles.length} new products`,
+        description: `Created ${products.length} new products`,
       });
       setUploadedFiles([]);
     },
