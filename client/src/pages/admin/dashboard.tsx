@@ -60,7 +60,7 @@ import {
 
 interface ProductsResponse {
   data: Product[];
-  nextPage?: number;
+  nextPage: number | undefined;
 }
 
 export default function AdminDashboard() {
@@ -78,18 +78,21 @@ export default function AdminDashboard() {
     isLoading,
     isError,
     error
-  } = useInfiniteQuery<ProductsResponse>({
+  } = useInfiniteQuery({
     queryKey: ["/api/products"],
-    queryFn: async ({ pageParam = 1 }) => {
+    queryFn: async ({ pageParam }) => {
       try {
         const response = await apiRequest(
           "GET",
-          `/api/products?page=${pageParam}&limit=12`
+          `/api/products?page=${pageParam || 1}&limit=12`
         );
+        if (!response.ok) {
+          throw new Error('Failed to fetch products');
+        }
         const products = await response.json();
         return {
           data: Array.isArray(products) ? products : [],
-          nextPage: Array.isArray(products) && products.length === 12 ? pageParam + 1 : undefined,
+          nextPage: Array.isArray(products) && products.length === 12 ? (pageParam || 1) + 1 : undefined,
         };
       } catch (err) {
         console.error("Failed to fetch products:", err);
@@ -100,7 +103,7 @@ export default function AdminDashboard() {
     getNextPageParam: (lastPage) => lastPage.nextPage,
   });
 
-  // Safely get products from pages with proper type checking
+  // Safely get all products from pages
   const products = data?.pages?.flatMap(page => page.data) ?? [];
 
   const toggleSelection = (productId: number) => {

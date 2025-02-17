@@ -16,8 +16,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Card, CardContent } from "@/components/ui/card";
-import { apiRequest } from "@/lib/queryClient"; // Fixed import path
-
+import { apiRequest } from "@/lib/queryClient";
 
 export default function HomePage() {
   const [cartItems, setCartItems] = useState<Product[]>([]);
@@ -35,8 +34,11 @@ export default function HomePage() {
     queryFn: async () => {
       try {
         const response = await apiRequest("GET", "/api/products");
+        if (!response.ok) {
+          throw new Error('Failed to fetch products');
+        }
         const data = await response.json();
-        return Array.isArray(data) ? data : [];
+        return Array.isArray(data) ? data.filter(p => p.isAvailable) : [];
       } catch (err) {
         console.error("Failed to fetch products:", err);
         throw err;
