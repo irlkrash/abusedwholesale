@@ -36,13 +36,16 @@ type CartItem = {
 export default function AdminCarts() {
   const { user } = useAuth();
   const { toast } = useToast();
+
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ["/api/products"],
+    initialData: [],
   });
 
-  const { data: carts = [], isError } = useQuery<Cart[]>({
+  const { data: carts = [], isError, isLoading } = useQuery<Cart[]>({
     queryKey: ["/api/carts"],
-    onError: (error: Error) => {
+    initialData: [],
+    onError: (error: any) => {
       toast({
         title: "Error loading carts",
         description: error.message,
@@ -83,6 +86,14 @@ export default function AdminCarts() {
     return product?.images[0];
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <span>Loading carts...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
@@ -106,107 +117,107 @@ export default function AdminCarts() {
 
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-6">
-          {carts.map((cart) => (
-            <Card key={cart.id} className="overflow-hidden">
-              <CardHeader className="space-y-0 pb-4">
-                <div className="flex flex-wrap justify-between items-center gap-4">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-xl">Cart #{cart.id}</CardTitle>
-                      <span className="text-sm text-muted-foreground">
-                        {format(new Date(cart.createdAt), "PPp")}
-                      </span>
+          {carts && carts.length > 0 ? (
+            carts.map((cart) => (
+              <Card key={cart.id} className="overflow-hidden">
+                <CardHeader className="space-y-0 pb-4">
+                  <div className="flex flex-wrap justify-between items-center gap-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-xl">Cart #{cart.id}</CardTitle>
+                        <span className="text-sm text-muted-foreground">
+                          {format(new Date(cart.createdAt), "PPp")}
+                        </span>
+                      </div>
+                      <CardDescription>
+                        Customer: {cart.customerName} ({cart.customerEmail})
+                      </CardDescription>
                     </div>
-                    <CardDescription>
-                      Customer: {cart.customerName} ({cart.customerEmail})
-                    </CardDescription>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          Make Unavailable
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Make Items Unavailable</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This will mark all items in this cart as unavailable in the store.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => makeItemsUnavailableMutation.mutate(cart.id)}
-                          >
-                            Confirm
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            Make Unavailable
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Make Items Unavailable</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will mark all items in this cart as unavailable in the store.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => makeItemsUnavailableMutation.mutate(cart.id)}
+                            >
+                              Confirm
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
 
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="sm">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Cart</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete this cart?
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => deleteCartMutation.mutate(cart.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Cart</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete this cart?
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteCartMutation.mutate(cart.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[300px]">
-                  <div className="grid gap-4">
-                    {Array.isArray(cart.items) &&
-                      (cart.items as CartItem[]).map((item, index) => {
-                        const image = getProductImage(item.productId);
-                        return (
-                          <div
-                            key={index}
-                            className="flex items-center gap-4 p-2 rounded-lg border"
-                          >
-                            {image && (
-                              <img
-                                src={image}
-                                alt={item.name}
-                                className="w-16 h-16 object-cover rounded"
-                              />
-                            )}
-                            <div>
-                              <p className="font-medium">{item.name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                ID: {item.productId}
-                              </p>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-[300px]">
+                    <div className="grid gap-4">
+                      {cart.items && Array.isArray(cart.items) &&
+                        (cart.items as CartItem[]).map((item, index) => {
+                          const image = getProductImage(item.productId);
+                          return (
+                            <div
+                              key={index}
+                              className="flex items-center gap-4 p-2 rounded-lg border"
+                            >
+                              {image && (
+                                <img
+                                  src={image}
+                                  alt={item.name}
+                                  className="w-16 h-16 object-cover rounded"
+                                />
+                              )}
+                              <div>
+                                <p className="font-medium">{item.name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  ID: {item.productId}
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          ))}
-
-          {carts.length === 0 && (
+                          );
+                        })}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
             <Card>
               <CardContent className="p-6 text-center text-muted-foreground">
                 No carts have been created yet.
