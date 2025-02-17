@@ -83,16 +83,18 @@ export default function AdminDashboard() {
         "GET",
         `/api/products?page=${pageParam}&limit=12`
       );
-      const products = await response.json() as Product[];
-      return { data: products, pageParam };
+      const products = await response.json();
+      return {
+        data: products,
+        nextPage: products.length === 12 ? pageParam + 1 : undefined,
+      };
     },
     initialPageParam: 1,
-    getNextPageParam: (lastPage, allPages) => {
-      return lastPage.data.length === 12 ? allPages.length + 1 : undefined;
-    },
+    getNextPageParam: (lastPage) => lastPage.nextPage,
   });
 
-  const products = data?.pages.flatMap(page => page.data) ?? [];
+  // Safely get products from pages
+  const products = data?.pages?.flatMap(page => page.data) ?? [];
 
   const toggleSelection = (productId: number) => {
     const newSelection = new Set(selectedProducts);
@@ -398,7 +400,7 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-center h-32">
                 <Loader2 className="w-8 h-8 animate-spin" />
               </div>
-            ) : (
+            ) : products.length > 0 ? (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {products.map((product, index) => (
@@ -503,6 +505,12 @@ export default function AdminDashboard() {
                   </div>
                 )}
               </>
+            ) : (
+              <Card>
+                <CardContent className="p-6 text-center text-muted-foreground">
+                  No products available.
+                </CardContent>
+              </Card>
             )}
           </div>
         </div>
