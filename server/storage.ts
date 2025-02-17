@@ -68,7 +68,16 @@ export class DatabaseStorage implements IStorage {
         images: productsTable.images,
         isAvailable: productsTable.isAvailable,
         createdAt: productsTable.createdAt,
-        categories: sql<any>`COALESCE(json_agg(DISTINCT json_build_object('id', ${categories.id}, 'name', ${categories.name})) FILTER (WHERE ${categories.id} IS NOT NULL), '[]')`
+        categories: sql<Category[]>`COALESCE(
+          ARRAY_AGG(
+            DISTINCT jsonb_build_object(
+              'id', ${categories.id}, 
+              'name', ${categories.name},
+              'createdAt', ${categories.createdAt}
+            )
+          ) FILTER (WHERE ${categories.id} IS NOT NULL),
+          ARRAY[]::jsonb[]
+        )`
       })
       .from(productsTable)
       .leftJoin(productCategories, eq(productsTable.id, productCategories.productId))
