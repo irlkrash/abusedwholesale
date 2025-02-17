@@ -100,7 +100,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       
       if (exists) {
-        return res.status(400).json({ message: "Category already exists" });
+        return res.status(409).json({ message: "A category with this name already exists" });
       }
 
       const category = await storage.createCategory(parsed.data);

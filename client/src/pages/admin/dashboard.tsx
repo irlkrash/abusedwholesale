@@ -419,8 +419,24 @@ export default function AdminDashboard() {
     });
 
     const onSubmit = useCallback(async (data: { name: string }) => {
-      await createCategoryMutation.mutateAsync(data);
-    }, [createCategoryMutation]);
+      try {
+        await createCategoryMutation.mutateAsync(data);
+      } catch (error: any) {
+        if (error?.response?.status === 409) {
+          toast({
+            title: "Warning",
+            description: error.response.data.message,
+            variant: "destructive",
+          });
+          return;
+        }
+        toast({
+          title: "Error",
+          description: "Failed to create category",
+          variant: "destructive",
+        });
+      }
+    }, [createCategoryMutation, toast]);
 
     return (
       <Dialog open={isCreateCategoryDialogOpen} onOpenChange={setIsCreateCategoryDialogOpen}>
