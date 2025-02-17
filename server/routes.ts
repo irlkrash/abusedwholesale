@@ -103,7 +103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const cartItems = cart.items as { productId: number }[];
     const updates = await Promise.all(
-      cartItems.map(item => 
+      cartItems.map(item =>
         storage.updateProduct(item.productId, { isAvailable: false })
       )
     );

@@ -58,6 +58,11 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 
+interface ProductsResponse {
+  data: Product[];
+  nextPage?: number;
+}
+
 export default function AdminDashboard() {
   const { toast } = useToast();
   const { user, logoutMutation } = useAuth();
@@ -73,16 +78,17 @@ export default function AdminDashboard() {
     isLoading,
   } = useInfiniteQuery({
     queryKey: ["/api/products"],
-    queryFn: async ({ pageParam = 1 }) => {
+    queryFn: async ({ pageParam }) => {
       const response = await apiRequest(
         "GET",
         `/api/products?page=${pageParam}&limit=12`
       );
-      return response.json();
+      return response.json() as Promise<Product[]>;
     },
-    getNextPageParam: (lastPage) => {
-      if (lastPage.length < 12) return undefined;
-      return lastPage.nextPage;
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages) => {
+      if (!Array.isArray(lastPage) || lastPage.length < 12) return undefined;
+      return allPages.length + 1;
     },
   });
 
