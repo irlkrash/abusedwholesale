@@ -39,7 +39,7 @@ export default function HomePage() {
       try {
         const response = await apiRequest(
           "GET",
-          `/api/products?page=${pageParam}&limit=12`
+          `/api/products?page=${pageParam}&limit=12&sort=createdAt:desc`
         );
         const data = await response.json();
         return {

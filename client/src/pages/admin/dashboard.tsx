@@ -85,7 +85,7 @@ export default function AdminDashboard() {
       try {
         const response = await apiRequest(
           "GET",
-          `/api/products?page=${pageParam || 1}&limit=12`
+          `/api/products?page=${pageParam || 1}&limit=12&sort=createdAt:desc`
         );
         if (!response.ok) {
           throw new Error('Failed to fetch products');
