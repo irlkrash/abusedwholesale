@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -16,10 +16,18 @@ interface ImageViewerProps {
   onOpenChange: (open: boolean) => void;
 }
 
+interface Position {
+  x: number;
+  y: number;
+}
+
 export function ImageViewer({ src, alt, isOpen, onOpenChange }: ImageViewerProps) {
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [position, setPosition] = useState<Position>({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStart = useRef<Position | null>(null);
 
   const handleZoomIn = () => {
     setScale((prev) => Math.min(prev + 0.25, 3));
@@ -36,7 +44,32 @@ export function ImageViewer({ src, alt, isOpen, onOpenChange }: ImageViewerProps
   const resetView = () => {
     setScale(1);
     setRotation(0);
+    setPosition({ x: 0, y: 0 });
   };
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (scale > 1) {
+      e.preventDefault();
+      setIsDragging(true);
+      dragStart.current = {
+        x: e.clientX - position.x,
+        y: e.clientY - position.y,
+      };
+    }
+  }, [scale, position]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (isDragging && dragStart.current) {
+      const newX = e.clientX - dragStart.current.x;
+      const newY = e.clientY - dragStart.current.y;
+      setPosition({ x: newX, y: newY });
+    }
+  }, [isDragging]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+    dragStart.current = null;
+  }, []);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -100,7 +133,12 @@ export function ImageViewer({ src, alt, isOpen, onOpenChange }: ImageViewerProps
           </div>
 
           {/* Image Container */}
-          <div className="flex-1 overflow-auto">
+          <div
+            className="flex-1 overflow-auto"
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+          >
             <div className="min-h-full w-full flex items-center justify-center bg-black/5 dark:bg-white/5 p-4">
               {!isImageLoaded && (
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -110,12 +148,15 @@ export function ImageViewer({ src, alt, isOpen, onOpenChange }: ImageViewerProps
               <img
                 src={src}
                 alt={alt}
-                className="max-w-full object-contain transition-all duration-200 ease-out"
+                className="max-w-full object-contain transition-all duration-200 ease-out select-none"
                 style={{
-                  transform: `scale(${scale}) rotate(${rotation}deg)`,
+                  transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)`,
                   opacity: isImageLoaded ? 1 : 0,
+                  cursor: scale > 1 ? (isDragging ? "grabbing" : "grab") : "default",
                 }}
                 onLoad={() => setIsImageLoaded(true)}
+                onMouseDown={handleMouseDown}
+                draggable={false}
               />
             </div>
           </div>
