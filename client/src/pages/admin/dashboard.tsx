@@ -374,12 +374,21 @@ export default function AdminDashboard() {
 
   const assignCategoriesMutation = useMutation({
     mutationFn: async ({ productIds, categoryIds }: { productIds: number[], categoryIds: number[] }) => {
-      const results = await Promise.all(
-        productIds.map(id =>
-          apiRequest("PUT", `/api/products/${id}/categories`, { categoryIds })
-        )
-      );
-      return results;
+      try {
+        const results = await Promise.all(
+          productIds.map(id =>
+            apiRequest("PUT", `/api/products/${id}/categories`, { categoryIds })
+            .then(res => {
+              if (!res.ok) throw new Error(`Failed to update categories for product ${id}`);
+              return res.json();
+            })
+          )
+        );
+        return results;
+      } catch (error) {
+        console.error('Error assigning categories:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
@@ -388,6 +397,14 @@ export default function AdminDashboard() {
         description: "The selected products have been updated with new categories.",
       });
       clearSelection();
+      setCategoriesToAssign([]);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to assign categories. Please try again.",
+        variant: "destructive",
+      });
     },
   });
 
