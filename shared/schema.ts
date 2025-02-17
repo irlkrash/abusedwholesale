@@ -56,10 +56,14 @@ export const orders = pgTable("orders", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-});
+export const insertUserSchema = createInsertSchema(users)
+  .pick({
+    username: true,
+    password: true,
+  })
+  .extend({
+    secretCode: z.string().optional(),
+  });
 
 export const insertCategorySchema = createInsertSchema(categories).pick({
   name: true,
