@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
-import { Product } from "@shared/schema";
+import { Product, Category } from "@shared/schema";
 import { ProductForm } from "@/components/admin/product-form";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -70,6 +70,14 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 interface ProductsResponse {
   data: Product[];
@@ -84,6 +92,7 @@ export default function AdminDashboard() {
   const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const [isCreateCategoryDialogOpen, setIsCreateCategoryDialogOpen] = useState(false);
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<number | null>(null);
 
   const {
     data,
@@ -307,7 +316,7 @@ export default function AdminDashboard() {
   const {
     data: categories = [],
     isLoading: isCategoriesLoading,
-  } = useQuery({
+  } = useQuery<Category[]>({
     queryKey: ["/api/categories"],
     queryFn: async () => {
       const response = await fetch("/api/categories");
@@ -331,6 +340,25 @@ export default function AdminDashboard() {
     },
   });
 
+  const assignCategoriesMutation = useMutation({
+    mutationFn: async ({ productIds, categoryIds }: { productIds: number[], categoryIds: number[] }) => {
+      const results = await Promise.all(
+        productIds.map(id =>
+          apiRequest("PUT", `/api/products/${id}/categories`, { categoryIds })
+        )
+      );
+      return results;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      toast({
+        title: "Categories assigned",
+        description: "The selected products have been updated with new categories.",
+      });
+      clearSelection();
+    },
+  });
+
   const CategoryDialog = () => {
     const form = useForm({
       resolver: zodResolver(insertCategorySchema),
@@ -338,6 +366,10 @@ export default function AdminDashboard() {
         name: "",
       },
     });
+
+    const onSubmit = useCallback(async (data: { name: string }) => {
+      await createCategoryMutation.mutateAsync(data);
+    }, [createCategoryMutation]);
 
     return (
       <Dialog open={isCreateCategoryDialogOpen} onOpenChange={setIsCreateCategoryDialogOpen}>
@@ -352,7 +384,7 @@ export default function AdminDashboard() {
             <DialogTitle>Create New Category</DialogTitle>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(createCategoryMutation.mutate)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="name"
@@ -402,6 +434,52 @@ export default function AdminDashboard() {
       </Button>
     </>
   );
+
+  const BulkCategoryAssignment = () => {
+    const [categoriesToAssign, setCategoriesToAssign] = useState<number[]>([]);
+
+    return (
+      <div className="flex items-center gap-2">
+        <div className="flex flex-wrap gap-2">
+          {categories.map((category: Category) => (
+            <Button
+              key={category.id}
+              variant={categoriesToAssign.includes(category.id) ? "default" : "outline"}
+              onClick={() => {
+                setCategoriesToAssign(prev =>
+                  prev.includes(category.id)
+                    ? prev.filter(id => id !== category.id)
+                    : [...prev, category.id]
+                );
+              }}
+              className="h-8"
+            >
+              {category.name}
+            </Button>
+          ))}
+        </div>
+        <Button
+          onClick={() => {
+            if (categoriesToAssign.length > 0) {
+              assignCategoriesMutation.mutate({
+                productIds: Array.from(selectedProducts),
+                categoryIds: categoriesToAssign,
+              });
+            }
+          }}
+          disabled={assignCategoriesMutation.isPending || categoriesToAssign.length === 0}
+        >
+          {assignCategoriesMutation.isPending ? "Assigning..." : "Assign Categories"}
+        </Button>
+      </div>
+    );
+  };
+
+  const filteredProducts = selectedCategoryFilter
+    ? products.filter(product =>
+        product.categories?.some(category => category.id === selectedCategoryFilter)
+      )
+    : products;
 
   return (
     <div className="min-h-screen bg-background">
@@ -514,6 +592,10 @@ export default function AdminDashboard() {
                 <Button variant="outline" onClick={clearSelection}>
                   Clear Selection
                 </Button>
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Bulk Category Assignment</h3>
+                  <BulkCategoryAssignment />
+                </div>
               </>
             )}
             <CategoryDialog />
@@ -538,12 +620,43 @@ export default function AdminDashboard() {
         </div>
 
         <div className="space-y-8">
-          {/* Categories Section */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Categories</h3>
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium">Categories</h3>
+              <Select
+                value={selectedCategoryFilter?.toString() || ""}
+                onValueChange={(value) =>
+                  setSelectedCategoryFilter(value ? parseInt(value) : null)
+                }
+              >
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Filter by category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Categories</SelectItem>
+                  {categories.map((category: Category) => (
+                    <SelectItem key={category.id} value={category.id.toString()}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {categories.map((category: any) => (
-                <Card key={category.id} className="p-4">
+              {categories.map((category: Category) => (
+                <Card
+                  key={category.id}
+                  className={`p-4 cursor-pointer transition-colors ${
+                    selectedCategoryFilter === category.id
+                      ? "ring-2 ring-primary"
+                      : ""
+                  }`}
+                  onClick={() =>
+                    setSelectedCategoryFilter(
+                      selectedCategoryFilter === category.id ? null : category.id
+                    )
+                  }
+                >
                   <CardHeader className="p-0">
                     <CardTitle className="text-base">{category.name}</CardTitle>
                   </CardHeader>
@@ -551,117 +664,128 @@ export default function AdminDashboard() {
               ))}
             </div>
           </div>
+
+
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Bulk Upload</h3>
             <BulkUpload />
           </div>
 
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Product List</h3>
+            <h3 className="text-lg font-medium">
+              Product List
+              {selectedCategoryFilter && (
+                <Badge variant="outline" className="ml-2">
+                  Filtered by category: {categories.find(c => c.id === selectedCategoryFilter)?.name}
+                </Badge>
+              )}
+            </h3>
             {isLoading ? (
               <div className="flex items-center justify-center h-32">
                 <Loader2 className="w-8 h-8 animate-spin" />
               </div>
             ) : isError ? (
               <div>Error: {error?.message}</div>
-            ) : products.length > 0 ? (
-              <>
-                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {products.map((product, index) => (
-                    <Card
-                      key={product.id}
-                      className={`overflow-hidden ${
-                        selectedProducts.has(product.id) ? 'ring-2 ring-primary' : ''
-                      }`}
-                    >
-                      <CardContent className="p-0">
-                        <div className="relative">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-sm"
-                            onClick={() => toggleSelection(product.id)}
-                          >
-                            {selectedProducts.has(product.id) ? (
-                              <CheckSquare className="h-4 w-4" />
-                            ) : (
-                              <Square className="h-4 w-4" />
-                            )}
-                          </Button>
-                          <ProductCarousel
-                            images={product.images}
-                            priority={index < 4}
-                          />
-                        </div>
-                        <div className="p-4">
-                          <h3 className="text-lg font-semibold">{product.name}</h3>
-                          <p className="text-sm text-muted-foreground mt-2">
-                            {product.description}
-                          </p>
-                          <div className="mt-4 flex justify-between items-center">
-                            <span
-                              className={`inline-flex items-center gap-1 text-sm ${
-                                product.isAvailable
-                                  ? "text-green-600"
-                                  : "text-red-600"
-                              }`}
-                            >
-                              {product.isAvailable ? (
-                                <CheckCircle className="h-4 w-4" />
-                              ) : (
-                                <XCircle className="h-4 w-4" />
-                              )}
-                              {product.isAvailable ? "Available" : "Unavailable"}
-                            </span>
-                            <div className="flex gap-2">
-                              <Dialog
-                                open={editingProduct?.id === product.id}
-                                onOpenChange={(open) => !open && setEditingProduct(null)}
+            ) : filteredProducts.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {filteredProducts.map((product, index) => (
+                  <Card
+                    key={product.id}
+                    className={`overflow-hidden ${
+                      selectedProducts.has(product.id) ? 'ring-2 ring-primary' : ''
+                    }`}
+                  >
+                    <CardContent className="p-0">
+                      <div className="relative">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-sm"
+                          onClick={() => toggleSelection(product.id)}
+                        >
+                          {selectedProducts.has(product.id) ? (
+                            <CheckSquare className="h-4 w-4" />
+                          ) : (
+                            <Square className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <ProductCarousel
+                          images={product.images}
+                          priority={index < 4}
+                        />
+                      </div>
+                      <div className="p-4">
+                        <h3 className="text-lg font-semibold">{product.name}</h3>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          {product.description}
+                        </p>
+                        {product.categories && product.categories.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {product.categories.map((category: Category) => (
+                              <Badge
+                                key={category.id}
+                                variant="secondary"
+                                className="text-xs"
                               >
-                                <DialogTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="flex items-center gap-2"
-                                    onClick={() => setEditingProduct(product)}
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                    Edit
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-2xl">
-                                  <DialogHeader>
-                                    <DialogTitle>Edit Product</DialogTitle>
-                                  </DialogHeader>
-                                  <ProductForm
-                                    initialData={product}
-                                    onSubmit={(data) =>
-                                      updateProductMutation.mutate({
-                                        id: product.id,
-                                        data,
-                                      })
-                                    }
-                                    isLoading={updateProductMutation.isPending}
-                                  />
-                                </DialogContent>
-                              </Dialog>
-                            </div>
+                                {category.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                        <div className="mt-4 flex justify-between items-center">
+                          <span
+                            className={`inline-flex items-center gap-1 text-sm ${
+                              product.isAvailable
+                                ? "text-green-600"
+                                : "text-red-600"
+                            }`}
+                          >
+                            {product.isAvailable ? (
+                              <CheckCircle className="h-4 w-4" />
+                            ) : (
+                              <XCircle className="h-4 w-4" />
+                            )}
+                            {product.isAvailable ? "Available" : "Unavailable"}
+                          </span>
+                          <div className="flex gap-2">
+                            <Dialog
+                              open={editingProduct?.id === product.id}
+                              onOpenChange={(open) => !open && setEditingProduct(null)}
+                            >
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex items-center gap-2"
+                                  onClick={() => setEditingProduct(product)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                  Edit
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-2xl">
+                                <DialogHeader>
+                                  <DialogTitle>Edit Product</DialogTitle>
+                                </DialogHeader>
+                                <ProductForm
+                                  initialData={product}
+                                  onSubmit={(data) =>
+                                    updateProductMutation.mutate({
+                                      id: product.id,
+                                      data,
+                                    })
+                                  }
+                                  isLoading={updateProductMutation.isPending}
+                                />
+                              </DialogContent>
+                            </Dialog>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-
-                <div
-                  ref={loadMoreRef}
-                  className="h-20 flex items-center justify-center mt-8"
-                >
-                  {isFetchingNextPage && (
-                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                  )}
-                </div>
-              </>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             ) : (
               <Card>
                 <CardContent className="p-6 text-center text-muted-foreground">
