@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import { Product } from "@shared/schema";
@@ -6,7 +6,7 @@ import { ProductForm } from "@/components/admin/product-form";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import {
   Package,
   ShoppingBag,
@@ -66,9 +66,26 @@ interface ProductsResponse {
 export default function AdminDashboard() {
   const { toast } = useToast();
   const { user, logoutMutation } = useAuth();
+  const [, setLocation] = useLocation();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (!user) {
+      setLocation('/auth');
+      return;
+    }
+    if (!user.isAdmin) {
+      setLocation('/');
+      toast({
+        title: "Access Denied",
+        description: "You need admin privileges to access this page",
+        variant: "destructive"
+      });
+      return;
+    }
+  }, [user, setLocation, toast]);
 
   const {
     data,
@@ -91,6 +108,7 @@ export default function AdminDashboard() {
       };
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
+    enabled: !!user?.isAdmin, // Only fetch if user is admin
   });
 
   // Safely flatten the paginated data
