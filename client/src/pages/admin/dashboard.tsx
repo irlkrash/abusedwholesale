@@ -103,42 +103,46 @@ export default function AdminDashboard() {
     isError,
     error
   } = useInfiniteQuery({
-    queryKey: ["/api/products"],
+    queryKey: ["/api/products", selectedCategoryFilter],
     queryFn: async ({ pageParam = 1 }) => {
       console.log("Fetching page:", pageParam);
       try {
-        const response = await apiRequest(
-          "GET",
-          `/api/products?page=${pageParam}&limit=12&sort=createdAt:desc`
-        );
+        let url = `/api/products?page=${pageParam}&limit=12&sort=createdAt:desc`;
+        if (selectedCategoryFilter) {
+          url += `&category=${selectedCategoryFilter}`;
+        }
+        const response = await apiRequest("GET", url);
         if (!response.ok) {
           throw new Error('Failed to fetch products');
         }
         const products = await response.json();
         console.log(`Retrieved ${products.length} products for page ${pageParam}`);
-        const hasMore = products.length === 12;
         return {
           data: products,
-          nextPage: hasMore ? pageParam + 1 : undefined,
+          nextPage: products.length === 12 ? pageParam + 1 : undefined,
         };
       } catch (err) {
         console.error("Failed to fetch products:", err);
         throw err;
       }
     },
-    initialPageParam: 1,
     getNextPageParam: (lastPage) => {
       console.log("Next page param:", lastPage.nextPage);
       return lastPage.nextPage;
     },
+    initialPageParam: 1,
   });
+
+  const products = data?.pages?.flatMap(page => page.data) ?? [];
+  const filteredProducts = products;
+
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
           console.log("Loading next page...");
-          void fetchNextPage();
+          fetchNextPage();
         }
       },
       {
@@ -159,8 +163,6 @@ export default function AdminDashboard() {
       }
     };
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
-
-  const products = data?.pages?.flatMap(page => page.data) ?? [];
 
   const toggleSelection = (productId: number) => {
     const newSelection = new Set(selectedProducts);
@@ -483,7 +485,7 @@ export default function AdminDashboard() {
     );
   };
 
-  const filteredProducts = selectedCategoryFilter
+  const filteredProducts2 = selectedCategoryFilter
     ? products.filter(product =>
         product.categories?.some((category: Category) => category.id === selectedCategoryFilter)
       )
@@ -814,6 +816,7 @@ export default function AdminDashboard() {
                 <div 
                   ref={loadMoreRef}
                   className="w-full py-8 flex justify-center"
+                  style={{ minHeight: '100px' }}
                 >
                   {isFetchingNextPage ? (
                     <Loader2 className="h-6 w-6 animate-spin" />

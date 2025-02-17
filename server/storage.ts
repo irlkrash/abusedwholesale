@@ -72,12 +72,16 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(productsTable)
         .orderBy(desc(productsTable.createdAt))
-        .limit(validPageLimit)
+        .limit(validPageLimit + 1) // Fetch one extra to determine if there are more pages
         .offset(offset);
+
+      // Remove the extra item before sending the response
+      const hasMore = productsResult.length > validPageLimit;
+      const products = hasMore ? productsResult.slice(0, -1) : productsResult;
 
       // Fetch categories for each product
       const productsWithCategories = await Promise.all(
-        productsResult.map(async (product) => ({
+        products.map(async (product) => ({
           ...product,
           categories: await this.getProductCategories(product.id),
         }))
