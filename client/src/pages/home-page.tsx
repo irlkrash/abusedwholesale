@@ -43,27 +43,35 @@ export default function HomePage() {
   });
 
   const {
-    data: products,
-    isLoading,
-    isError,
-    error,
+    data,
     fetchNextPage,
     hasNextPage,
-    isFetchingNextPage
+    isFetchingNextPage,
+    isLoading,
+    isError,
+    error
   } = useInfiniteQuery({
     queryKey: ["/api/products", selectedCategory],
     queryFn: async ({ pageParam = 1 }) => {
       try {
+        const queryParams = new URLSearchParams({
+          page: pageParam.toString(),
+          limit: '12',
+          sort: 'createdAt:desc'
+        });
+
+        if (selectedCategory) {
+          queryParams.append('categoryId', selectedCategory.toString());
+        }
+
         const response = await apiRequest(
           "GET",
-          `/api/products?page=${pageParam}&limit=12&sort=createdAt:desc${
-            selectedCategory ? `&categoryId=${selectedCategory}` : ''
-          }`
+          `/api/products?${queryParams.toString()}`
         );
-        const data = await response.json();
+        const products = await response.json();
         return {
-          data: Array.isArray(data) ? data : [],
-          nextPage: Array.isArray(data) && data.length === 12 ? pageParam + 1 : undefined,
+          data: Array.isArray(products) ? products : [],
+          nextPage: Array.isArray(products) && products.length === 12 ? pageParam + 1 : undefined,
         };
       } catch (err) {
         console.error("Failed to fetch products:", err);
@@ -99,7 +107,7 @@ export default function HomePage() {
     };
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const allProducts = products?.pages?.flatMap(page => page.data) ?? [];
+  const allProducts = data?.pages?.flatMap(page => page.data) ?? [];
 
   const handleAddToCart = (product: Product) => {
     if (cartItems.some(item => item.id === product.id)) {
