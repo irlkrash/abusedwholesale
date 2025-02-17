@@ -105,6 +105,7 @@ export default function AdminDashboard() {
   } = useInfiniteQuery({
     queryKey: ["/api/products"],
     queryFn: async ({ pageParam = 1 }) => {
+      console.log("Fetching page:", pageParam);
       try {
         const response = await apiRequest(
           "GET",
@@ -114,9 +115,11 @@ export default function AdminDashboard() {
           throw new Error('Failed to fetch products');
         }
         const products = await response.json();
+        console.log(`Retrieved ${products.length} products for page ${pageParam}`);
+        const hasMore = products.length === 12;
         return {
-          data: Array.isArray(products) ? products : [],
-          nextPage: Array.isArray(products) && products.length === 12 ? pageParam + 1 : undefined,
+          data: products,
+          nextPage: hasMore ? pageParam + 1 : undefined,
         };
       } catch (err) {
         console.error("Failed to fetch products:", err);
@@ -124,13 +127,17 @@ export default function AdminDashboard() {
       }
     },
     initialPageParam: 1,
-    getNextPageParam: (lastPage) => lastPage.nextPage,
+    getNextPageParam: (lastPage) => {
+      console.log("Next page param:", lastPage.nextPage);
+      return lastPage.nextPage;
+    },
   });
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          console.log("Loading next page...");
           void fetchNextPage();
         }
       },
