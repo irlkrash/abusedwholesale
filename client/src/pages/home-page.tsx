@@ -24,7 +24,6 @@ export default function HomePage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const loadMoreRef = useRef<HTMLDivElement>(null);
-  const pageSize = 12;
 
   const {
     data: products,
@@ -40,15 +39,12 @@ export default function HomePage() {
       try {
         const response = await apiRequest(
           "GET",
-          `/api/products?page=${pageParam}&limit=${pageSize}`
+          `/api/products?page=${pageParam}&limit=12`
         );
-        if (!response.ok) {
-          throw new Error('Failed to fetch products');
-        }
         const data = await response.json();
         return {
           data: Array.isArray(data) ? data : [],
-          nextPage: Array.isArray(data) && data.length === pageSize ? pageParam + 1 : undefined,
+          nextPage: Array.isArray(data) && data.length === 12 ? pageParam + 1 : undefined,
         };
       } catch (err) {
         console.error("Failed to fetch products:", err);
@@ -59,19 +55,16 @@ export default function HomePage() {
     getNextPageParam: (lastPage) => lastPage.nextPage,
   });
 
-  // Set up intersection observer for infinite scroll
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        const first = entries[0];
-        if (first.isIntersecting && hasNextPage && !isFetchingNextPage) {
-          console.log('Loading next page of products...');
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
           fetchNextPage();
         }
       },
       { 
         threshold: 0.1,
-        rootMargin: '100px' // Load earlier, before reaching the very bottom
+        rootMargin: '200px' // Increased to start loading earlier
       }
     );
 
@@ -98,12 +91,38 @@ export default function HomePage() {
       });
       return;
     }
-    setCartItems([...cartItems, product]);
+    setCartItems(prev => [...prev, product]);
     toast({
       title: "Added to cart",
       description: "Item has been added to your cart.",
     });
   };
+
+  const NavMenu = () => (
+    <>
+      {user?.isAdmin && (
+        <Link href="/admin">
+          <Button variant="outline">Admin Dashboard</Button>
+        </Link>
+      )}
+      {!user && (
+        <Link href="/auth">
+          <Button variant="outline" className="flex items-center gap-2">
+            <LogIn className="h-4 w-4" />
+            Login
+          </Button>
+        </Link>
+      )}
+      <Button
+        variant="outline"
+        className="flex items-center gap-2"
+        onClick={() => setIsCartOpen(true)}
+      >
+        <ShoppingCart className="h-4 w-4" />
+        Cart ({cartItems.length})
+      </Button>
+    </>
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -119,32 +138,10 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-4">
-            {user?.isAdmin && (
-              <Link href="/admin">
-                <Button variant="outline">Admin Dashboard</Button>
-              </Link>
-            )}
-            {!user && (
-              <Link href="/auth">
-                <Button variant="outline" className="flex items-center gap-2">
-                  <LogIn className="h-4 w-4" />
-                  Login
-                </Button>
-              </Link>
-            )}
-            <Button
-              variant="outline"
-              className="flex items-center gap-2"
-              onClick={() => setIsCartOpen(true)}
-            >
-              <ShoppingCart className="h-4 w-4" />
-              Cart ({cartItems.length})
-            </Button>
+            <NavMenu />
           </div>
 
-          {/* Mobile Navigation */}
           <div className="md:hidden flex items-center gap-4">
             <Button
               variant="outline"
@@ -165,21 +162,7 @@ export default function HomePage() {
                   <SheetTitle>Menu</SheetTitle>
                 </SheetHeader>
                 <div className="flex flex-col gap-4 mt-4">
-                  {user?.isAdmin && (
-                    <Link href="/admin">
-                      <Button variant="outline" className="w-full">
-                        Admin Dashboard
-                      </Button>
-                    </Link>
-                  )}
-                  {!user && (
-                    <Link href="/auth">
-                      <Button variant="outline" className="w-full flex items-center gap-2">
-                        <LogIn className="h-4 w-4" />
-                        Login
-                      </Button>
-                    </Link>
-                  )}
+                  <NavMenu />
                 </div>
               </SheetContent>
             </Sheet>
@@ -217,12 +200,11 @@ export default function HomePage() {
                   key={product.id}
                   product={product}
                   onAddToCart={() => handleAddToCart(product)}
-                  priority={index < 4}
+                  priority={index < 8} // Increased priority items for better initial load
                 />
               ))}
             </div>
 
-            {/* Infinite scroll trigger */}
             <div 
               ref={loadMoreRef} 
               className="h-20 flex items-center justify-center mt-8"
@@ -244,7 +226,7 @@ export default function HomePage() {
           isOpen={isCartOpen}
           onOpenChange={setIsCartOpen}
           items={cartItems}
-          onRemoveItem={(id) => setCartItems(cartItems.filter(item => item.id !== id))}
+          onRemoveItem={(id) => setCartItems(items => items.filter(item => item.id !== id))}
           onClearCart={() => setCartItems([])}
         />
       </main>
