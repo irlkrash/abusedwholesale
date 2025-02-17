@@ -78,21 +78,21 @@ export default function AdminDashboard() {
     isLoading,
   } = useInfiniteQuery({
     queryKey: ["/api/products"],
-    queryFn: async ({ pageParam }) => {
+    queryFn: async ({ pageParam = 1 }) => {
       const response = await apiRequest(
         "GET",
         `/api/products?page=${pageParam}&limit=12`
       );
-      return response.json() as Promise<Product[]>;
+      const products = await response.json() as Product[];
+      return { data: products, pageParam };
     },
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) => {
-      if (!Array.isArray(lastPage) || lastPage.length < 12) return undefined;
-      return allPages.length + 1;
+      return lastPage.data.length === 12 ? allPages.length + 1 : undefined;
     },
   });
 
-  const products = data?.pages.flatMap((page) => page) ?? [];
+  const products = data?.pages.flatMap(page => page.data) ?? [];
 
   const toggleSelection = (productId: number) => {
     const newSelection = new Set(selectedProducts);

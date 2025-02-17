@@ -12,9 +12,10 @@ import { useState, useEffect } from "react";
 interface ProductCarouselProps {
   images: string[];
   onImageClick?: (image: string) => void;
+  priority?: boolean;
 }
 
-export function ProductCarousel({ images, onImageClick }: ProductCarouselProps) {
+export function ProductCarousel({ images, onImageClick, priority = false }: ProductCarouselProps) {
   const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set());
   const [preloadedImages, setPreloadedImages] = useState<Set<string>>(new Set());
 
@@ -25,7 +26,7 @@ export function ProductCarousel({ images, onImageClick }: ProductCarouselProps) 
         const img = new Image();
         img.src = src;
         img.onload = () => {
-          setPreloadedImages(prev => new Set([...prev, src]));
+          setPreloadedImages(prev => new Set(Array.from(prev).concat([src])));
         };
       }
     };
@@ -39,7 +40,7 @@ export function ProductCarousel({ images, onImageClick }: ProductCarouselProps) 
   }, [images, preloadedImages]);
 
   const handleImageLoad = (index: number) => {
-    setLoadedImages(prev => new Set([...prev, index]));
+    setLoadedImages(prev => new Set(Array.from(prev).concat([index])));
 
     // Preload next image when current one loads
     if (index < images.length - 1) {
@@ -48,7 +49,7 @@ export function ProductCarousel({ images, onImageClick }: ProductCarouselProps) 
         const img = new Image();
         img.src = nextImage;
         img.onload = () => {
-          setPreloadedImages(prev => new Set([...prev, nextImage]));
+          setPreloadedImages(prev => new Set(Array.from(prev).concat([nextImage])));
         };
       }
     }
@@ -70,7 +71,7 @@ export function ProductCarousel({ images, onImageClick }: ProductCarouselProps) 
                 <img 
                   src={image} 
                   alt={`Product view ${index + 1}`}
-                  loading={index === 0 ? "eager" : "lazy"}
+                  loading={index === 0 || priority ? "eager" : "lazy"}
                   width={600}
                   height={600}
                   className={cn(
