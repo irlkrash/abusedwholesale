@@ -115,7 +115,7 @@ export default function AdminDashboard() {
   const toggleAvailabilityMutation = useMutation({
     mutationFn: async ({ ids, isAvailable }: { ids: number[]; isAvailable: boolean }) => {
       const responses = await Promise.all(
-        ids.map(id => 
+        ids.map(id =>
           apiRequest("PATCH", `/api/products/${id}`, { isAvailable })
             .then(res => res.json())
         )
@@ -142,7 +142,7 @@ export default function AdminDashboard() {
   const deleteProductMutation = useMutation({
     mutationFn: async (productIds: number[]) => {
       const responses = await Promise.all(
-        productIds.map(id => 
+        productIds.map(id =>
           apiRequest("DELETE", `/api/products/${id}`)
             .then(res => res.ok ? id : Promise.reject(`Failed to delete product ${id}`))
         )
@@ -268,7 +268,7 @@ export default function AdminDashboard() {
                 </AlertDialog>
                 <Button
                   variant="outline"
-                  onClick={() => 
+                  onClick={() =>
                     toggleAvailabilityMutation.mutate({
                       ids: Array.from(selectedProducts),
                       isAvailable: true,
@@ -279,7 +279,7 @@ export default function AdminDashboard() {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => 
+                  onClick={() =>
                     toggleAvailabilityMutation.mutate({
                       ids: Array.from(selectedProducts),
                       isAvailable: false,
@@ -322,7 +322,7 @@ export default function AdminDashboard() {
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Product List</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {products.map((product) => (
+              {products.map((product, index) => (
                 <Card key={product.id} className={`overflow-hidden ${
                   selectedProducts.has(product.id) ? 'ring-2 ring-primary' : ''
                 }`}>
@@ -340,7 +340,10 @@ export default function AdminDashboard() {
                           <Square className="h-4 w-4" />
                         )}
                       </Button>
-                      <ProductCarousel images={product.images} />
+                      <ProductCarousel
+                        images={product.images}
+                        priority={index < 4}
+                      />
                     </div>
                     <div className="p-4">
                       <h3 className="text-lg font-semibold">{product.name}</h3>

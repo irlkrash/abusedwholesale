@@ -8,17 +8,20 @@ import { ImageViewer } from "./image-viewer";
 interface ProductCardProps {
   product: Product;
   onAddToCart: () => void;
+  priority?: boolean;
 }
 
-export function ProductCard({ product, onAddToCart }: ProductCardProps) {
+export function ProductCard({ product, onAddToCart, priority = false }: ProductCardProps) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden transition-shadow hover:shadow-lg">
       <CardContent className="p-0">
         <ProductCarousel 
           images={product.images} 
           onImageClick={(image) => setSelectedImage(image)}
+          priority={priority}
         />
       </CardContent>
       <CardFooter className="p-6">
