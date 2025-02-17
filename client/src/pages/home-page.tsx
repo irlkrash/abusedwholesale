@@ -16,6 +16,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Card, CardContent } from "@/components/ui/card";
+import { apiRequest } from "@/lib/queryClient"; // Fixed import path
+
 
 export default function HomePage() {
   const [cartItems, setCartItems] = useState<Product[]>([]);
@@ -30,16 +32,18 @@ export default function HomePage() {
     error
   } = useQuery<Product[]>({
     queryKey: ["/api/products"],
+    queryFn: async () => {
+      try {
+        const response = await apiRequest("GET", "/api/products");
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+      } catch (err) {
+        console.error("Failed to fetch products:", err);
+        throw err;
+      }
+    },
     refetchOnWindowFocus: false,
     retry: 1,
-    onError: (error: Error) => {
-      console.error("Failed to fetch products:", error);
-      toast({
-        title: "Error loading products",
-        description: error.message || "Please try again later",
-        variant: "destructive",
-      });
-    }
   });
 
   const handleAddToCart = (product: Product) => {
@@ -145,7 +149,7 @@ export default function HomePage() {
         ) : isError ? (
           <Card>
             <CardContent className="p-6 text-center text-muted-foreground">
-              Error loading products. Please try again later.
+              Error loading products. Please try again later. {error?.message}
             </CardContent>
           </Card>
         ) : products && products.length > 0 ? (

@@ -76,24 +76,31 @@ export default function AdminDashboard() {
     hasNextPage,
     isFetchingNextPage,
     isLoading,
-  } = useInfiniteQuery({
+    isError,
+    error
+  } = useInfiniteQuery<ProductsResponse>({
     queryKey: ["/api/products"],
     queryFn: async ({ pageParam = 1 }) => {
-      const response = await apiRequest(
-        "GET",
-        `/api/products?page=${pageParam}&limit=12`
-      );
-      const products = await response.json();
-      return {
-        data: products,
-        nextPage: products.length === 12 ? pageParam + 1 : undefined,
-      };
+      try {
+        const response = await apiRequest(
+          "GET",
+          `/api/products?page=${pageParam}&limit=12`
+        );
+        const products = await response.json();
+        return {
+          data: Array.isArray(products) ? products : [],
+          nextPage: Array.isArray(products) && products.length === 12 ? pageParam + 1 : undefined,
+        };
+      } catch (err) {
+        console.error("Failed to fetch products:", err);
+        throw err;
+      }
     },
     initialPageParam: 1,
     getNextPageParam: (lastPage) => lastPage.nextPage,
   });
 
-  // Safely get products from pages
+  // Safely get products from pages with proper type checking
   const products = data?.pages?.flatMap(page => page.data) ?? [];
 
   const toggleSelection = (productId: number) => {
@@ -400,6 +407,8 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-center h-32">
                 <Loader2 className="w-8 h-8 animate-spin" />
               </div>
+            ) : isError ? (
+              <div>Error: {error?.message}</div>
             ) : products.length > 0 ? (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
