@@ -103,52 +103,40 @@ export default function AdminDashboard() {
     isError,
     error
   } = useInfiniteQuery({
-    queryKey: ["/api/products", selectedCategoryFilter],
-    queryFn: async ({ pageParam = 1 }) => {
-      console.log("Fetching page:", pageParam);
+    queryKey: ["/api/products"],
+    queryFn: async ({ pageParam }) => {
       try {
-        let url = `/api/products?page=${pageParam}&limit=12&sort=createdAt:desc`;
-        if (selectedCategoryFilter) {
-          url += `&category=${selectedCategoryFilter}`;
-        }
-        const response = await apiRequest("GET", url);
+        const response = await apiRequest(
+          "GET",
+          `/api/products?page=${pageParam || 1}&limit=12&sort=createdAt:desc`
+        );
         if (!response.ok) {
           throw new Error('Failed to fetch products');
         }
         const products = await response.json();
-        console.log(`Retrieved ${products.length} products for page ${pageParam}`);
         return {
-          data: products,
-          nextPage: products.length === 12 ? pageParam + 1 : undefined,
+          data: Array.isArray(products) ? products : [],
+          nextPage: Array.isArray(products) && products.length === 12 ? (pageParam || 1) + 1 : undefined,
         };
       } catch (err) {
         console.error("Failed to fetch products:", err);
         throw err;
       }
     },
-    getNextPageParam: (lastPage) => {
-      console.log("Next page param:", lastPage.nextPage);
-      return lastPage.nextPage;
-    },
     initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.nextPage,
   });
-
-  const products = data?.pages?.flatMap(page => page.data) ?? [];
-  const filteredProducts = products;
-
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          console.log("Loading next page...");
           fetchNextPage();
         }
       },
       {
-        root: null,
-        rootMargin: '100px',
-        threshold: 0.1
+        threshold: 0.1,
+        rootMargin: '200px'
       }
     );
 
@@ -163,6 +151,8 @@ export default function AdminDashboard() {
       }
     };
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const products = data?.pages?.flatMap(page => page.data) ?? [];
 
   const toggleSelection = (productId: number) => {
     const newSelection = new Set(selectedProducts);
@@ -485,7 +475,7 @@ export default function AdminDashboard() {
     );
   };
 
-  const filteredProducts2 = selectedCategoryFilter
+  const filteredProducts = selectedCategoryFilter
     ? products.filter(product =>
         product.categories?.some((category: Category) => category.id === selectedCategoryFilter)
       )
@@ -711,122 +701,105 @@ export default function AdminDashboard() {
             ) : isError ? (
               <div>Error: {error?.message}</div>
             ) : filteredProducts.length > 0 ? (
-              <>
-                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {filteredProducts.map((product, index) => (
-                    <Card
-                      key={product.id}
-                      className={`overflow-hidden ${
-                        selectedProducts.has(product.id) ? 'ring-2 ring-primary' : ''
-                      }`}
-                    >
-                      <CardContent className="p-0">
-                        <div className="relative">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-sm"
-                            onClick={() => toggleSelection(product.id)}
-                          >
-                            {selectedProducts.has(product.id) ? (
-                              <CheckSquare className="h-4 w-4" />
-                            ) : (
-                              <Square className="h-4 w-4" />
-                            )}
-                          </Button>
-                          <ProductCarousel
-                            images={product.images}
-                            priority={index < 4}
-                          />
-                        </div>
-                        <div className="p-4">
-                          <h3 className="text-lg font-semibold">{product.name}</h3>
-                          <p className="text-sm text-muted-foreground mt-2">
-                            {product.description}
-                          </p>
-                          {product.categories && product.categories.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {product.categories.map((category: Category) => (
-                                <Badge
-                                  key={category.id}
-                                  variant="secondary"
-                                  className="text-xs"
-                                >
-                                  {category.name}
-                                </Badge>
-                              ))}
-                            </div>
+              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {filteredProducts.map((product, index) => (
+                  <Card
+                    key={product.id}
+                    className={`overflow-hidden ${
+                      selectedProducts.has(product.id) ? 'ring-2 ring-primary' : ''
+                    }`}
+                  >
+                    <CardContent className="p-0">
+                      <div className="relative">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-sm"
+                          onClick={() => toggleSelection(product.id)}
+                        >
+                          {selectedProducts.has(product.id) ? (
+                            <CheckSquare className="h-4 w-4" />
+                          ) : (
+                            <Square className="h-4 w-4" />
                           )}
-                          <div className="mt-4 flex justify-between items-center">
-                            <span
-                              className={`inline-flex items-center gap-1 text-sm ${
-                                product.isAvailable
-                                  ? "text-green-600"
-                                  : "text-red-600"
-                              }`}
-                            >
-                              {product.isAvailable ? (
-                                <CheckCircle className="h-4 w-4" />
-                              ) : (
-                                <XCircle className="h-4 w-4" />
-                              )}
-                              {product.isAvailable ? "Available" : "Unavailable"}
-                            </span>
-                            <div className="flex gap-2">
-                              <Dialog
-                                open={editingProduct?.id === product.id}
-                                onOpenChange={(open) => !open && setEditingProduct(null)}
+                        </Button>
+                        <ProductCarousel
+                          images={product.images}
+                          priority={index < 4}
+                        />
+                      </div>
+                      <div className="p-4">
+                        <h3 className="text-lg font-semibold">{product.name}</h3>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          {product.description}
+                        </p>
+                        {product.categories && product.categories.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {product.categories.map((category: Category) => (
+                              <Badge
+                                key={category.id}
+                                variant="secondary"
+                                className="text-xs"
                               >
-                                <DialogTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="flex items-center gap-2"
-                                    onClick={() => setEditingProduct(product)}
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                    Edit
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-2xl">
-                                  <DialogHeader>
-                                    <DialogTitle>Edit Product</DialogTitle>
-                                  </DialogHeader>
-                                  <ProductForm
-                                    initialData={product}
-                                    onSubmit={(data) =>
-                                      updateProductMutation.mutate({
-                                        id: product.id,
-                                        data,
-                                      })
-                                    }
-                                    isLoading={updateProductMutation.isPending}
-                                  />
-                                </DialogContent>
-                              </Dialog>
-                            </div>
+                                {category.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                        <div className="mt-4 flex justify-between items-center">
+                          <span
+                            className={`inline-flex items-center gap-1 text-sm ${
+                              product.isAvailable
+                                ? "text-green-600"
+                                : "text-red-600"
+                            }`}
+                          >
+                            {product.isAvailable ? (
+                              <CheckCircle className="h-4 w-4" />
+                            ) : (
+                              <XCircle className="h-4 w-4" />
+                            )}
+                            {product.isAvailable ? "Available" : "Unavailable"}
+                          </span>
+                          <div className="flex gap-2">
+                            <Dialog
+                              open={editingProduct?.id === product.id}
+                              onOpenChange={(open) => !open && setEditingProduct(null)}
+                            >
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex items-center gap-2"
+                                  onClick={() => setEditingProduct(product)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                  Edit
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-2xl">
+                                <DialogHeader>
+                                  <DialogTitle>Edit Product</DialogTitle>
+                                </DialogHeader>
+                                <ProductForm
+                                  initialData={product}
+                                  onSubmit={(data) =>
+                                    updateProductMutation.mutate({
+                                      id: product.id,
+                                      data,
+                                    })
+                                  }
+                                  isLoading={updateProductMutation.isPending}
+                                />
+                              </DialogContent>
+                            </Dialog>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-
-                {/* Load more trigger */}
-                <div 
-                  ref={loadMoreRef}
-                  className="w-full py-8 flex justify-center"
-                  style={{ minHeight: '100px' }}
-                >
-                  {isFetchingNextPage ? (
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                  ) : hasNextPage ? (
-                    <div className="h-8" /> // Invisible div for intersection observer
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No more products to load</p>
-                  )}
-                </div>
-              </>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             ) : (
               <Card>
                 <CardContent className="p-6 text-center text-muted-foreground">

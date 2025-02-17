@@ -58,36 +58,31 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async getProducts(pageOffset = 1, pageLimit = 12): Promise<(Product & { categories?: Category[] })[]> {
+  async getProducts(pageOffset = 0, pageLimit = 12): Promise<(Product & { categories?: Category[] })[]> {
     console.log(`Getting products with offset ${pageOffset} and limit ${pageLimit}`);
     try {
-      // Ensure valid pagination parameters
-      const validPageOffset = Math.max(1, pageOffset);
-      const validPageLimit = Math.max(1, Math.min(pageLimit, 50)); // Cap at 50 items per page
-      const offset = (validPageOffset - 1) * validPageLimit;
-
-      console.log(`Calculating offset: (${validPageOffset} - 1) * ${validPageLimit} = ${offset}`);
-
       const productsResult = await db
         .select()
         .from(productsTable)
+        .where(
+          and(
+            eq(productsTable.isAvailable, true),
+            sql`true`
+          )
+        )
         .orderBy(desc(productsTable.createdAt))
-        .limit(validPageLimit + 1) // Fetch one extra to determine if there are more pages
-        .offset(offset);
-
-      // Remove the extra item before sending the response
-      const hasMore = productsResult.length > validPageLimit;
-      const products = hasMore ? productsResult.slice(0, -1) : productsResult;
+        .limit(pageLimit)
+        .offset(pageOffset);
 
       // Fetch categories for each product
       const productsWithCategories = await Promise.all(
-        products.map(async (product) => ({
+        productsResult.map(async (product) => ({
           ...product,
           categories: await this.getProductCategories(product.id),
         }))
       );
 
-      console.log(`Retrieved ${productsWithCategories.length} products from database`);
+      console.log(`Retrieved ${productsWithCategories.length} available products`);
       return productsWithCategories;
     } catch (error) {
       console.error('Error in getProducts:', error);
