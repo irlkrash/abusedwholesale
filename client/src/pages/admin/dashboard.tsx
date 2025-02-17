@@ -441,7 +441,7 @@ export default function AdminDashboard() {
               <div>Error: {error?.message}</div>
             ) : products.length > 0 ? (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {products.map((product, index) => (
                     <Card
                       key={product.id}
