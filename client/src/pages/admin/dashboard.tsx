@@ -104,11 +104,11 @@ export default function AdminDashboard() {
     error
   } = useInfiniteQuery({
     queryKey: ["/api/products"],
-    queryFn: async ({ pageParam }) => {
+    queryFn: async ({ pageParam = 1 }) => {
       try {
         const response = await apiRequest(
           "GET",
-          `/api/products?page=${pageParam || 1}&limit=12&sort=createdAt:desc`
+          `/api/products?page=${pageParam}&limit=12&sort=createdAt:desc`
         );
         if (!response.ok) {
           throw new Error('Failed to fetch products');
@@ -116,7 +116,7 @@ export default function AdminDashboard() {
         const products = await response.json();
         return {
           data: Array.isArray(products) ? products : [],
-          nextPage: Array.isArray(products) && products.length === 12 ? (pageParam || 1) + 1 : undefined,
+          nextPage: Array.isArray(products) && products.length === 12 ? pageParam + 1 : undefined,
         };
       } catch (err) {
         console.error("Failed to fetch products:", err);
@@ -131,12 +131,13 @@ export default function AdminDashboard() {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
+          void fetchNextPage();
         }
       },
       {
-        threshold: 0.1,
-        rootMargin: '200px'
+        root: null,
+        rootMargin: '0px',
+        threshold: 0.1
       }
     );
 
@@ -799,6 +800,18 @@ export default function AdminDashboard() {
                     </CardContent>
                   </Card>
                 ))}
+                {(hasNextPage || isFetchingNextPage) && (
+                  <div
+                    ref={loadMoreRef}
+                    className="col-span-full flex justify-center p-4"
+                  >
+                    {isFetchingNextPage ? (
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    ) : (
+                      hasNextPage && <div className="h-8" /> // Invisible div for intersection observer
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <Card>
