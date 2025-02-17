@@ -62,7 +62,7 @@ export function setupAuth(app: Express) {
   app.post("/api/register", async (req, res, next) => {
     const existingUser = await storage.getUserByUsername(req.body.username);
     if (existingUser) {
-      return res.status(400).send("Username already exists");
+      return res.status(400).json({ message: "Username already exists" });
     }
 
     // Get user count to determine if this is the first user
@@ -72,16 +72,16 @@ export function setupAuth(app: Express) {
     // Check if attempting to create an admin account
     const requestedAdmin = req.body.secretCode === ADMIN_SECRET_CODE;
 
-    // Only allow admin creation with correct secret code or for first user
+    // Only allow admin creation for first user or with correct secret code
     const isAdmin = isFirstUser || requestedAdmin;
 
-    // If trying to create an admin account without being first user and without correct code
-    if (!isFirstUser && req.body.secretCode !== ADMIN_SECRET_CODE && req.body.secretCode) {
-      return res.status(400).send("Invalid secret code for admin registration");
+    // If not first user and trying to register without secret code
+    if (!isFirstUser && !requestedAdmin) {
+      return res.status(400).json({ message: "Secret code 'abused' is required for registration" });
     }
 
     const user = await storage.createUser({
-      ...req.body,
+      username: req.body.username,
       password: await hashPassword(req.body.password),
       isAdmin
     });
