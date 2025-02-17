@@ -51,7 +51,7 @@ export default function HomePage() {
     isError,
     error
   } = useInfiniteQuery({
-    queryKey: ["/api/products", selectedCategory],
+    queryKey: ["/api/products"],
     queryFn: async ({ pageParam = 1 }) => {
       try {
         const queryParams = new URLSearchParams({
@@ -59,10 +59,6 @@ export default function HomePage() {
           limit: '12',
           sort: 'createdAt:desc'
         });
-
-        if (selectedCategory) {
-          queryParams.append('categoryId', selectedCategory.toString());
-        }
 
         const response = await apiRequest(
           "GET",
@@ -108,6 +104,13 @@ export default function HomePage() {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const allProducts = data?.pages?.flatMap(page => page.data) ?? [];
+
+  // Filter products based on selected category
+  const filteredProducts = selectedCategory
+    ? allProducts.filter(product =>
+        product.categories?.some((category: Category) => category.id === selectedCategory)
+      )
+    : allProducts;
 
   const handleAddToCart = (product: Product) => {
     if (cartItems.some(item => item.id === product.id)) {
@@ -244,10 +247,10 @@ export default function HomePage() {
               {error instanceof Error && <p>{error.message}</p>}
             </CardContent>
           </Card>
-        ) : allProducts.length > 0 ? (
+        ) : filteredProducts.length > 0 ? (
           <>
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {allProducts.map((product, index) => (
+              {filteredProducts.map((product, index) => (
                 <ProductCard
                   key={product.id}
                   product={product}
