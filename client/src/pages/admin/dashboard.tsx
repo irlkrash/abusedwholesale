@@ -593,7 +593,21 @@ export default function AdminDashboard() {
                   Clear Selection
                 </Button>
                 <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Bulk Category Assignment</h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium">Bulk Category Assignment</h3>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        assignCategoriesMutation.mutate({
+                          productIds: Array.from(selectedProducts),
+                          categoryIds: [], // Pass empty array to remove all categories
+                        });
+                      }}
+                      disabled={assignCategoriesMutation.isPending}
+                    >
+                      Remove All Categories
+                    </Button>
+                  </div>
                   <BulkCategoryAssignment />
                 </div>
               </>
