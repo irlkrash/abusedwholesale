@@ -16,6 +16,14 @@ import { Button } from "@/components/ui/button";
 import { useCallback, useState, useRef } from "react";
 import { ImagePlus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Helper function for enhanced image compression
 async function compressImage(file: File): Promise<string> {
@@ -80,6 +88,7 @@ interface ProductFormProps {
     description?: string;
     images?: string[];
     isAvailable?: boolean;
+    categoryIds?: number[];
   };
 }
 
@@ -88,6 +97,18 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
   const [uploadedImages, setUploadedImages] = useState<string[]>(initialData?.images || []);
   const [isCompressing, setIsCompressing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedCategories, setSelectedCategories] = useState<number[]>(
+    initialData?.categoryIds || []
+  );
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["/api/categories"],
+    queryFn: async () => {
+      const response = await fetch("/api/categories");
+      if (!response.ok) throw new Error("Failed to fetch categories");
+      return response.json();
+    },
+  });
 
   const form = useForm({
     resolver: zodResolver(insertProductSchema),
@@ -96,6 +117,7 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
       description: initialData?.description || "",
       images: initialData?.images || [],
       isAvailable: initialData?.isAvailable ?? true,
+      categoryIds: initialData?.categoryIds || [],
     },
   });
 
@@ -179,9 +201,13 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
     fileInputRef.current?.click();
   };
 
+  const handleSubmit = (data: any) => {
+    onSubmit({ ...data, categoryIds: selectedCategories });
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="name"
@@ -272,6 +298,29 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
             ))}
           </div>
         </div>
+
+        <FormItem>
+          <FormLabel>Categories</FormLabel>
+          <div className="flex flex-wrap gap-2">
+            {categories.map((category: any) => (
+              <Button
+                key={category.id}
+                type="button"
+                variant={selectedCategories.includes(category.id) ? "default" : "outline"}
+                onClick={() => {
+                  setSelectedCategories((prev) =>
+                    prev.includes(category.id)
+                      ? prev.filter((id) => id !== category.id)
+                      : [...prev, category.id]
+                  );
+                }}
+                className="h-8"
+              >
+                {category.name}
+              </Button>
+            ))}
+          </div>
+        </FormItem>
 
         <Button type="submit" className="w-full" disabled={isLoading || isCompressing}>
           {isLoading ? (initialData ? "Updating..." : "Creating...") : (initialData ? "Update Product" : "Create Product")}

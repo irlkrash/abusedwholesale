@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
 import { Product } from "@shared/schema";
 import { ProductForm } from "@/components/admin/product-form";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ProductCarousel } from "@/components/product-carousel";
@@ -57,6 +58,18 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { insertCategorySchema } from "@shared/schema";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
 interface ProductsResponse {
   data: Product[];
@@ -70,6 +83,7 @@ export default function AdminDashboard() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const [isCreateCategoryDialogOpen, setIsCreateCategoryDialogOpen] = useState(false);
 
   const {
     data,
@@ -111,9 +125,9 @@ export default function AdminDashboard() {
           fetchNextPage();
         }
       },
-      { 
+      {
         threshold: 0.1,
-        rootMargin: '200px' 
+        rootMargin: '200px'
       }
     );
 
@@ -290,6 +304,80 @@ export default function AdminDashboard() {
     },
   });
 
+  const {
+    data: categories = [],
+    isLoading: isCategoriesLoading,
+  } = useQuery({
+    queryKey: ["/api/categories"],
+    queryFn: async () => {
+      const response = await fetch("/api/categories");
+      if (!response.ok) throw new Error("Failed to fetch categories");
+      return response.json();
+    },
+  });
+
+  const createCategoryMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/categories", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      toast({
+        title: "Category created",
+        description: "The new category has been added.",
+      });
+      setIsCreateCategoryDialogOpen(false);
+    },
+  });
+
+  const CategoryDialog = () => {
+    const form = useForm({
+      resolver: zodResolver(insertCategorySchema),
+      defaultValues: {
+        name: "",
+      },
+    });
+
+    return (
+      <Dialog open={isCreateCategoryDialogOpen} onOpenChange={setIsCreateCategoryDialogOpen}>
+        <DialogTrigger asChild>
+          <Button className="flex items-center gap-2">
+            <PlusCircle className="h-4 w-4" />
+            Add Category
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Category</DialogTitle>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(createCategoryMutation.mutate)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Category Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="submit" disabled={createCategoryMutation.isPending}>
+                  {createCategoryMutation.isPending ? "Creating..." : "Create Category"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
   const NavLinks = () => (
     <>
       <Link href="/">
@@ -428,6 +516,7 @@ export default function AdminDashboard() {
                 </Button>
               </>
             )}
+            <CategoryDialog />
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="flex items-center gap-2">
@@ -449,6 +538,19 @@ export default function AdminDashboard() {
         </div>
 
         <div className="space-y-8">
+          {/* Categories Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Categories</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {categories.map((category: any) => (
+                <Card key={category.id} className="p-4">
+                  <CardHeader className="p-0">
+                    <CardTitle className="text-base">{category.name}</CardTitle>
+                  </CardHeader>
+                </Card>
+              ))}
+            </div>
+          </div>
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Bulk Upload</h3>
             <BulkUpload />
@@ -551,8 +653,8 @@ export default function AdminDashboard() {
                   ))}
                 </div>
 
-                <div 
-                  ref={loadMoreRef} 
+                <div
+                  ref={loadMoreRef}
                   className="h-20 flex items-center justify-center mt-8"
                 >
                   {isFetchingNextPage && (
