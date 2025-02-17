@@ -477,7 +477,7 @@ export default function AdminDashboard() {
 
   const filteredProducts = selectedCategoryFilter
     ? products.filter(product =>
-        product.categories?.some(category => category.id === selectedCategoryFilter)
+        product.categories?.some((category: Category) => category.id === selectedCategoryFilter)
       )
     : products;
 
@@ -624,16 +624,16 @@ export default function AdminDashboard() {
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-medium">Categories</h3>
               <Select
-                value={selectedCategoryFilter?.toString() || ""}
+                value={selectedCategoryFilter?.toString() || "all"}
                 onValueChange={(value) =>
-                  setSelectedCategoryFilter(value ? parseInt(value) : null)
+                  setSelectedCategoryFilter(value === "all" ? null : parseInt(value))
                 }
               >
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Filter by category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Categories</SelectItem>
+                  <SelectItem value="all">All Categories</SelectItem>
                   {categories.map((category: Category) => (
                     <SelectItem key={category.id} value={category.id.toString()}>
                       {category.name}
