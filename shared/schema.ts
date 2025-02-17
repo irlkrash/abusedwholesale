@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, jsonb, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, jsonb, timestamp, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -15,7 +15,12 @@ export const products = pgTable("products", {
   description: text("description").notNull(),
   images: text("images").array().notNull(),
   isAvailable: boolean("is_available").notNull().default(true),
-});
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  nameIdx: index("name_idx").on(table.name),
+  availabilityIdx: index("availability_idx").on(table.isAvailable),
+  createdAtIdx: index("created_at_idx").on(table.createdAt),
+}));
 
 export const carts = pgTable("carts", {
   id: serial("id").primaryKey(),

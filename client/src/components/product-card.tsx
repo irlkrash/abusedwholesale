@@ -18,11 +18,22 @@ export function ProductCard({ product, onAddToCart, priority = false }: ProductC
   return (
     <Card className="overflow-hidden transition-shadow hover:shadow-lg">
       <CardContent className="p-0">
-        <ProductCarousel 
-          images={product.images} 
-          onImageClick={(image) => setSelectedImage(image)}
-          priority={priority}
-        />
+        <div className="relative">
+          {!isImageLoaded && (
+            <div className="absolute inset-0 bg-muted animate-pulse" />
+          )}
+          <ProductCarousel 
+            images={product.images} 
+            onImageClick={(image) => setSelectedImage(image)}
+            onLoadComplete={() => setIsImageLoaded(true)}
+            priority={priority}
+            loading="lazy"
+          />
+        </div>
+        <div className="p-4">
+          <h3 className="text-lg font-semibold">{product.name}</h3>
+          <p className="text-sm text-muted-foreground mt-2">{product.description}</p>
+        </div>
       </CardContent>
       <CardFooter className="p-6">
         <Button 

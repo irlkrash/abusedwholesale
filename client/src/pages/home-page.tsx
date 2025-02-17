@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { Product } from "@shared/schema";
 import { ProductCard } from "@/components/product-card";
 import { CartOverlay } from "@/components/cart-overlay";
@@ -23,32 +23,43 @@ export default function HomePage() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const [page, setPage] = useState(1);
+  const pageSize = 12;
 
   const {
     data: products,
     isLoading,
     isError,
-    error
-  } = useQuery<Product[]>({
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage
+  } = useInfiniteQuery({
     queryKey: ["/api/products"],
-    queryFn: async () => {
+    queryFn: async ({ pageParam = 1 }) => {
       try {
-        console.log("Fetching products...");
-        const response = await apiRequest("GET", "/api/products");
+        const response = await apiRequest(
+          "GET",
+          `/api/products?page=${pageParam}&limit=${pageSize}`
+        );
         if (!response.ok) {
           throw new Error('Failed to fetch products');
         }
         const data = await response.json();
-        console.log("Products response:", data);
-        const availableProducts = Array.isArray(data) ? data.filter(p => p.isAvailable) : [];
-        console.log("Available products:", availableProducts);
-        return availableProducts;
+        return {
+          data: Array.isArray(data) ? data : [],
+          nextPage: Array.isArray(data) && data.length === pageSize ? pageParam + 1 : undefined,
+        };
       } catch (err) {
         console.error("Failed to fetch products:", err);
         throw err;
       }
     },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.nextPage,
   });
+
+  const allProducts = products?.pages?.flatMap(page => page.data) ?? [];
 
   const handleAddToCart = (product: Product) => {
     if (cartItems.some(item => item.id === product.id)) {
@@ -150,8 +161,18 @@ export default function HomePage() {
 
       <main className="container mx-auto px-4 py-8">
         {isLoading ? (
-          <div className="flex items-center justify-center h-32">
-            <Loader2 className="w-8 h-8 animate-spin" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <Card key={index} className="animate-pulse">
+                <CardContent className="p-0">
+                  <div className="w-full h-48 bg-muted"></div>
+                  <div className="p-4 space-y-3">
+                    <div className="h-4 bg-muted rounded w-3/4"></div>
+                    <div className="h-4 bg-muted rounded w-1/2"></div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         ) : isError ? (
           <Card>
@@ -160,16 +181,34 @@ export default function HomePage() {
               {error instanceof Error && <p>{error.message}</p>}
             </CardContent>
           </Card>
-        ) : products && products.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {products.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onAddToCart={() => handleAddToCart(product)}
-              />
-            ))}
-          </div>
+        ) : allProducts.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {allProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onAddToCart={() => handleAddToCart(product)}
+                />
+              ))}
+            </div>
+
+            {hasNextPage && (
+              <div className="mt-8 flex justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                  className="flex items-center gap-2"
+                >
+                  {isFetchingNextPage ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : null}
+                  {isFetchingNextPage ? "Loading more..." : "Load More"}
+                </Button>
+              </div>
+            )}
+          </>
         ) : (
           <Card>
             <CardContent className="p-6 text-center text-muted-foreground">
