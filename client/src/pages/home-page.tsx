@@ -64,7 +64,7 @@ export default function HomePage() {
       },
       { 
         threshold: 0.1,
-        rootMargin: '200px' // Increased to start loading earlier
+        rootMargin: '200px' 
       }
     );
 
@@ -172,7 +172,7 @@ export default function HomePage() {
 
       <main className="container mx-auto px-4 py-8">
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, index) => (
               <Card key={index} className="animate-pulse">
                 <CardContent className="p-0">
@@ -194,13 +194,13 @@ export default function HomePage() {
           </Card>
         ) : allProducts.length > 0 ? (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {allProducts.map((product, index) => (
                 <ProductCard
                   key={product.id}
                   product={product}
                   onAddToCart={() => handleAddToCart(product)}
-                  priority={index < 8} // Increased priority items for better initial load
+                  priority={index < 8}
                 />
               ))}
             </div>
