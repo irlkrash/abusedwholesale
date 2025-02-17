@@ -17,7 +17,7 @@ export interface IStorage {
   createUser(user: InsertUser & { isAdmin?: boolean }): Promise<User>;
 
   // Product operations with pagination
-  getProducts(offset?: number, limit?: number): Promise<(Product & { categories?: Category[] })[]>;
+  getProducts(offset?: number, limit?: number, categoryId?: number | null): Promise<(Product & { categories?: Category[] })[]>;
   getProduct(id: number): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: number, product: Partial<Product>): Promise<Product>;
@@ -58,36 +58,36 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async getProducts(pageOffset = 0, pageLimit = 12): Promise<(Product & { categories?: Category[] })[]> {
+  async getProducts(pageOffset = 0, pageLimit = 12, categoryId: number | null = null): Promise<(Product & { categories?: Category[] })[]> {
     console.log(`Getting products with offset ${pageOffset} and limit ${pageLimit}`);
-    try {
-      const productsResult = await db
-        .select()
-        .from(productsTable)
-        .where(
-          and(
-            eq(productsTable.isAvailable, true),
-            sql`true`
-          )
-        )
-        .orderBy(desc(productsTable.createdAt))
-        .limit(pageLimit)
-        .offset(pageOffset);
+    let query = db
+      .select({
+        id: productsTable.id,
+        name: productsTable.name,
+        description: productsTable.description,
+        images: productsTable.images,
+        isAvailable: productsTable.isAvailable,
+        createdAt: productsTable.createdAt,
+        categories: sql<any>`json_agg(json_build_object('id', ${categories.id}, 'name', ${categories.name}))`
+      })
+      .from(productsTable)
+      .leftJoin(productCategories, eq(productsTable.id, productCategories.productId))
+      .leftJoin(categories, eq(productCategories.categoryId, categories.id))
+      .groupBy(productsTable.id);
 
-      // Fetch categories for each product
-      const productsWithCategories = await Promise.all(
-        productsResult.map(async (product) => ({
-          ...product,
-          categories: await this.getProductCategories(product.id),
-        }))
-      );
-
-      console.log(`Retrieved ${productsWithCategories.length} available products`);
-      return productsWithCategories;
-    } catch (error) {
-      console.error('Error in getProducts:', error);
-      throw error;
+    if (categoryId) {
+      query = query.where(eq(productCategories.categoryId, categoryId));
     }
+
+    const result = await query
+      .orderBy(desc(productsTable.createdAt))
+      .limit(pageLimit)
+      .offset(pageOffset);
+
+    return result.map(product => ({
+      ...product,
+      categories: product.categories[0] === null ? [] : product.categories
+    }));
   }
 
   async getProduct(id: number): Promise<Product | undefined> {

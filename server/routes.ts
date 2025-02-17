@@ -29,12 +29,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Products routes with pagination - Make GET public, but keep POST/PATCH/DELETE protected
   app.get("/api/products", async (req, res) => {
     try {
-      console.log(`Fetching products: page=${req.query.page || 1}, limit=${req.query.limit || 12}`);
+      console.log(`Fetching products: page=${req.query.page || 1}, limit=${req.query.limit || 12}, categoryId=${req.query.categoryId || 'all'}`);
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 12;
+      const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string) : null;
       const offset = (page - 1) * limit;
 
-      const products = await storage.getProducts(offset, limit);
+      const products = await storage.getProducts(offset, limit, categoryId);
       console.log(`Retrieved ${products.length} products from database`);
       res.json(products);
     } catch (error) {
