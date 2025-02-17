@@ -82,12 +82,15 @@ export class DatabaseStorage implements IStorage {
       .from(productsTable)
       .leftJoin(productCategories, eq(productsTable.id, productCategories.productId))
       .leftJoin(categories, eq(productCategories.categoryId, categories.id))
-      .where(and(
-        eq(productsTable.isAvailable, true),
-        categoryId ? eq(productCategories.categoryId, categoryId) : undefined
-      ));
-    
-    query = query.groupBy(productsTable.id);
+      .where(
+        categoryId 
+          ? and(
+              eq(productsTable.isAvailable, true),
+              eq(productCategories.categoryId, categoryId)
+            )
+          : eq(productsTable.isAvailable, true)
+      )
+      .groupBy(productsTable.id);
 
     const result = await query
       .orderBy(desc(productsTable.createdAt))
