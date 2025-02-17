@@ -338,6 +338,25 @@ export default function AdminDashboard() {
     },
   });
 
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (categoryId: number) => {
+      const res = await apiRequest("DELETE", `/api/categories/${categoryId}`);
+      if (!res.ok) throw new Error('Failed to delete category');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      toast({
+        title: "Category deleted",
+        description: "The category has been removed.",
+      });
+      if (selectedCategoryFilter) {
+        setSelectedCategoryFilter(null);
+      }
+    },
+  });
+
   const createCategoryMutation = useMutation({
     mutationFn: async (data: any) => {
       const res = await apiRequest("POST", "/api/categories", data);
@@ -774,14 +793,49 @@ export default function AdminDashboard() {
                       ? "ring-2 ring-primary"
                       : ""
                   }`}
-                  onClick={() =>
-                    setSelectedCategoryFilter(
-                      selectedCategoryFilter === category.id ? null : category.id
-                    )
-                  }
                 >
                   <CardHeader className="p-0">
-                    <CardTitle className="text-base">{category.name}</CardTitle>
+                    <div className="flex justify-between items-center">
+                      <CardTitle 
+                        className="text-base cursor-pointer" 
+                        onClick={() =>
+                          setSelectedCategoryFilter(
+                            selectedCategoryFilter === category.id ? null : category.id
+                          )
+                        }
+                      >
+                        {category.name}
+                      </CardTitle>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Category</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete "{category.name}"? This will remove all associations with products.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteCategoryMutation.mutate(category.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </CardHeader>
                 </Card>
               ))}
