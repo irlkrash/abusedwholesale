@@ -71,12 +71,6 @@ export class DatabaseStorage implements IStorage {
       const productsResult = await db
         .select()
         .from(productsTable)
-        .where(
-          and(
-            eq(productsTable.isAvailable, true),
-            sql`true`
-          )
-        )
         .orderBy(desc(productsTable.createdAt))
         .limit(validPageLimit)
         .offset(offset);
