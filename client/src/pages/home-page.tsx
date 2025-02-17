@@ -25,7 +25,7 @@ export default function HomePage() {
   const { toast } = useToast();
 
   const {
-    data: products = [],
+    data: products,
     isLoading,
     isError,
     error
@@ -33,19 +33,21 @@ export default function HomePage() {
     queryKey: ["/api/products"],
     queryFn: async () => {
       try {
+        console.log("Fetching products...");
         const response = await apiRequest("GET", "/api/products");
         if (!response.ok) {
           throw new Error('Failed to fetch products');
         }
         const data = await response.json();
-        return Array.isArray(data) ? data.filter(p => p.isAvailable) : [];
+        console.log("Products response:", data);
+        const availableProducts = Array.isArray(data) ? data.filter(p => p.isAvailable) : [];
+        console.log("Available products:", availableProducts);
+        return availableProducts;
       } catch (err) {
         console.error("Failed to fetch products:", err);
         throw err;
       }
     },
-    refetchOnWindowFocus: false,
-    retry: 1,
   });
 
   const handleAddToCart = (product: Product) => {
@@ -64,54 +66,43 @@ export default function HomePage() {
     });
   };
 
-  const handleRemoveFromCart = (productId: number) => {
-    setCartItems(cartItems.filter(item => item.id !== productId));
-  };
-
-  const handleClearCart = () => {
-    setCartItems([]);
-  };
-
-  const NavLinks = () => (
-    <>
-      {user?.isAdmin ? (
-        <Link href="/admin">
-          <Button variant="outline">Admin Dashboard</Button>
-        </Link>
-      ) : (
-        <Link href="/auth">
-          <Button variant="outline" className="flex items-center gap-2">
-            <LogIn className="h-4 w-4" />
-            Login / Register
-          </Button>
-        </Link>
-      )}
-      <Button
-        variant="outline"
-        className="flex items-center gap-2"
-        onClick={() => setIsCartOpen(true)}
-      >
-        <ShoppingCart className="h-4 w-4" />
-        Cart ({cartItems.length})
-      </Button>
-    </>
-  );
-
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center">
-            <img
-              src="/assets/logo.png"
-              alt="Abused Goods Logo"
-              className="h-16"
-            />
+            <Link href="/">
+              <img
+                src="/assets/logo.png"
+                alt="Abused Goods Logo"
+                className="h-16 cursor-pointer"
+              />
+            </Link>
           </div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-4">
-            <NavLinks />
+            {user?.isAdmin && (
+              <Link href="/admin">
+                <Button variant="outline">Admin Dashboard</Button>
+              </Link>
+            )}
+            {!user && (
+              <Link href="/auth">
+                <Button variant="outline" className="flex items-center gap-2">
+                  <LogIn className="h-4 w-4" />
+                  Login
+                </Button>
+              </Link>
+            )}
+            <Button
+              variant="outline"
+              className="flex items-center gap-2"
+              onClick={() => setIsCartOpen(true)}
+            >
+              <ShoppingCart className="h-4 w-4" />
+              Cart ({cartItems.length})
+            </Button>
           </div>
 
           {/* Mobile Navigation */}
@@ -135,7 +126,21 @@ export default function HomePage() {
                   <SheetTitle>Menu</SheetTitle>
                 </SheetHeader>
                 <div className="flex flex-col gap-4 mt-4">
-                  <NavLinks />
+                  {user?.isAdmin && (
+                    <Link href="/admin">
+                      <Button variant="outline" className="w-full">
+                        Admin Dashboard
+                      </Button>
+                    </Link>
+                  )}
+                  {!user && (
+                    <Link href="/auth">
+                      <Button variant="outline" className="w-full flex items-center gap-2">
+                        <LogIn className="h-4 w-4" />
+                        Login
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               </SheetContent>
             </Sheet>
@@ -151,12 +156,13 @@ export default function HomePage() {
         ) : isError ? (
           <Card>
             <CardContent className="p-6 text-center text-muted-foreground">
-              Error loading products. Please try again later. {error?.message}
+              Error loading products. Please try again later.
+              {error instanceof Error && <p>{error.message}</p>}
             </CardContent>
           </Card>
         ) : products && products.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {products.map((product: Product) => (
+            {products.map((product) => (
               <ProductCard
                 key={product.id}
                 product={product}
@@ -167,7 +173,7 @@ export default function HomePage() {
         ) : (
           <Card>
             <CardContent className="p-6 text-center text-muted-foreground">
-              No products available.
+              No products available at the moment.
             </CardContent>
           </Card>
         )}
@@ -176,8 +182,8 @@ export default function HomePage() {
           isOpen={isCartOpen}
           onOpenChange={setIsCartOpen}
           items={cartItems}
-          onRemoveItem={handleRemoveFromCart}
-          onClearCart={handleClearCart}
+          onRemoveItem={(id) => setCartItems(cartItems.filter(item => item.id !== id))}
+          onClearCart={() => setCartItems([])}
         />
       </main>
     </div>

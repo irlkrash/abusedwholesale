@@ -2,7 +2,7 @@ import { InsertUser, User, Product, Cart, InsertProduct, InsertCart } from "@sha
 import { users, products, carts } from "@shared/schema";
 import session from "express-session";
 import { db } from "./db";
-import { eq, desc, limit, offset } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 
 const PostgresSessionStore = connectPg(session);
@@ -48,16 +48,26 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  // Updated getProducts with pagination
+  // Updated getProducts with pagination and available-only filter
   async getProducts(pageOffset = 0, pageLimit = 12): Promise<Product[]> {
-    return await db
-      .select()
-      .from(products)
-      .limit(pageLimit)
-      .offset(pageOffset);
+    console.log(`Getting products with offset ${pageOffset} and limit ${pageLimit}`);
+    try {
+      const result = await db
+        .select()
+        .from(products)
+        .where(eq(products.isAvailable, true))
+        .$dynamic();  // This enables dynamic limit/offset
+
+      // Apply pagination in memory since we removed the drizzle limit/offset
+      const paginatedResult = result.slice(pageOffset, pageOffset + pageLimit);
+      console.log(`Retrieved ${paginatedResult.length} available products`);
+      return paginatedResult;
+    } catch (error) {
+      console.error('Error in getProducts:', error);
+      throw error;
+    }
   }
 
-  // Rest of the methods remain unchanged
   async getProduct(id: number): Promise<Product | undefined> {
     const [product] = await db.select().from(products).where(eq(products.id, id));
     return product;

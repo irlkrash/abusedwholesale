@@ -9,12 +9,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Products routes with pagination
   app.get("/api/products", async (req, res) => {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 12;
-    const offset = (page - 1) * limit;
-
     try {
+      console.log(`Fetching products: page=${req.query.page || 1}, limit=${req.query.limit || 12}`);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 12;
+      const offset = (page - 1) * limit;
+
       const products = await storage.getProducts(offset, limit);
+      console.log(`Retrieved ${products.length} products from database`);
       res.json(products);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -22,15 +24,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/products", async (req, res) => {
+  // Protected admin routes
+  const requireAdmin = (req: any, res: any, next: any) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Not authenticated" });
     }
-
     if (!req.user?.isAdmin) {
       return res.status(403).json({ message: "Admin privileges required" });
     }
+    next();
+  };
 
+  app.post("/api/products", requireAdmin, async (req, res) => {
     const parsed = insertProductSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json(parsed.error);
@@ -40,32 +45,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(201).json(product);
   });
 
-  app.patch("/api/products/:id", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user?.isAdmin) {
-      return res.status(403).json({ message: "Admin privileges required" });
-    }
-
+  app.patch("/api/products/:id", requireAdmin, async (req, res) => {
     const productId = parseInt(req.params.id);
     const product = await storage.updateProduct(productId, req.body);
     res.json(product);
   });
 
-  app.delete("/api/products/:id", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user?.isAdmin) {
-      return res.status(403).json({ message: "Admin privileges required" });
-    }
-
+  app.delete("/api/products/:id", requireAdmin, async (req, res) => {
     const productId = parseInt(req.params.id);
     await storage.deleteProduct(productId);
     res.sendStatus(200);
   });
 
-  // Cart routes remain unchanged
-  app.get("/api/carts", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user?.isAdmin) {
-      return res.status(403).json({ message: "Admin privileges required" });
-    }
-
+  // Cart routes
+  app.get("/api/carts", requireAdmin, async (req, res) => {
     const carts = await storage.getCarts();
     res.json(carts);
   });
@@ -80,21 +73,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(201).json(cart);
   });
 
-  app.delete("/api/carts/:id", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user?.isAdmin) {
-      return res.status(403).json({ message: "Admin privileges required" });
-    }
-
+  app.delete("/api/carts/:id", requireAdmin, async (req, res) => {
     const cartId = parseInt(req.params.id);
     await storage.deleteCart(cartId);
     res.sendStatus(200);
   });
 
-  app.post("/api/carts/:id/make-items-unavailable", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user?.isAdmin) {
-      return res.status(403).json({ message: "Admin privileges required" });
-    }
-
+  app.post("/api/carts/:id/make-items-unavailable", requireAdmin, async (req, res) => {
     const cartId = parseInt(req.params.id);
     const cart = await storage.getCart(cartId);
     if (!cart) {
