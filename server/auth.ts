@@ -14,6 +14,7 @@ declare global {
 }
 
 const scryptAsync = promisify(scrypt);
+const ADMIN_SECRET_CODE = "abused";
 
 async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
@@ -68,10 +69,21 @@ export function setupAuth(app: Express) {
     const users = await storage.getUsers();
     const isFirstUser = users.length === 0;
 
+    // Check if attempting to create an admin account
+    const requestedAdmin = req.body.secretCode === ADMIN_SECRET_CODE;
+
+    // Only allow admin creation with correct secret code or for first user
+    const isAdmin = isFirstUser || requestedAdmin;
+
+    // If trying to create an admin account without being first user and without correct code
+    if (!isFirstUser && req.body.secretCode !== ADMIN_SECRET_CODE && req.body.secretCode) {
+      return res.status(400).send("Invalid secret code for admin registration");
+    }
+
     const user = await storage.createUser({
       ...req.body,
       password: await hashPassword(req.body.password),
-      isAdmin: isFirstUser // Make the first user an admin
+      isAdmin
     });
 
     req.login(user, (err) => {

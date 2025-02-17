@@ -144,6 +144,7 @@ function RegisterForm() {
     defaultValues: {
       username: "",
       password: "",
+      secretCode: "", // Add secret code field
     },
   });
 
@@ -174,6 +175,19 @@ function RegisterForm() {
               <FormLabel>Password</FormLabel>
               <FormControl>
                 <Input type="password" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="secretCode"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Secret Code (Required for admin registration)</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="Leave empty for regular user" />
               </FormControl>
               <FormMessage />
             </FormItem>
