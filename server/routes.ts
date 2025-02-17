@@ -26,6 +26,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const products = await storage.getProducts(offset, limit);
+      // Cache the response
       cache.set(cacheKey, { data: products, timestamp: Date.now() });
       res.json(products);
     } catch (error) {
