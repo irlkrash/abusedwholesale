@@ -37,10 +37,10 @@ export function ImageViewer({ src, alt, isOpen, onOpenChange }: ImageViewerProps
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] max-h-[95vh] w-[1200px] h-[800px] p-0">
+      <DialogContent className="max-w-[50vw] max-h-[80vh] p-0 overflow-hidden">
         <div className="relative h-full flex flex-col">
           {/* Controls */}
-          <div className="absolute top-4 right-4 flex gap-2 z-10">
+          <div className="sticky top-4 right-4 flex justify-end gap-2 z-10 px-4">
             <Button
               variant="secondary"
               size="icon"
@@ -89,8 +89,8 @@ export function ImageViewer({ src, alt, isOpen, onOpenChange }: ImageViewerProps
           </div>
 
           {/* Image Container */}
-          <div className="flex-1 overflow-hidden">
-            <div className="h-full w-full flex items-center justify-center bg-black/5 dark:bg-white/5">
+          <div className="flex-1 overflow-auto">
+            <div className="min-h-full w-full flex items-center justify-center bg-black/5 dark:bg-white/5 p-4">
               {!isImageLoaded && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
@@ -99,7 +99,7 @@ export function ImageViewer({ src, alt, isOpen, onOpenChange }: ImageViewerProps
               <img
                 src={src}
                 alt={alt}
-                className="max-h-full max-w-full object-contain transition-all duration-200 ease-out"
+                className="max-w-full object-contain transition-all duration-200 ease-out"
                 style={{
                   transform: `scale(${scale}) rotate(${rotation}deg)`,
                   opacity: isImageLoaded ? 1 : 0,
