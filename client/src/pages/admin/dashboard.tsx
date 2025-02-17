@@ -108,12 +108,18 @@ export default function AdminDashboard() {
     isError,
     error
   } = useInfiniteQuery({
-    queryKey: ["/api/products"],
-    queryFn: async ({ pageParam }) => {
+    queryKey: ["/api/products", selectedCategoryFilter],
+    queryFn: async ({ pageParam = 1 }) => {
       try {
+        const queryParams = new URLSearchParams({
+          page: pageParam.toString(),
+          limit: '12',
+          sort: 'createdAt:desc'
+        });
+        
         const response = await apiRequest(
           "GET",
-          `/api/products?page=${pageParam || 1}&limit=12&sort=createdAt:desc`
+          `/api/products?${queryParams.toString()}`
         );
         if (!response.ok) {
           throw new Error('Failed to fetch products');
@@ -121,7 +127,8 @@ export default function AdminDashboard() {
         const products = await response.json();
         return {
           data: Array.isArray(products) ? products : [],
-          nextPage: Array.isArray(products) && products.length === 12 ? (pageParam || 1) + 1 : undefined,
+          nextPage: Array.isArray(products) && products.length === 12 ? pageParam + 1 : undefined,
+          lastPage: Array.isArray(products) && products.length < 12
         };
       } catch (err) {
         console.error("Failed to fetch products:", err);
@@ -129,19 +136,19 @@ export default function AdminDashboard() {
       }
     },
     initialPageParam: 1,
-    getNextPageParam: (lastPage) => lastPage.nextPage,
+    getNextPageParam: (lastPage) => lastPage.lastPage ? undefined : lastPage.nextPage,
   });
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
+          void fetchNextPage();
         }
       },
       {
         threshold: 0.1,
-        rootMargin: '200px'
+        rootMargin: '100px'
       }
     );
 
@@ -154,8 +161,9 @@ export default function AdminDashboard() {
       if (currentRef) {
         observer.unobserve(currentRef);
       }
+      observer.disconnect();
     };
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, selectedCategoryFilter]);
 
   const products = data?.pages?.flatMap(page => page.data) ?? [];
 
