@@ -103,7 +103,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/categories/:id", requireAdmin, async (req, res) => {
     try {
       const categoryId = parseInt(req.params.id);
+      if (isNaN(categoryId)) {
+        return res.status(400).json({ message: "Invalid category ID" });
+      }
       await storage.deleteCategory(categoryId);
+      await storage.clearCategoryAssociations(categoryId);
       res.sendStatus(200);
     } catch (error) {
       console.error('Error deleting category:', error);

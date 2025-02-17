@@ -78,6 +78,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label"; // Added import
+
 
 interface ProductsResponse {
   data: Product[];
@@ -93,6 +95,9 @@ export default function AdminDashboard() {
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const [isCreateCategoryDialogOpen, setIsCreateCategoryDialogOpen] = useState(false);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<number | null>(null);
+  const [bulkEditMode, setBulkEditMode] = useState(false); // Added state
+  const [bulkEditValue, setBulkEditValue] = useState({ name: "", description: "" }); // Added state
+  const [hideDetails, setHideDetails] = useState(false); // Added state
 
   const {
     data,
@@ -592,6 +597,76 @@ export default function AdminDashboard() {
                 <Button variant="outline" onClick={clearSelection}>
                   Clear Selection
                 </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setBulkEditMode(!bulkEditMode)}
+                >
+                  {bulkEditMode ? "Cancel Bulk Edit" : "Bulk Edit"}
+                </Button>
+                {bulkEditMode && (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button>Apply Bulk Edit</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Bulk Edit Products</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>Name Prefix</Label>
+                          <Input
+                            value={bulkEditValue.name}
+                            onChange={(e) => setBulkEditValue(prev => ({ ...prev, name: e.target.value }))}
+                            placeholder="New name prefix..."
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Description</Label>
+                          <Input
+                            value={bulkEditValue.description}
+                            onChange={(e) => setBulkEditValue(prev => ({ ...prev, description: e.target.value }))}
+                            placeholder="New description..."
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button onClick={async () => {
+                          try {
+                            await Promise.all(
+                              Array.from(selectedProducts).map(id =>
+                                updateProductMutation.mutateAsync({
+                                  id,
+                                  data: {
+                                    name: bulkEditValue.name ? `${bulkEditValue.name} ${id}` : undefined,
+                                    description: bulkEditValue.description || undefined,
+                                  }
+                                })
+                              )
+                            );
+                            setBulkEditMode(false);
+                            setBulkEditValue({ name: '', description: '' });
+                            clearSelection();
+                          } catch (error) {
+                            toast({
+                              title: "Error",
+                              description: "Failed to update products",
+                              variant: "destructive",
+                            });
+                          }
+                        }}>
+                          Apply Changes
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                )}
+                <Button
+                  variant="outline"
+                  onClick={() => setHideDetails(!hideDetails)}
+                >
+                  {hideDetails ? "Show Details" : "Hide Details"}
+                </Button>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-medium">Bulk Category Assignment</h3>
@@ -730,11 +805,11 @@ export default function AdminDashboard() {
                       </div>
                       <div className="p-4">
                         <h3 className="text-lg font-semibold">{product.name}</h3>
-                        <p className="text-sm text-muted-foreground mt-2">
+                        <p className="text-sm text-muted-foreground mt-2" style={{ display: hideDetails ? 'none' : 'block' }}>
                           {product.description}
                         </p>
                         {product.categories && product.categories.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-2">
+                          <div className="flex flex-wrap gap-1 mt-2" style={{ display: hideDetails ? 'none' : 'block' }}>
                             {product.categories.map((category: Category) => (
                               <Badge
                                 key={category.id}
