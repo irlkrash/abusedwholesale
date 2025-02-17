@@ -34,17 +34,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const limit = parseInt(req.query.limit as string) || 12;
       const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string) : null;
       const offset = (page - 1) * limit;
-
-      let products;
-if (categoryId) {
-  const allProducts = await storage.getProducts(offset, limit);
-  // Filter products that have this category assigned
-  products = allProducts.filter(product => 
-    product.categories?.some(cat => cat.id === categoryId)
-  );
-} else {
-  products = await storage.getProducts(offset, limit);
-}
+      
+      const products = await storage.getProducts(offset, limit, categoryId);
       console.log(`Retrieved ${products.length} products from database`);
       res.json(products);
     } catch (error) {
