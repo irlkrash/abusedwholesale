@@ -103,7 +103,6 @@ export default function AdminDashboard() {
     getNextPageParam: (lastPage) => lastPage.nextPage,
   });
 
-  // Safely get all products from pages
   const products = data?.pages?.flatMap(page => page.data) ?? [];
 
   const toggleSelection = (productId: number) => {
@@ -114,6 +113,17 @@ export default function AdminDashboard() {
       newSelection.add(productId);
     }
     setSelectedProducts(newSelection);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedProducts.size === products.length) {
+      // If all are selected, deselect all
+      clearSelection();
+    } else {
+      // Select all products
+      const allProductIds = products.map(product => product.id);
+      setSelectedProducts(new Set(allProductIds));
+    }
   };
 
   const clearSelection = () => {
@@ -152,14 +162,12 @@ export default function AdminDashboard() {
 
   const toggleAvailabilityMutation = useMutation({
     mutationFn: async ({ ids, isAvailable }: { ids: number[]; isAvailable: boolean }) => {
-      // Split into batches of 5 for better performance
       const batchSize = 5;
       const batches = [];
       for (let i = 0; i < ids.length; i += batchSize) {
         batches.push(ids.slice(i, i + batchSize));
       }
 
-      // Process batches sequentially
       const results = [];
       for (const batch of batches) {
         const batchResults = await Promise.all(
@@ -174,13 +182,8 @@ export default function AdminDashboard() {
       return results;
     },
     onMutate: async ({ ids, isAvailable }) => {
-      // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ["/api/products"] });
-
-      // Snapshot the previous value
       const previousProducts = queryClient.getQueryData<Product[]>(["/api/products"]);
-
-      // Optimistically update to the new value
       queryClient.setQueryData<Product[]>(["/api/products"], old => {
         if (!old) return [];
         return old.map(product => {
@@ -190,12 +193,9 @@ export default function AdminDashboard() {
           return product;
         });
       });
-
-      // Return a context object with the snapshotted value
       return { previousProducts };
     },
     onError: (err, variables, context) => {
-      // If the mutation fails, use the context returned from onMutate to roll back
       if (context?.previousProducts) {
         queryClient.setQueryData(["/api/products"], context.previousProducts);
       }
@@ -289,12 +289,10 @@ export default function AdminDashboard() {
             <span className="ml-2 text-xl font-semibold">Admin</span>
           </div>
 
-          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-4">
             <NavLinks />
           </div>
 
-          {/* Mobile Navigation */}
           <div className="md:hidden">
             <Sheet>
               <SheetTrigger asChild>
@@ -324,6 +322,19 @@ export default function AdminDashboard() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            {products.length > 0 && (
+              <Button
+                variant="outline"
+                onClick={toggleSelectAll}
+                className="flex items-center gap-2"
+              >
+                {selectedProducts.size === products.length ? (
+                  <>Deselect All</>
+                ) : (
+                  <>Select All</>
+                )}
+              </Button>
+            )}
             {selectedProducts.size > 0 && (
               <>
                 <AlertDialog>
