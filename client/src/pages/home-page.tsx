@@ -65,10 +65,14 @@ export default function HomePage() {
       (entries) => {
         const first = entries[0];
         if (first.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          console.log('Loading next page of products...');
           fetchNextPage();
         }
       },
-      { threshold: 0.1 } // Start loading when the element is 10% visible
+      { 
+        threshold: 0.1,
+        rootMargin: '100px' // Load earlier, before reaching the very bottom
+      }
     );
 
     const currentRef = loadMoreRef.current;
@@ -221,7 +225,7 @@ export default function HomePage() {
             {/* Infinite scroll trigger */}
             <div 
               ref={loadMoreRef} 
-              className="h-10 flex items-center justify-center mt-8"
+              className="h-20 flex items-center justify-center mt-8"
             >
               {isFetchingNextPage && (
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />

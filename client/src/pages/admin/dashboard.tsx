@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import { Product } from "@shared/schema";
@@ -69,6 +69,7 @@ export default function AdminDashboard() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   const {
     data,
@@ -528,18 +529,13 @@ export default function AdminDashboard() {
                 </div>
 
                 {hasNextPage && (
-                  <div className="mt-8 flex justify-center">
-                    <Button
-                      variant="outline"
-                      onClick={() => fetchNextPage()}
-                      disabled={isFetchingNextPage}
-                      className="flex items-center gap-2"
-                    >
-                      {isFetchingNextPage ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : null}
-                      {isFetchingNextPage ? "Loading more..." : "Load More"}
-                    </Button>
+                  <div 
+                    ref={loadMoreRef} 
+                    className="h-20 flex items-center justify-center mt-8"
+                  >
+                    {isFetchingNextPage && (
+                      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                    )}
                   </div>
                 )}
               </>
