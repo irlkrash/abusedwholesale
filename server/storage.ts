@@ -212,7 +212,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteCategory(id: number): Promise<void> {
-    await db.delete(categories).where(eq(categories.id, id));
+    await db.transaction(async (tx) => {
+      // First remove all associations
+      await tx.delete(productCategories).where(eq(productCategories.categoryId, id));
+      // Then delete the category
+      await tx.delete(categories).where(eq(categories.id, id));
+    });
+  }
+
+  async clearCategoryAssociations(categoryId: number): Promise<void> {
+    await db.delete(productCategories).where(eq(productCategories.categoryId, categoryId));
   }
 
   async getProductCategories(productId: number): Promise<Category[]> {

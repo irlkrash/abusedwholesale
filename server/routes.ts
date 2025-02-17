@@ -107,7 +107,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid category ID" });
       }
       await storage.deleteCategory(categoryId);
-      await storage.clearCategoryAssociations(categoryId);
       res.sendStatus(200);
     } catch (error) {
       console.error('Error deleting category:', error);
