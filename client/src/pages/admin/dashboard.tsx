@@ -494,6 +494,32 @@ export default function AdminDashboard() {
       )
     : products;
 
+  // Add load more trigger div at the bottom
+  const loadMoreTriggerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          void fetchNextPage();
+        }
+      },
+      { threshold: 0.1, rootMargin: '100px' }
+    );
+
+    const currentRef = loadMoreTriggerRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+      observer.disconnect();
+    };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, selectedCategoryFilter]);
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
@@ -890,6 +916,12 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             )}
+            {(isFetchingNextPage || isLoading) && (
+              <div className="col-span-full flex justify-center p-4">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            )}
+            <div ref={loadMoreTriggerRef} className="h-1" />
           </div>
         </div>
       </main>
