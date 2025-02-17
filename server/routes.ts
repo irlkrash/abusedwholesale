@@ -60,9 +60,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.delete("/api/products/:id", requireAdmin, async (req, res) => {
-    const productId = parseInt(req.params.id);
-    await storage.deleteProduct(productId);
-    res.sendStatus(200);
+    try {
+      const productId = parseInt(req.params.id);
+      if (isNaN(productId)) {
+        return res.status(400).json({ message: "Invalid product ID" });
+      }
+
+      await storage.deleteProduct(productId);
+      res.sendStatus(200);
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      res.status(500).json({ message: "Failed to delete product" });
+    }
   });
 
   // Cart routes
