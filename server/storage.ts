@@ -84,11 +84,8 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(categories, eq(productCategories.categoryId, categories.id))
       .where(
         categoryId 
-          ? and(
-              eq(productsTable.isAvailable, true),
-              eq(productCategories.categoryId, categoryId)
-            )
-          : eq(productsTable.isAvailable, true)
+          ? eq(productCategories.categoryId, categoryId)
+          : undefined
       )
       .groupBy(productsTable.id);
 
