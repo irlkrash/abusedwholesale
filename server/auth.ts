@@ -77,7 +77,7 @@ export function setupAuth(app: Express) {
 
     // If not first user and trying to register without secret code
     if (!isFirstUser && !requestedAdmin) {
-      return res.status(400).json({ message: "Secret code 'abused' is required for registration" });
+      return res.status(400).json({ message: "Secret code is required for registration" });
     }
 
     const user = await storage.createUser({
