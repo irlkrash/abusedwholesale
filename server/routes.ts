@@ -4,30 +4,17 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { insertProductSchema, insertCartSchema, type Cart } from "@shared/schema";
 
-// Simple in-memory cache with 5-minute TTL
-const cache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
-  // Products routes with pagination and caching
+  // Products routes with pagination
   app.get("/api/products", async (req, res) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 12;
     const offset = (page - 1) * limit;
 
-    const cacheKey = `products:${page}:${limit}`;
-    const cached = cache.get(cacheKey);
-
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      return res.json(cached.data);
-    }
-
     try {
       const products = await storage.getProducts(offset, limit);
-      // Cache the response
-      cache.set(cacheKey, { data: products, timestamp: Date.now() });
       res.json(products);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -73,7 +60,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendStatus(200);
   });
 
-  // Cart routes
+  // Cart routes remain unchanged
   app.get("/api/carts", async (req, res) => {
     if (!req.isAuthenticated() || !req.user?.isAdmin) {
       return res.status(403).json({ message: "Admin privileges required" });
@@ -116,7 +103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const cartItems = cart.items as { productId: number }[];
     const updates = await Promise.all(
-      cartItems.map(item =>
+      cartItems.map(item => 
         storage.updateProduct(item.productId, { isAvailable: false })
       )
     );

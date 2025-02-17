@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import { Product } from "@shared/schema";
@@ -6,7 +6,7 @@ import { ProductForm } from "@/components/admin/product-form";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import {
   Package,
   ShoppingBag,
@@ -58,34 +58,12 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 
-interface ProductsResponse {
-  products: Product[];
-  nextPage?: number;
-}
-
 export default function AdminDashboard() {
   const { toast } = useToast();
   const { user, logoutMutation } = useAuth();
-  const [, setLocation] = useLocation();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
-
-  useEffect(() => {
-    if (!user) {
-      setLocation('/auth');
-      return;
-    }
-    if (!user.isAdmin) {
-      setLocation('/');
-      toast({
-        title: "Access Denied",
-        description: "You need admin privileges to access this page",
-        variant: "destructive"
-      });
-      return;
-    }
-  }, [user, setLocation, toast]);
 
   const {
     data,
@@ -93,26 +71,22 @@ export default function AdminDashboard() {
     hasNextPage,
     isFetchingNextPage,
     isLoading,
-  } = useInfiniteQuery<ProductsResponse>({
+  } = useInfiniteQuery({
     queryKey: ["/api/products"],
-    initialPageParam: 1,
-    queryFn: async ({ pageParam }) => {
+    queryFn: async ({ pageParam = 1 }) => {
       const response = await apiRequest(
         "GET",
         `/api/products?page=${pageParam}&limit=12`
       );
-      const products = await response.json();
-      return {
-        products,
-        nextPage: products.length === 12 ? pageParam + 1 : undefined,
-      };
+      return response.json();
     },
-    getNextPageParam: (lastPage) => lastPage.nextPage,
-    enabled: !!user?.isAdmin, // Only fetch if user is admin
+    getNextPageParam: (lastPage) => {
+      if (lastPage.length < 12) return undefined;
+      return lastPage.nextPage;
+    },
   });
 
-  // Safely flatten the paginated data
-  const products = data?.pages.flatMap((page) => page.products) ?? [];
+  const products = data?.pages.flatMap((page) => page) ?? [];
 
   const toggleSelection = (productId: number) => {
     const newSelection = new Set(selectedProducts);

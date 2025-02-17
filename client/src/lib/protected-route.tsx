@@ -1,7 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
-import { Route, useLocation } from "wouter";
-import { useEffect } from "react";
+import { Redirect, Route } from "wouter";
 
 export function ProtectedRoute({
   path,
@@ -11,13 +10,6 @@ export function ProtectedRoute({
   component: () => React.JSX.Element;
 }) {
   const { user, isLoading } = useAuth();
-  const [, setLocation] = useLocation();
-
-  useEffect(() => {
-    if (!isLoading && !user) {
-      setLocation('/auth');
-    }
-  }, [user, isLoading, setLocation]);
 
   if (isLoading) {
     return (
@@ -30,12 +22,12 @@ export function ProtectedRoute({
   }
 
   if (!user) {
-    return null;
+    return (
+      <Route path={path}>
+        <Redirect to="/auth" />
+      </Route>
+    );
   }
 
-  return (
-    <Route path={path}>
-      <Component />
-    </Route>
-  );
+  return <Component />
 }
