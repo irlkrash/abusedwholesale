@@ -23,16 +23,23 @@ export default function HomePage() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const { data: products = [], isLoading, error } = useQuery<Product[]>({
+  const {
+    data: products = [],
+    isLoading,
+    isError,
+    error
+  } = useQuery<Product[]>({
     queryKey: ["/api/products"],
-    onError: (error: any) => {
+    refetchOnWindowFocus: false,
+    retry: 1,
+    onError: (error: Error) => {
       console.error("Failed to fetch products:", error);
       toast({
         title: "Error loading products",
-        description: error.message,
+        description: error.message || "Please try again later",
         variant: "destructive",
       });
-    },
+    }
   });
 
   const handleAddToCart = (product: Product) => {
@@ -45,6 +52,10 @@ export default function HomePage() {
       return;
     }
     setCartItems([...cartItems, product]);
+    toast({
+      title: "Added to cart",
+      description: "Item has been added to your cart.",
+    });
   };
 
   const handleRemoveFromCart = (productId: number) => {
@@ -131,7 +142,7 @@ export default function HomePage() {
           <div className="flex items-center justify-center h-32">
             <Loader2 className="w-8 h-8 animate-spin" />
           </div>
-        ) : error ? (
+        ) : isError ? (
           <Card>
             <CardContent className="p-6 text-center text-muted-foreground">
               Error loading products. Please try again later.
@@ -139,7 +150,7 @@ export default function HomePage() {
           </Card>
         ) : products && products.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {products.map((product) => (
+            {products.map((product: Product) => (
               <ProductCard
                 key={product.id}
                 product={product}
