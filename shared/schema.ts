@@ -56,10 +56,16 @@ export const orders = pgTable("orders", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-});
+export const insertUserSchema = createInsertSchema(users)
+  .pick({
+    username: true,
+    password: true,
+  })
+  .extend({
+    secretCode: z.string({
+      required_error: "Secret code is required for registration",
+    }),
+  });
 
 export const insertCategorySchema = createInsertSchema(categories).pick({
   name: true,
