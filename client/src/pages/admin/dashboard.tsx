@@ -114,7 +114,8 @@ export default function AdminDashboard() {
         const queryParams = new URLSearchParams({
           page: pageParam.toString(),
           limit: '12',
-          sort: 'createdAt:desc'
+          sort: 'createdAt:desc',
+          ...(selectedCategoryFilter && { categoryId: selectedCategoryFilter.toString() })
         });
         
         const response = await apiRequest(
@@ -345,7 +346,8 @@ export default function AdminDashboard() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       toast({
         title: "Category deleted",
         description: "The category has been removed.",
@@ -353,6 +355,7 @@ export default function AdminDashboard() {
       if (selectedCategoryFilter) {
         setSelectedCategoryFilter(null);
       }
+      window.location.reload();
     },
   });
 

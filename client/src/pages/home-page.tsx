@@ -57,7 +57,8 @@ export default function HomePage() {
         const queryParams = new URLSearchParams({
           page: pageParam.toString(),
           limit: '12',
-          sort: 'createdAt:desc'
+          sort: 'createdAt:desc',
+          ...(selectedCategory && { categoryId: selectedCategory.toString() })
         });
 
         const response = await apiRequest(
