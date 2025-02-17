@@ -58,9 +58,14 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async getProducts(pageOffset = 0, pageLimit = 12): Promise<(Product & { categories?: Category[] })[]> {
+  async getProducts(pageOffset = 1, pageLimit = 12): Promise<(Product & { categories?: Category[] })[]> {
     console.log(`Getting products with offset ${pageOffset} and limit ${pageLimit}`);
     try {
+      // Ensure valid pagination parameters
+      const validPageOffset = Math.max(1, pageOffset);
+      const validPageLimit = Math.max(1, Math.min(pageLimit, 50)); // Cap at 50 items per page
+      const offset = (validPageOffset - 1) * validPageLimit;
+
       const productsResult = await db
         .select()
         .from(productsTable)
@@ -71,8 +76,8 @@ export class DatabaseStorage implements IStorage {
           )
         )
         .orderBy(desc(productsTable.createdAt))
-        .limit(pageLimit)
-        .offset((pageOffset - 1) * pageLimit); // Fix the offset calculation
+        .limit(validPageLimit)
+        .offset(offset);
 
       // Fetch categories for each product
       const productsWithCategories = await Promise.all(
