@@ -2,9 +2,12 @@ import { useState } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { ZoomIn, ZoomOut, RotateCw, X, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 interface ImageViewerProps {
   src: string;
@@ -37,54 +40,62 @@ export function ImageViewer({ src, alt, isOpen, onOpenChange }: ImageViewerProps
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[50vw] max-h-[80vh] p-0 overflow-hidden">
+      <DialogContent className="w-[90vw] md:w-[70vw] lg:w-[50vw] max-h-[90vh] md:max-h-[80vh] p-0 overflow-hidden">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Image Viewer</DialogTitle>
+        </DialogHeader>
         <div className="relative h-full flex flex-col">
           {/* Controls */}
-          <div className="sticky top-4 right-4 flex justify-end gap-2 z-10 px-4">
+          <div className="sticky top-0 right-0 flex justify-end gap-1 md:gap-2 z-10 p-2 md:p-4 bg-background/80 backdrop-blur-sm">
             <Button
               variant="secondary"
               size="icon"
               onClick={handleZoomIn}
-              className="bg-background/80 backdrop-blur-sm hover:bg-background/90"
+              className="h-8 w-8 md:h-10 md:w-10"
               title="Zoom In"
             >
               <ZoomIn className="h-4 w-4" />
+              <VisuallyHidden>Zoom In</VisuallyHidden>
             </Button>
             <Button
               variant="secondary"
               size="icon"
               onClick={handleZoomOut}
-              className="bg-background/80 backdrop-blur-sm hover:bg-background/90"
+              className="h-8 w-8 md:h-10 md:w-10"
               title="Zoom Out"
             >
               <ZoomOut className="h-4 w-4" />
+              <VisuallyHidden>Zoom Out</VisuallyHidden>
             </Button>
             <Button
               variant="secondary"
               size="icon"
               onClick={handleRotate}
-              className="bg-background/80 backdrop-blur-sm hover:bg-background/90"
+              className="h-8 w-8 md:h-10 md:w-10"
               title="Rotate"
             >
               <RotateCw className="h-4 w-4" />
+              <VisuallyHidden>Rotate</VisuallyHidden>
             </Button>
             <Button
               variant="secondary"
               size="icon"
               onClick={resetView}
-              className="bg-background/80 backdrop-blur-sm hover:bg-background/90"
+              className="h-8 w-8 md:h-10 md:w-10"
               title="Reset View"
             >
               <Maximize2 className="h-4 w-4" />
+              <VisuallyHidden>Reset View</VisuallyHidden>
             </Button>
             <Button
               variant="secondary"
               size="icon"
               onClick={() => onOpenChange(false)}
-              className="bg-background/80 backdrop-blur-sm hover:bg-background/90"
+              className="h-8 w-8 md:h-10 md:w-10"
               title="Close"
             >
               <X className="h-4 w-4" />
+              <VisuallyHidden>Close</VisuallyHidden>
             </Button>
           </div>
 
