@@ -226,13 +226,28 @@ export default function AdminDashboard() {
 
   const deleteProductMutation = useMutation({
     mutationFn: async (productIds: number[]) => {
-      const responses = await Promise.all(
-        productIds.map(id =>
-          apiRequest("DELETE", `/api/products/${id}`)
-            .then(res => res.ok ? id : Promise.reject(`Failed to delete product ${id}`))
-        )
-      );
-      return responses;
+      const batchSize = 5; // Process in smaller batches to avoid timeout
+      const batches = [];
+      for (let i = 0; i < productIds.length; i += batchSize) {
+        batches.push(productIds.slice(i, i + batchSize));
+      }
+
+      const results = [];
+      for (const batch of batches) {
+        const batchResults = await Promise.all(
+          batch.map(id =>
+            apiRequest("DELETE", `/api/products/${id}`)
+              .then(() => ({ success: true, id }))
+              .catch(error => ({ error, id }))
+          )
+        );
+        results.push(...batchResults);
+      }
+      const errors = results.filter(r => 'error' in r);
+      if (errors.length > 0) {
+        throw new Error(`Failed to delete ${errors.length} products`);
+      }
+      return results;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });

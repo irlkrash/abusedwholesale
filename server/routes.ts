@@ -7,7 +7,26 @@ import { insertProductSchema, insertCartSchema, type Cart } from "@shared/schema
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
-  // Products routes with pagination
+  // Protected admin routes
+  const requireAdmin = (req: any, res: any, next: any) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    if (!req.user?.isAdmin) {
+      return res.status(403).json({ message: "Admin privileges required" });
+    }
+    next();
+  };
+
+  // Add user info endpoint
+  app.get("/api/user", (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    res.json(req.user);
+  });
+
+  // Products routes with pagination - Make GET public, but keep POST/PATCH/DELETE protected
   app.get("/api/products", async (req, res) => {
     try {
       console.log(`Fetching products: page=${req.query.page || 1}, limit=${req.query.limit || 12}`);
@@ -23,17 +42,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch products" });
     }
   });
-
-  // Protected admin routes
-  const requireAdmin = (req: any, res: any, next: any) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-    if (!req.user?.isAdmin) {
-      return res.status(403).json({ message: "Admin privileges required" });
-    }
-    next();
-  };
 
   app.post("/api/products", requireAdmin, async (req, res) => {
     const parsed = insertProductSchema.safeParse(req.body);
