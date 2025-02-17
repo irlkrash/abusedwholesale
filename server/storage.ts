@@ -87,7 +87,14 @@ export class DatabaseStorage implements IStorage {
       query = query.where(eq(productCategories.categoryId, categoryId));
     }
 
-    query = query.groupBy(productsTable.id);
+    query = query.groupBy(
+      productsTable.id,
+      productsTable.name,
+      productsTable.description,
+      productsTable.images,
+      productsTable.isAvailable,
+      productsTable.createdAt
+    );
 
     const result = await query
       .orderBy(desc(productsTable.createdAt))
