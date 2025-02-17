@@ -27,7 +27,7 @@ export default function HomePage() {
   const pageSize = 12;
 
   const {
-    data,
+    data: products,
     isLoading,
     isError,
     error,
@@ -38,7 +38,6 @@ export default function HomePage() {
     queryKey: ["/api/products"],
     queryFn: async ({ pageParam = 1 }) => {
       try {
-        console.log('Fetching products...');
         const response = await apiRequest(
           "GET",
           `/api/products?page=${pageParam}&limit=${pageSize}`
@@ -47,7 +46,6 @@ export default function HomePage() {
           throw new Error('Failed to fetch products');
         }
         const data = await response.json();
-        console.log('Products response:', data);
         return {
           data: Array.isArray(data) ? data : [],
           nextPage: Array.isArray(data) && data.length === pageSize ? pageParam + 1 : undefined,
@@ -89,8 +87,7 @@ export default function HomePage() {
     };
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const allProducts = data?.pages?.flatMap(page => page.data) ?? [];
-  console.log('Available products:', allProducts);
+  const allProducts = products?.pages?.flatMap(page => page.data) ?? [];
 
   const handleAddToCart = (product: Product) => {
     if (cartItems.some(item => item.id === product.id)) {
