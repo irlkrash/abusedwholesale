@@ -72,7 +72,7 @@ export class DatabaseStorage implements IStorage {
         )
         .orderBy(desc(productsTable.createdAt))
         .limit(pageLimit)
-        .offset(pageOffset);
+        .offset((pageOffset - 1) * pageLimit); // Fix the offset calculation
 
       // Fetch categories for each product
       const productsWithCategories = await Promise.all(
