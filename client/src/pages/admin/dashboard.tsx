@@ -78,15 +78,17 @@ export default function AdminDashboard() {
         "GET",
         `/api/products?page=${pageParam}&limit=12`
       );
-      return response.json();
+      const products = await response.json();
+      return {
+        products,
+        nextPage: products.length === 12 ? pageParam + 1 : undefined,
+      };
     },
-    getNextPageParam: (lastPage) => {
-      if (lastPage.length < 12) return undefined;
-      return lastPage.nextPage;
-    },
+    getNextPageParam: (lastPage) => lastPage.nextPage,
   });
 
-  const products = data?.pages.flatMap((page) => page) ?? [];
+  // Safely flatten the paginated data
+  const products = data?.pages.flatMap((page) => page.products) ?? [];
 
   const toggleSelection = (productId: number) => {
     const newSelection = new Set(selectedProducts);
