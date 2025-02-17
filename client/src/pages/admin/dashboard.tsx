@@ -114,28 +114,75 @@ export default function AdminDashboard() {
 
   const toggleAvailabilityMutation = useMutation({
     mutationFn: async ({ ids, isAvailable }: { ids: number[]; isAvailable: boolean }) => {
-      const responses = await Promise.all(
-        ids.map(id =>
-          apiRequest("PATCH", `/api/products/${id}`, { isAvailable })
-            .then(res => res.json())
-        )
-      );
-      return responses;
+      // Split into batches of 5 for better performance
+      const batchSize = 5;
+      const batches = [];
+      for (let i = 0; i < ids.length; i += batchSize) {
+        batches.push(ids.slice(i, i + batchSize));
+      }
+
+      // Process batches sequentially
+      const results = [];
+      for (const batch of batches) {
+        const batchResults = await Promise.all(
+          batch.map(id =>
+            apiRequest("PATCH", `/api/products/${id}`, { isAvailable })
+              .then(res => res.json())
+              .catch(error => ({ error, id }))
+          )
+        );
+        results.push(...batchResults);
+      }
+      return results;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
-      toast({
-        title: "Products updated",
-        description: "The selected products have been updated.",
+    onMutate: async ({ ids, isAvailable }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/products"] });
+
+      // Snapshot the previous value
+      const previousProducts = queryClient.getQueryData<Product[]>(["/api/products"]);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData<Product[]>(["/api/products"], old => {
+        if (!old) return [];
+        return old.map(product => {
+          if (ids.includes(product.id)) {
+            return { ...product, isAvailable };
+          }
+          return product;
+        });
       });
-      clearSelection();
+
+      // Return a context object with the snapshotted value
+      return { previousProducts };
     },
-    onError: (error: Error) => {
+    onError: (err, variables, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousProducts) {
+        queryClient.setQueryData(["/api/products"], context.previousProducts);
+      }
       toast({
         title: "Error updating products",
-        description: error.message,
+        description: "Failed to update product availability",
         variant: "destructive",
       });
+    },
+    onSuccess: (results) => {
+      const errors = results.filter(r => 'error' in r);
+      if (errors.length > 0) {
+        toast({
+          title: "Some updates failed",
+          description: `${errors.length} product(s) failed to update`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Products updated",
+          description: "The selected products have been updated.",
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      clearSelection();
     },
   });
 

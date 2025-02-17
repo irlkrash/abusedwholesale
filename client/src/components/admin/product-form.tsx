@@ -17,6 +17,44 @@ import { useCallback, useState, useRef } from "react";
 import { ImagePlus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+// Helper function for image compression
+async function compressImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(img.src);
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Could not get canvas context'));
+        return;
+      }
+
+      // Calculate new dimensions (max 800px width/height while maintaining aspect ratio)
+      let width = img.width;
+      let height = img.height;
+      const maxSize = 800;
+
+      if (width > height && width > maxSize) {
+        height = (height * maxSize) / width;
+        width = maxSize;
+      } else if (height > maxSize) {
+        width = (width * maxSize) / height;
+        height = maxSize;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      // Draw and compress
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', 0.8)); // 80% quality JPEG
+    };
+    img.onerror = () => reject(new Error('Failed to load image'));
+  });
+}
+
 interface ProductFormProps {
   onSubmit: (data: any) => void;
   isLoading?: boolean;
@@ -31,6 +69,7 @@ interface ProductFormProps {
 export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormProps) {
   const { toast } = useToast();
   const [uploadedImages, setUploadedImages] = useState<string[]>(initialData?.images || []);
+  const [isCompressing, setIsCompressing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm({
@@ -43,13 +82,11 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
     },
   });
 
-  const handleImageUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (!files || files.length === 0) {
-      return;
-    }
+    if (!files || files.length === 0) return;
 
-    // Validate file types and sizes
+    setIsCompressing(true);
     const validFiles = Array.from(files).filter(file => {
       if (!file.type.startsWith('image/')) {
         toast({
@@ -59,7 +96,7 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
         });
         return false;
       }
-      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      if (file.size > 10 * 1024 * 1024) {
         toast({
           title: "File too large",
           description: `${file.name} is larger than 10MB`,
@@ -70,34 +107,43 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
       return true;
     });
 
-    validFiles.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        if (result) {
-          setUploadedImages(prev => {
-            const newImages = [...prev, result];
-            form.setValue("images", newImages, { shouldValidate: true });
-            return newImages;
-          });
-          toast({
-            title: "Image uploaded",
-            description: `${file.name} has been added`,
-          });
-        }
-      };
-      reader.onerror = () => {
-        toast({
-          title: "Upload failed",
-          description: `Failed to upload ${file.name}`,
-          variant: "destructive",
-        });
-      };
-      reader.readAsDataURL(file);
-    });
+    try {
+      const compressedImages = await Promise.all(
+        validFiles.map(async (file) => {
+          try {
+            const compressed = await compressImage(file);
+            toast({
+              title: "Image processed",
+              description: `${file.name} has been compressed and added`,
+            });
+            return compressed;
+          } catch (error) {
+            toast({
+              title: "Compression failed",
+              description: `Failed to process ${file.name}`,
+              variant: "destructive",
+            });
+            return null;
+          }
+        })
+      );
 
-    // Reset the input
-    event.target.value = '';
+      const newImages = compressedImages.filter((img): img is string => img !== null);
+      setUploadedImages(prev => {
+        const updated = [...prev, ...newImages];
+        form.setValue("images", updated, { shouldValidate: true });
+        return updated;
+      });
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: "Failed to process images",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCompressing(false);
+      if (event.target) event.target.value = '';
+    }
   }, [form, toast]);
 
   const removeImage = useCallback((index: number) => {
@@ -172,9 +218,10 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
               variant="outline"
               onClick={triggerFileInput}
               className="flex items-center gap-2"
+              disabled={isCompressing}
             >
               <ImagePlus className="h-4 w-4" />
-              Add Images
+              {isCompressing ? "Processing..." : "Add Images"}
             </Button>
             <input
               ref={fileInputRef}
@@ -183,6 +230,7 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
               multiple
               className="hidden"
               onChange={handleImageUpload}
+              disabled={isCompressing}
             />
           </div>
 
@@ -208,7 +256,7 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
           </div>
         </div>
 
-        <Button type="submit" className="w-full" disabled={isLoading}>
+        <Button type="submit" className="w-full" disabled={isLoading || isCompressing}>
           {isLoading ? (initialData ? "Updating..." : "Creating...") : (initialData ? "Update Product" : "Create Product")}
         </Button>
       </form>
