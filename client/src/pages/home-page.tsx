@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
-import { Product } from "@shared/schema";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { Product, Category } from "@shared/schema";
 import { ProductCard } from "@/components/product-card";
 import { CartOverlay } from "@/components/cart-overlay";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,13 @@ import {
 } from "@/components/ui/sheet";
 import { Card, CardContent } from "@/components/ui/card";
 import { apiRequest } from "@/lib/queryClient";
+import { Badge } from "@/components/ui/badge";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
 export default function HomePage() {
   const [cartItems, setCartItems] = useState<Product[]>([]);
@@ -24,6 +31,16 @@ export default function HomePage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+
+  const { data: categories = [] } = useQuery<Category[]>({
+    queryKey: ["/api/categories"],
+    queryFn: async () => {
+      const response = await fetch("/api/categories");
+      if (!response.ok) throw new Error("Failed to fetch categories");
+      return response.json();
+    },
+  });
 
   const {
     data: products,
@@ -34,12 +51,14 @@ export default function HomePage() {
     hasNextPage,
     isFetchingNextPage
   } = useInfiniteQuery({
-    queryKey: ["/api/products"],
+    queryKey: ["/api/products", selectedCategory],
     queryFn: async ({ pageParam = 1 }) => {
       try {
         const response = await apiRequest(
           "GET",
-          `/api/products?page=${pageParam}&limit=12&sort=createdAt:desc`
+          `/api/products?page=${pageParam}&limit=12&sort=createdAt:desc${
+            selectedCategory ? `&categoryId=${selectedCategory}` : ''
+          }`
         );
         const data = await response.json();
         return {
@@ -171,6 +190,31 @@ export default function HomePage() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        {/* Category Filter */}
+        <div className="mb-8">
+          <Tabs
+            defaultValue="all"
+            value={selectedCategory?.toString() || "all"}
+            onValueChange={(value) => setSelectedCategory(value === "all" ? null : parseInt(value))}
+            className="w-full"
+          >
+            <TabsList className="w-full flex flex-wrap h-auto p-1 gap-1">
+              <TabsTrigger value="all" className="flex-shrink-0">
+                All Products
+              </TabsTrigger>
+              {categories.map((category) => (
+                <TabsTrigger
+                  key={category.id}
+                  value={category.id.toString()}
+                  className="flex-shrink-0"
+                >
+                  {category.name}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
+
         {isLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, index) => (
@@ -217,7 +261,7 @@ export default function HomePage() {
         ) : (
           <Card>
             <CardContent className="p-6 text-center text-muted-foreground">
-              No products available at the moment.
+              No products available{selectedCategory ? " in this category" : ""}.
             </CardContent>
           </Card>
         )}

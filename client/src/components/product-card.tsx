@@ -4,6 +4,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ProductCarousel } from "./product-carousel";
 import { ImageViewer } from "./image-viewer";
+import { Badge } from "@/components/ui/badge";
 
 interface ProductCardProps {
   product: Product;
@@ -33,6 +34,19 @@ export function ProductCard({ product, onAddToCart, priority = false }: ProductC
         <div className="p-4">
           <h3 className="text-lg font-semibold">{product.name}</h3>
           <p className="text-sm text-muted-foreground mt-2">{product.description}</p>
+          {product.categories && product.categories.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {product.categories.map((category) => (
+                <Badge
+                  key={category.id}
+                  variant="secondary"
+                  className="text-xs"
+                >
+                  {category.name}
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
       </CardContent>
       <CardFooter className="p-6">
