@@ -226,7 +226,7 @@ export default function AdminDashboard() {
 
   const deleteProductMutation = useMutation({
     mutationFn: async (productIds: number[]) => {
-      const batchSize = 5; // Process in smaller batches to avoid timeout
+      const batchSize = 5;
       const batches = [];
       for (let i = 0; i < productIds.length; i += batchSize) {
         batches.push(productIds.slice(i, i + batchSize));
