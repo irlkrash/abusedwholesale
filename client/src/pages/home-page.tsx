@@ -109,11 +109,7 @@ export default function HomePage() {
   const allProducts = data?.pages?.flatMap(page => page.data) ?? [];
 
   // Filter products based on selected category
-  const filteredProducts = selectedCategory
-    ? allProducts.filter(product =>
-        product.categories?.some((category: Category) => category.id === selectedCategory)
-      )
-    : allProducts;
+  const filteredProducts = allProducts;
 
   const handleAddToCart = (product: Product) => {
     if (cartItems.some(item => item.id === product.id)) {
