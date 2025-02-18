@@ -46,17 +46,21 @@ export default function AdminCarts() {
       try {
         const response = await apiRequest("GET", "/api/carts");
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          console.error("Cart fetch failed:", response.status);
+          throw new Error(`Failed to fetch carts: ${response.status}`);
         }
         const data = await response.json();
-        console.log("Fetched carts:", data);
+        console.log("Cart data received:", data);
         if (!Array.isArray(data)) {
-          console.error("Unexpected data format:", data);
-          throw new Error("Server returned invalid data format");
+          console.error("Invalid cart data format:", data);
+          throw new Error("Invalid cart data received");
+        }
+        if (data.length === 0) {
+          console.log("No carts found in database");
         }
         return data;
       } catch (err) {
-        console.error("Error fetching carts:", err);
+        console.error("Cart fetch error:", err);
         throw err;
       }
     },
