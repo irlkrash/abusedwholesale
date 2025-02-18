@@ -248,19 +248,25 @@ export default function AdminCarts() {
                           return (
                             <div
                               key={index}
-                              className="flex items-center gap-4 p-2 rounded-lg border"
+                              className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors"
                             >
-                              {image && (
-                                <img
-                                  src={image}
-                                  alt={item.name}
-                                  className="w-16 h-16 object-cover rounded"
-                                />
-                              )}
+                              <div className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted">
+                                {image ? (
+                                  <img
+                                    src={image}
+                                    alt={item.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                    No image
+                                  </div>
+                                )}
+                              </div>
                               <div>
                                 <p className="font-medium">{item.name}</p>
                                 <p className="text-sm text-muted-foreground">
-                                  ID: {item.productId}
+                                  Product ID: {item.productId}
                                 </p>
                               </div>
                             </div>
