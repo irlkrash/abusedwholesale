@@ -111,7 +111,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Cart routes
   app.get("/api/carts", requireAdmin, async (req, res) => {
     try {
+      console.log('GET /api/carts - Auth check passed, fetching carts...');
+      console.log('User info:', req.user);
+
       const carts = await storage.getCarts();
+      console.log('Carts fetched from storage:', carts);
+
+      if (!Array.isArray(carts)) {
+        console.error('Invalid carts data format:', carts);
+        return res.status(500).json({ 
+          message: "Invalid cart data format",
+          error: "Expected array of carts" 
+        });
+      }
+
       res.json(carts);
     } catch (error) {
       console.error('Error fetching carts:', error);
