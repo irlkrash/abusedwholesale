@@ -105,7 +105,8 @@ export default function AdminCarts() {
   const getProductImage = (productId: number): string | undefined => {
     if (!products || !Array.isArray(products)) return undefined;
     const product = products.find((p: Product) => p.id === productId);
-    return product?.images?.[0] || undefined;
+    if (!product?.images?.length) return undefined;
+    return product.images[0];
   };
 
   if (isLoading || productsLoading) {
@@ -239,19 +240,22 @@ export default function AdminCarts() {
                             >
                               <div
                                 className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted cursor-pointer flex items-center justify-center"
-                                onClick={() => image && setSelectedImage(image)}
+                                onClick={() => {
+                                  const img = getProductImage(item.productId);
+                                  if (img) setSelectedImage(img);
+                                }}
                               >
-                                {image ? (
+                                {products?.length > 0 && (
                                   <img
-                                    src={image}
+                                    src={getProductImage(item.productId)}
                                     alt={item.name}
                                     className="w-full h-full object-cover"
                                     loading="lazy"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                      e.currentTarget.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center text-muted-foreground text-sm">No image</div>';
+                                    }}
                                   />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
-                                    No image
-                                  </div>
                                 )}
                               </div>
                               <div className="flex-1">
