@@ -36,14 +36,26 @@ export default function AdminCarts() {
     initialData: [],
   });
 
-  const { data: carts = [], isLoading } = useQuery<Cart[]>({
+  const { data: carts = [], isLoading, error } = useQuery<Cart[]>({
     queryKey: ["/api/carts"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/carts");
-      return response.json();
+      try {
+        const response = await apiRequest("GET", "/api/carts");
+        const data = await response.json();
+        console.log("Fetched carts:", data);
+        return data;
+      } catch (err) {
+        console.error("Error fetching carts:", err);
+        throw err;
+      }
     },
     initialData: [],
   });
+
+  if (error) {
+    console.error("Query error:", error);
+    return <div>Error loading carts: {(error as Error).message}</div>;
+  }
 
   const deleteCartMutation = useMutation({
     mutationFn: async (cartId: number) => {
