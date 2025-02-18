@@ -33,6 +33,10 @@ export default function AdminCarts() {
 
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ["/api/products"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/products");
+      return response.json();
+    },
     initialData: [],
   });
 
