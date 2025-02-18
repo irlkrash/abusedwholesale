@@ -22,15 +22,28 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { format } from "date-fns";
+import { Product } from "@shared/schema";
+import { useMemo } from "react";
 
 export default function AdminOrders() {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const { data: orders, isLoading } = useQuery<Order[]>({
+  const { data: products = [], isLoading: productsLoading } = useQuery<Product[]>({
+    queryKey: ["/api/products"],
+  });
+
+  const { data: orders, isLoading: ordersLoading } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
     initialData: [],
   });
+
+  const productsMap = useMemo(() => {
+    if (!Array.isArray(products)) return new Map();
+    return new Map(products.map(product => [product.id, product]));
+  }, [products]);
+
+  const isLoading = ordersLoading || productsLoading;
 
   const updateOrderStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
@@ -124,27 +137,31 @@ export default function AdminOrders() {
                       <h3 className="font-medium mb-2">Order Items</h3>
                       <div className="space-y-2">
                         {order.items && Array.isArray(order.items) &&
-                          order.items.map((item: any, index: number) => (
-                            <div
-                              key={index}
-                              className="flex items-center gap-4 text-sm"
-                            >
-                              <div className="relative w-12 h-12 overflow-hidden rounded-md border bg-muted">
-                                {item.images && item.images.length > 0 ? (
-                                  <ProductCarousel
-                                    images={item.images}
-                                    onImageClick={() => {}}
-                                    priority={index < 2}
-                                  />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                                    <Package className="w-4 h-4" />
-                                  </div>
-                                )}
+                          order.items.map((item: any, index: number) => {
+                            const product = productsMap.get(item.productId);
+                            const productImages = product?.images || [];
+                            return (
+                              <div
+                                key={index}
+                                className="flex items-center gap-4 text-sm"
+                              >
+                                <div className="relative w-12 h-12 overflow-hidden rounded-md border bg-muted">
+                                  {productImages && productImages.length > 0 ? (
+                                    <ProductCarousel
+                                      images={productImages}
+                                      onImageClick={() => {}}
+                                      priority={index < 2}
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                      <Package className="w-4 h-4" />
+                                    </div>
+                                  )}
+                                </div>
+                                <span className="flex-1">{item.name}</span>
                               </div>
-                              <span className="flex-1">{item.name}</span>
-                            </div>
-                          ))}
+                            );
+                          })}
                       </div>
                     </div>
                   </div>
