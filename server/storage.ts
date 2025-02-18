@@ -1,5 +1,5 @@
 import { InsertUser, User, Product, Cart, InsertProduct, InsertCart } from "@shared/schema";
-import { users, products as productsTable, carts } from "@shared/schema";
+import { users, products as productsTable, carts as cartsTable } from "@shared/schema";
 import session from "express-session";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
@@ -158,39 +158,72 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCarts(): Promise<Cart[]> {
-    return await db.select().from(carts).orderBy(desc(carts.createdAt));
+    try {
+      console.log('Fetching all carts from database');
+      const carts = await db.select().from(cartsTable).orderBy(desc(cartsTable.createdAt));
+
+      if (!carts) {
+        console.error('No carts returned from database');
+        throw new Error('Failed to fetch carts from database');
+      }
+
+      console.log(`Retrieved ${carts.length} carts from database`);
+      return carts;
+    } catch (error) {
+      console.error('Database error in getCarts:', error);
+      throw error;
+    }
   }
 
   async getCart(id: number): Promise<Cart | undefined> {
-    const [cart] = await db.select().from(carts).where(eq(carts.id, id));
-    return cart;
+    try {
+      const [cart] = await db.select().from(cartsTable).where(eq(cartsTable.id, id));
+      return cart;
+    } catch (error) {
+      console.error(`Database error in getCart(${id}):`, error);
+      throw error;
+    }
   }
 
   async createCart(insertCart: InsertCart): Promise<Cart> {
-    const now = new Date();
-    const [cart] = await db
-      .insert(carts)
-      .values({
-        ...insertCart,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning();
-    return cart;
+    try {
+      console.log('Creating new cart:', insertCart);
+      const now = new Date();
+      const [cart] = await db
+        .insert(cartsTable)
+        .values({
+          customerName: insertCart.customerName,
+          customerEmail: insertCart.customerEmail,
+          items: insertCart.items,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+
+      if (!cart) {
+        throw new Error('Failed to create cart in database');
+      }
+
+      console.log('Successfully created cart:', cart);
+      return cart;
+    } catch (error) {
+      console.error('Database error in createCart:', error);
+      throw error;
+    }
   }
 
   async updateCart(id: number, updates: Partial<Cart>): Promise<Cart> {
     const [cart] = await db
-      .update(carts)
+      .update(cartsTable)
       .set({ ...updates, updatedAt: new Date() })
-      .where(eq(carts.id, id))
+      .where(eq(cartsTable.id, id))
       .returning();
     if (!cart) throw new Error("Cart not found");
     return cart;
   }
 
   async deleteCart(id: number): Promise<void> {
-    await db.delete(carts).where(eq(carts.id, id));
+    await db.delete(cartsTable).where(eq(cartsTable.id, id));
   }
 }
 
