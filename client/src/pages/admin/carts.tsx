@@ -265,17 +265,32 @@ const AdminCarts = () => {
                               <div className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted">
                                 {(() => {
                                   const product = productsMap.get(item.productId);
-                                  if (!product || !Array.isArray(product.images)) {
+                                  console.log('Product for item:', item.productId, product);
+                                  console.log('Product images:', product?.images);
+                                  
+                                  if (!product) {
+                                    console.log('No product found for ID:', item.productId);
                                     return null;
                                   }
-                                  return product.images.length > 0 ? (
+                                  
+                                  if (!Array.isArray(product.images)) {
+                                    console.log('Images not in array format:', product.images);
+                                    return null;
+                                  }
+
+                                  if (product.images.length === 0) {
+                                    console.log('No images for product:', item.productId);
+                                    return null;
+                                  }
+
+                                  return (
                                     <ProductCarousel
                                       images={product.images}
                                       onImageClick={(image) => setSelectedImage(image)}
                                       priority={index < 2}
                                       className="w-full h-full"
                                     />
-                                  ) : null;
+                                  );
                                 })()}
                               </div>
                               <div className="flex-1">
