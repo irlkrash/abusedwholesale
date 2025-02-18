@@ -35,7 +35,7 @@ const AdminCarts = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   // Fetch products with proper error handling
-  const { data: productsData, isLoading: productsLoading } = useQuery<Product[]>({
+  const { data: productsData, isLoading: productsLoading, error: productsError } = useQuery<Product[]>({
     queryKey: ["/api/products"],
     queryFn: async () => {
       try {
@@ -50,12 +50,13 @@ const AdminCarts = () => {
         throw error;
       }
     },
+    initialData: [], // Provide initial empty array
   });
 
   // Create a products lookup map for efficient access
   const productsMap = useMemo(() => {
-    if (!productsData) return new Map<number, Product>();
-    return new Map(productsData.map(product => [product.id, product]));
+    const products = Array.isArray(productsData) ? productsData : [];
+    return new Map(products.map(product => [product.id, product]));
   }, [productsData]);
 
   // Fetch carts
@@ -120,12 +121,14 @@ const AdminCarts = () => {
     );
   }
 
-  if (cartsError) {
+  if (cartsError || productsError) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4 p-4">
         <AlertCircle className="w-12 h-12 text-destructive" />
-        <h2 className="text-xl font-semibold">Error Loading Carts</h2>
-        <p className="text-muted-foreground">Failed to load cart data. Please try again.</p>
+        <h2 className="text-xl font-semibold">Error Loading Data</h2>
+        <p className="text-muted-foreground">
+          {cartsError ? "Failed to load cart data." : "Failed to load product data."}
+        </p>
         <Button onClick={() => window.location.reload()} variant="outline">
           Retry
         </Button>
