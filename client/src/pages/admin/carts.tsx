@@ -91,9 +91,23 @@ const AdminCarts = () => {
   });
 
   const getProductImage = (productId: number): string | undefined => {
-    if (!Array.isArray(products)) return undefined;
+    console.log('Products array:', products);
+    console.log('Looking for product ID:', productId);
+    if (!Array.isArray(products)) {
+      console.log('Products is not an array');
+      return undefined;
+    }
     const product = products.find(p => p.id === productId);
-    return product?.images?.[0];
+    console.log('Found product:', product);
+    if (!product) {
+      console.log('Product not found');
+      return undefined;
+    }
+    if (!product.images || !product.images.length) {
+      console.log('No images found for product');
+      return undefined;
+    }
+    return product.images[0];
   };
 
   if (isLoading || productsLoading) {
