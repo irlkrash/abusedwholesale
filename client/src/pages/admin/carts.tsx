@@ -47,10 +47,10 @@ const AdminCarts = () => {
     retry: 2,
   });
 
-  const productsMap = useMemo(() =>
-    new Map(products.map(product => [product.id, product])),
-    [products]
-  );
+  const productsMap = useMemo(() => {
+    if (!Array.isArray(products)) return new Map();
+    return new Map(products.map(product => [product.id, product]));
+  }, [products]);
 
   const { data: carts = [], isLoading: cartsLoading, error: cartsError } = useQuery<Cart[]>({
     queryKey: ["/api/carts"],
