@@ -41,6 +41,7 @@ export class DatabaseStorage implements IStorage {
     this.sessionStore = new PostgresSessionStore({
       conObject: {
         connectionString: process.env.DATABASE_URL,
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
       },
       tableName: 'session_store',
       createTableIfMissing: true,
@@ -49,53 +50,82 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProducts(pageOffset = 0, pageLimit = 12): Promise<Product[]> {
-    console.log(`Getting products with offset ${pageOffset} and limit ${pageLimit}`);
+    try {
+      console.log(`Getting products with offset ${pageOffset} and limit ${pageLimit}`);
 
-    const products = await db
-      .select()
-      .from(productsTable)
-      .orderBy(desc(productsTable.createdAt))
-      .limit(pageLimit)
-      .offset(pageOffset);
+      const products = await db
+        .select()
+        .from(productsTable)
+        .orderBy(desc(productsTable.createdAt))
+        .limit(pageLimit)
+        .offset(pageOffset);
 
-    console.log(`Retrieved ${products.length} products from database`);
-    return products;
+      if (!products) {
+        throw new Error('Failed to fetch products from database');
+      }
+
+      console.log(`Retrieved ${products.length} products from database`);
+      return products;
+    } catch (error) {
+      console.error('Database error in getProducts:', error);
+      throw error;
+    }
   }
 
   async getProduct(id: number): Promise<Product | undefined> {
-    const [product] = await db
-      .select()
-      .from(productsTable)
-      .where(eq(productsTable.id, id))
-      .limit(1);
-    return product;
+    try {
+      const [product] = await db
+        .select()
+        .from(productsTable)
+        .where(eq(productsTable.id, id))
+        .limit(1);
+      return product;
+    } catch (error) {
+      console.error(`Database error in getProduct(${id}):`, error);
+      throw error;
+    }
   }
 
   async createProduct(insertProduct: InsertProduct): Promise<Product> {
-    const [product] = await db
-      .insert(productsTable)
-      .values({
-        name: insertProduct.name,
-        description: insertProduct.description,
-        images: insertProduct.images,
-        isAvailable: insertProduct.isAvailable ?? true,
-      })
-      .returning();
-    return product;
+    try {
+      const [product] = await db
+        .insert(productsTable)
+        .values({
+          name: insertProduct.name,
+          description: insertProduct.description,
+          images: insertProduct.images,
+          isAvailable: insertProduct.isAvailable ?? true,
+        })
+        .returning();
+      return product;
+    } catch (error) {
+      console.error('Database error in createProduct:', error);
+      throw error;
+    }
   }
 
   async updateProduct(id: number, updates: Partial<Product>): Promise<Product> {
-    const [product] = await db
-      .update(productsTable)
-      .set(updates)
-      .where(eq(productsTable.id, id))
-      .returning();
-    if (!product) throw new Error("Product not found");
-    return product;
+    try {
+      const [product] = await db
+        .update(productsTable)
+        .set(updates)
+        .where(eq(productsTable.id, id))
+        .returning();
+      if (!product) throw new Error("Product not found");
+      return product;
+    } catch (error) {
+      console.error(`Database error in updateProduct(${id}):`, error);
+      throw error;
+    }
   }
 
   async deleteProduct(id: number): Promise<void> {
-    await db.delete(productsTable).where(eq(productsTable.id, id));
+    try {
+      await db.delete(productsTable).where(eq(productsTable.id, id));
+    } catch (error) {
+      console.error(`Database error in deleteProduct(${id}):`, error);
+      throw error;
+    }
   }
 
   async getUsers(): Promise<User[]> {

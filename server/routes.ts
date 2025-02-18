@@ -35,28 +35,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const offset = (page - 1) * limit;
 
       const products = await storage.getProducts(offset, limit);
+
+      if (!products) {
+        console.error('No products returned from database');
+        return res.status(500).json({ 
+          message: "Failed to fetch products",
+          error: "Database returned no results" 
+        });
+      }
+
       console.log(`Retrieved ${products.length} products from database`);
       res.json(products);
     } catch (error) {
       console.error('Error fetching products:', error);
-      res.status(500).json({ message: "Failed to fetch products" });
+      res.status(500).json({ 
+        message: "Failed to fetch products",
+        error: error instanceof Error ? error.message : "Unknown error occurred"
+      });
     }
   });
 
   app.post("/api/products", requireAdmin, async (req, res) => {
-    const parsed = insertProductSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json(parsed.error);
-    }
+    try {
+      const parsed = insertProductSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json(parsed.error);
+      }
 
-    const product = await storage.createProduct(parsed.data);
-    res.status(201).json(product);
+      const product = await storage.createProduct(parsed.data);
+      res.status(201).json(product);
+    } catch (error) {
+      console.error('Error creating product:', error);
+      res.status(500).json({ 
+        message: "Failed to create product",
+        error: error instanceof Error ? error.message : "Unknown error occurred"
+      });
+    }
   });
 
   app.patch("/api/products/:id", requireAdmin, async (req, res) => {
-    const productId = parseInt(req.params.id);
-    const product = await storage.updateProduct(productId, req.body);
-    res.json(product);
+    try {
+      const productId = parseInt(req.params.id);
+      if (isNaN(productId)) {
+        return res.status(400).json({ message: "Invalid product ID" });
+      }
+      const product = await storage.updateProduct(productId, req.body);
+      res.json(product);
+    } catch (error) {
+      console.error('Error updating product:', error);
+      res.status(500).json({ 
+        message: "Failed to update product",
+        error: error instanceof Error ? error.message : "Unknown error occurred"
+      });
+    }
   });
 
   app.delete("/api/products/:id", requireAdmin, async (req, res) => {
@@ -70,48 +101,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.sendStatus(200);
     } catch (error) {
       console.error('Error deleting product:', error);
-      res.status(500).json({ message: "Failed to delete product" });
+      res.status(500).json({ 
+        message: "Failed to delete product",
+        error: error instanceof Error ? error.message : "Unknown error occurred"
+      });
     }
   });
-
 
   // Cart routes
   app.get("/api/carts", requireAdmin, async (req, res) => {
-    const carts = await storage.getCarts();
-    res.json(carts);
+    try {
+      const carts = await storage.getCarts();
+      res.json(carts);
+    } catch (error) {
+      console.error('Error fetching carts:', error);
+      res.status(500).json({ 
+        message: "Failed to fetch carts",
+        error: error instanceof Error ? error.message : "Unknown error occurred"
+      });
+    }
   });
 
   app.post("/api/carts", async (req, res) => {
-    const parsed = insertCartSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json(parsed.error);
-    }
+    try {
+      const parsed = insertCartSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json(parsed.error);
+      }
 
-    const cart = await storage.createCart(parsed.data);
-    res.status(201).json(cart);
+      const cart = await storage.createCart(parsed.data);
+      res.status(201).json(cart);
+    } catch (error) {
+      console.error('Error creating cart:', error);
+      res.status(500).json({ 
+        message: "Failed to create cart",
+        error: error instanceof Error ? error.message : "Unknown error occurred"
+      });
+    }
   });
 
   app.delete("/api/carts/:id", requireAdmin, async (req, res) => {
-    const cartId = parseInt(req.params.id);
-    await storage.deleteCart(cartId);
-    res.sendStatus(200);
+    try {
+      const cartId = parseInt(req.params.id);
+      if (isNaN(cartId)) {
+        return res.status(400).json({ message: "Invalid cart ID" });
+      }
+      await storage.deleteCart(cartId);
+      res.sendStatus(200);
+    } catch (error) {
+      console.error('Error deleting cart:', error);
+      res.status(500).json({ 
+        message: "Failed to delete cart",
+        error: error instanceof Error ? error.message : "Unknown error occurred"
+      });
+    }
   });
 
   app.post("/api/carts/:id/make-items-unavailable", requireAdmin, async (req, res) => {
-    const cartId = parseInt(req.params.id);
-    const cart = await storage.getCart(cartId);
-    if (!cart) {
-      return res.status(404).json({ message: "Cart not found" });
+    try {
+      const cartId = parseInt(req.params.id);
+      if (isNaN(cartId)) {
+        return res.status(400).json({ message: "Invalid cart ID" });
+      }
+
+      const cart = await storage.getCart(cartId);
+      if (!cart) {
+        return res.status(404).json({ message: "Cart not found" });
+      }
+
+      const cartItems = cart.items as { productId: number }[];
+      const updates = await Promise.all(
+        cartItems.map(item =>
+          storage.updateProduct(item.productId, { isAvailable: false })
+        )
+      );
+
+      res.json(updates);
+    } catch (error) {
+      console.error('Error updating cart items:', error);
+      res.status(500).json({ 
+        message: "Failed to update cart items",
+        error: error instanceof Error ? error.message : "Unknown error occurred"
+      });
     }
-
-    const cartItems = cart.items as { productId: number }[];
-    const updates = await Promise.all(
-      cartItems.map(item =>
-        storage.updateProduct(item.productId, { isAvailable: false })
-      )
-    );
-
-    res.json(updates);
   });
 
   const httpServer = createServer(app);
