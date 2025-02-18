@@ -29,7 +29,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ImageIcon } from "lucide-react";
 
 
 const AdminCarts = () => {
@@ -257,7 +256,6 @@ const AdminCarts = () => {
                       <div className="grid gap-4">
                         {cartItems.map((item, index) => {
                           const product = productsMap.get(item.productId);
-                          const productImages = product?.images || [];
 
                           return (
                             <div
@@ -265,18 +263,13 @@ const AdminCarts = () => {
                               className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors"
                             >
                               <div className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted">
-                                {product?.images && product.images.length > 0 ? (
-                                  <img
-                                    src={product.images[0]}
-                                    alt={item.name}
-                                    className="w-full h-full object-cover cursor-pointer"
-                                    onClick={() => setSelectedImage(product.images[0])}
+                                {item.images && item.images.length > 0 ? (
+                                  <ProductCarousel
+                                    images={item.images}
+                                    onImageClick={(image) => setSelectedImage(image)}
+                                    priority={index < 2}
                                   />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                                    <ImageIcon className="w-8 h-8" />
-                                  </div>
-                                )}
+                                ) : null}
                               </div>
                               <div className="flex-1">
                                 <p className="font-medium">{item.name}</p>
