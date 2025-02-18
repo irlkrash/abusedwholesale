@@ -263,13 +263,13 @@ const AdminCarts = () => {
                               className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors"
                             >
                               <div className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted">
-                                {productImages.length > 0 ? (
+                                {product?.images?.length > 0 ? (
                                   <img
-                                    src={productImages[0]}
+                                    src={product.images[0]}
                                     alt={item.name}
-                                    className="w-full h-full object-cover"
+                                    className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                    onClick={() => setSelectedImage(product.images[0])}
                                     loading={index < 2 ? "eager" : "lazy"}
-                                    onClick={() => setSelectedImage(productImages[0])}
                                   />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center text-muted-foreground">
