@@ -45,8 +45,15 @@ export default function AdminCarts() {
     queryFn: async () => {
       try {
         const response = await apiRequest("GET", "/api/carts");
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
         console.log("Fetched carts:", data);
+        if (!Array.isArray(data)) {
+          console.error("Unexpected data format:", data);
+          throw new Error("Server returned invalid data format");
+        }
         return data;
       } catch (err) {
         console.error("Error fetching carts:", err);
@@ -54,6 +61,7 @@ export default function AdminCarts() {
       }
     },
     initialData: [],
+    retry: 1,
   });
 
   if (error) {

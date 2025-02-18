@@ -160,14 +160,12 @@ export class DatabaseStorage implements IStorage {
   async getCarts(): Promise<Cart[]> {
     try {
       console.log('Fetching all carts from database');
-      const carts = await db.select().from(cartsTable).orderBy(desc(cartsTable.createdAt));
+      const carts = await db
+        .select()
+        .from(cartsTable)
+        .orderBy(desc(cartsTable.createdAt));
 
-      if (!carts) {
-        console.error('No carts returned from database');
-        throw new Error('Failed to fetch carts from database');
-      }
-
-      console.log(`Retrieved ${carts.length} carts from database`);
+      console.log(`Retrieved ${carts.length} carts from database:`, carts);
       return carts;
     } catch (error) {
       console.error('Database error in getCarts:', error);
@@ -177,7 +175,10 @@ export class DatabaseStorage implements IStorage {
 
   async getCart(id: number): Promise<Cart | undefined> {
     try {
-      const [cart] = await db.select().from(cartsTable).where(eq(cartsTable.id, id));
+      const [cart] = await db
+        .select()
+        .from(cartsTable)
+        .where(eq(cartsTable.id, id));
       return cart;
     } catch (error) {
       console.error(`Database error in getCart(${id}):`, error);
@@ -224,27 +225,6 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCart(id: number): Promise<void> {
     await db.delete(cartsTable).where(eq(cartsTable.id, id));
-  }
-
-  async getCarts(): Promise<Cart[]> {
-    try {
-      const carts = await db
-        .select()
-        .from(cartsTable)
-        .orderBy(desc(cartsTable.createdAt));
-      return carts;
-    } catch (error) {
-      console.error('Database error in getCarts:', error);
-      throw error;
-    }
-  }
-
-  async getCart(id: number): Promise<Cart | null> {
-    const [cart] = await db
-      .select()
-      .from(cartsTable)
-      .where(eq(cartsTable.id, id));
-    return cart || null;
   }
 }
 
