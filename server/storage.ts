@@ -70,14 +70,14 @@ export class DatabaseStorage implements IStorage {
         isAvailable: productsTable.isAvailable,
         createdAt: productsTable.createdAt,
         categories: sql<Category[]>`COALESCE(
-          ARRAY_AGG(
+          jsonb_agg(
             DISTINCT jsonb_build_object(
               'id', ${categories.id}, 
               'name', ${categories.name},
               'createdAt', ${categories.createdAt}
             )
           ) FILTER (WHERE ${categories.id} IS NOT NULL),
-          ARRAY[]::jsonb[]
+          '[]'::jsonb
         )`
       })
       .from(productsTable)
@@ -86,7 +86,7 @@ export class DatabaseStorage implements IStorage {
 
     // Apply category filter if categoryId is provided
     if (categoryId !== null) {
-      query = query.where(eq(categories.id, categoryId));
+      query = query.where(eq(productCategories.categoryId, categoryId));
     }
 
     // Add grouping and ordering
@@ -108,7 +108,7 @@ export class DatabaseStorage implements IStorage {
 
     return result.map(product => ({
       ...product,
-      categories: product.categories[0] === null ? [] : product.categories
+      categories: Array.isArray(product.categories) ? product.categories : []
     }));
   }
 
