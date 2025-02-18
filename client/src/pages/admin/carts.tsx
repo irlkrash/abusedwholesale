@@ -41,7 +41,7 @@ const AdminCarts = () => {
       const response = await apiRequest("GET", "/api/products");
       if (!response.ok) throw new Error('Failed to fetch products');
       const data = await response.json();
-      return Array.isArray(data) ? data : [];
+      return data.products || [];
     },
     staleTime: 30000,
     retry: 2,
@@ -255,7 +255,7 @@ const AdminCarts = () => {
                       <div className="grid gap-4">
                         {cartItems.map((item, index) => {
                           const product = productsMap.get(item.productId);
-                          const productImages = product?.images?.filter(Boolean) || [];
+                          const productImages = product?.images || [];
 
                           return (
                             <div
@@ -264,11 +264,12 @@ const AdminCarts = () => {
                             >
                               <div className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted">
                                 {productImages.length > 0 ? (
-                                  <ProductCarousel
-                                    images={productImages}
-                                    onImageClick={(image) => setSelectedImage(image)}
-                                    loading={index < 2 ? "eager" : "lazy"}
+                                  <img
+                                    src={productImages[0]}
+                                    alt={item.name}
                                     className="w-full h-full object-cover"
+                                    loading={index < 2 ? "eager" : "lazy"}
+                                    onClick={() => setSelectedImage(productImages[0])}
                                   />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center text-muted-foreground">
