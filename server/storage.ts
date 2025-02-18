@@ -60,6 +60,7 @@ export class DatabaseStorage implements IStorage {
 
   async getProducts(pageOffset = 0, pageLimit = 12, categoryId: number | null = null): Promise<(Product & { categories?: Category[] })[]> {
     console.log(`Getting products with offset ${pageOffset} and limit ${pageLimit}, categoryId: ${categoryId}`);
+
     let query = db
       .select({
         id: productsTable.id,
@@ -83,23 +84,27 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(productCategories, eq(productsTable.id, productCategories.productId))
       .leftJoin(categories, eq(productCategories.categoryId, categories.id));
 
-    if (categoryId) {
+    // Apply category filter if categoryId is provided
+    if (categoryId !== null) {
       query = query.where(eq(categories.id, categoryId));
     }
 
-    query = query.groupBy(
-      productsTable.id,
-      productsTable.name,
-      productsTable.description,
-      productsTable.images,
-      productsTable.isAvailable,
-      productsTable.createdAt
-    );
-
-    const result = await query
+    // Add grouping and ordering
+    query = query
+      .groupBy(
+        productsTable.id,
+        productsTable.name,
+        productsTable.description,
+        productsTable.images,
+        productsTable.isAvailable,
+        productsTable.createdAt
+      )
       .orderBy(desc(productsTable.createdAt))
       .limit(pageLimit)
       .offset(pageOffset);
+
+    const result = await query;
+    console.log(`Retrieved ${result.length} products from database`);
 
     return result.map(product => ({
       ...product,
