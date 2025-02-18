@@ -7,15 +7,23 @@ import {
 } from "@/components/ui/carousel";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 interface ProductCarouselProps {
   images: string[];
   onImageClick?: (image: string) => void;
   priority?: boolean;
+  loading?: "eager" | "lazy";
+  className?: string;
 }
 
-export function ProductCarousel({ images, onImageClick, priority = false }: ProductCarouselProps) {
+export function ProductCarousel({ 
+  images, 
+  onImageClick, 
+  priority = false,
+  loading: loadingProp,
+  className 
+}: ProductCarouselProps) {
   const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set());
 
   const handleImageLoad = (index: number) => {
@@ -23,7 +31,7 @@ export function ProductCarousel({ images, onImageClick, priority = false }: Prod
   };
 
   return (
-    <Carousel className="relative">
+    <Carousel className={cn("relative", className)}>
       <CarouselContent>
         {images.map((image, index) => (
           <CarouselItem key={index}>
@@ -38,7 +46,7 @@ export function ProductCarousel({ images, onImageClick, priority = false }: Prod
                 <img 
                   src={image} 
                   alt={`Product view ${index + 1}`}
-                  loading={index === 0 || priority ? "eager" : "lazy"}
+                  loading={loadingProp || (index === 0 || priority ? "eager" : "lazy")}
                   width={600}
                   height={600}
                   className={cn(

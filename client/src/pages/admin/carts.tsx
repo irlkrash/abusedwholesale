@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Link } from "wouter";
-import { ShoppingCart, ArrowLeft, Trash2, Loader2, AlertCircle } from "lucide-react";
+import { ShoppingCart, ArrowLeft, Trash2, Loader2, AlertCircle, Image as ImageIcon } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -35,7 +35,6 @@ const AdminCarts = () => {
   const { toast } = useToast();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  // Fetch products first
   const { data: products = [], isLoading: productsLoading, error: productsError } = useQuery<Product[]>({
     queryKey: ["/api/products"],
     queryFn: async () => {
@@ -48,13 +47,11 @@ const AdminCarts = () => {
     retry: 2,
   });
 
-  // Create products map for efficient lookups
   const productsMap = useMemo(() =>
     new Map(products.map(product => [product.id, product])),
     [products]
   );
 
-  // Fetch carts
   const { data: carts = [], isLoading: cartsLoading, error: cartsError } = useQuery<Cart[]>({
     queryKey: ["/api/carts"],
     queryFn: async () => {
@@ -67,7 +64,6 @@ const AdminCarts = () => {
     refetchInterval: 5000,
   });
 
-  // Now we can safely create sortedCarts after carts is defined
   const sortedCarts = useMemo(() =>
     [...carts].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     [carts]
@@ -259,7 +255,7 @@ const AdminCarts = () => {
                       <div className="grid gap-4">
                         {cartItems.map((item, index) => {
                           const product = productsMap.get(item.productId);
-                          const productImages = product?.images || [];
+                          const productImages = product?.images?.filter(Boolean) || [];
 
                           return (
                             <div
@@ -271,11 +267,12 @@ const AdminCarts = () => {
                                   <ProductCarousel
                                     images={productImages}
                                     onImageClick={(image) => setSelectedImage(image)}
-                                    priority={index === 0}
+                                    loading={index < 2 ? "eager" : "lazy"}
+                                    className="w-full h-full object-cover"
                                   />
                                 ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
-                                    No image
+                                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                    <ImageIcon className="w-8 h-8" />
                                   </div>
                                 )}
                               </div>
