@@ -309,11 +309,13 @@ export default function AdminDashboard() {
       <header className="border-b">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center">
-            <img
-              src="/assets/logo.png"
-              alt="Abused Goods Logo"
-              className="h-16"
-            />
+            <Link href="/">
+              <img
+                src="/assets/logo.png"
+                alt="Abused Goods Logo"
+                className="h-16 cursor-pointer"
+              />
+            </Link>
             <span className="ml-2 text-xl font-semibold">Admin</span>
           </div>
 

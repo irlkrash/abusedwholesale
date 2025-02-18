@@ -99,11 +99,13 @@ export default function AdminCarts() {
       <header className="border-b">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img 
-              src="/assets/logo.png"
-              alt="Abused Goods Logo" 
-              className="h-12"
-            />
+            <Link href="/">
+              <img 
+                src="/assets/logo.png"
+                alt="Abused Goods Logo" 
+                className="h-12 cursor-pointer"
+              />
+            </Link>
             <span className="text-lg font-medium">Cart Management</span>
           </div>
           <Link href="/admin">
