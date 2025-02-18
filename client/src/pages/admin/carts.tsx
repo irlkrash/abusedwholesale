@@ -34,30 +34,27 @@ const AdminCarts = () => {
   const { toast } = useToast();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  // Fetch products with proper error handling
-  const { data: productsData, isLoading: productsLoading, error: productsError } = useQuery<Product[]>({
+  const { data: products = [], isLoading: productsLoading, error: productsError } = useQuery<Product[]>({
     queryKey: ["/api/products"],
     queryFn: async () => {
-      try {
-        const response = await apiRequest("GET", "/api/products");
-        if (!response.ok) {
-          throw new Error('Failed to fetch products');
-        }
-        const data = await response.json();
-        return Array.isArray(data) ? data : [];
-      } catch (error) {
-        console.error('Error fetching products:', error);
-        throw error;
-      }
+      const response = await apiRequest("GET", "/api/products");
+      if (!response.ok) throw new Error('Failed to fetch products');
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     },
-    initialData: [], // Provide initial empty array
+    staleTime: 30000, // Cache data for 30 seconds
+    retry: 2,
   });
 
-  // Create a products lookup map for efficient access
-  const productsMap = useMemo(() => {
-    const products = Array.isArray(productsData) ? productsData : [];
-    return new Map(products.map(product => [product.id, product]));
-  }, [productsData]);
+  const productsMap = useMemo(() => 
+    new Map(products.map(product => [product.id, product])),
+    [products]
+  );
+
+  const sortedCarts = useMemo(() => 
+    [...carts].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    [carts]
+  );
 
   // Fetch carts
   const { data: carts = [], isLoading: cartsLoading, error: cartsError } = useQuery<Cart[]>({
@@ -69,21 +66,21 @@ const AdminCarts = () => {
   const deleteCartMutation = useMutation({
     mutationFn: async (cartId: number) => {
       const response = await apiRequest("DELETE", `/api/carts/${cartId}`);
-      if (!response.ok) {
-        throw new Error('Failed to delete cart');
-      }
+      if (!response.ok) throw new Error('Failed to delete cart');
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/carts"] });
+    onSuccess: (_, cartId) => {
+      queryClient.setQueryData<Cart[]>(["/api/carts"], (old) => 
+        old?.filter(cart => cart.id !== cartId) ?? []
+      );
       toast({
         title: "Cart deleted",
         description: "The cart has been successfully deleted.",
       });
     },
-    onError: () => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to delete cart. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to delete cart",
         variant: "destructive",
       });
     },
