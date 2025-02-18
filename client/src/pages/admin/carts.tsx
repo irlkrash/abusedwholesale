@@ -33,16 +33,16 @@ export default function AdminCarts() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const { data: products = [] } = useQuery<Product[]>({
+  const { data: products = [], isLoading: productsLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/products");
       if (!response.ok) {
         throw new Error('Failed to fetch products');
       }
-      return response.json();
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     },
-    initialData: [],
   });
 
   const { data: carts = [], isLoading, error } = useQuery<Cart[]>({
@@ -58,23 +58,6 @@ export default function AdminCarts() {
     staleTime: 1000,
     refetchInterval: 5000,
   });
-
-  if (error) {
-    console.error("Query error:", error);
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4 p-4">
-        <AlertCircle className="w-12 h-12 text-destructive" />
-        <h2 className="text-xl font-semibold">Error loading carts</h2>
-        <p className="text-muted-foreground">{(error as Error).message}</p>
-        <Link href="/admin">
-          <Button variant="outline" className="flex items-center gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
-          </Button>
-        </Link>
-      </div>
-    );
-  }
 
   const deleteCartMutation = useMutation({
     mutationFn: async (cartId: number) => {
@@ -120,11 +103,12 @@ export default function AdminCarts() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const getProductImage = (productId: number): string | undefined => {
+    if (!Array.isArray(products)) return undefined;
     const product = products.find(p => p.id === productId);
     return product?.images?.[0];
   };
 
-  if (isLoading) {
+  if (isLoading || productsLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="w-8 h-8 animate-spin" />
@@ -294,6 +278,15 @@ export default function AdminCarts() {
           )}
         </div>
       </main>
+
+      {selectedImage && (
+        <ImageViewer
+          src={selectedImage}
+          alt="Product image"
+          isOpen={!!selectedImage}
+          onOpenChange={(open) => !open && setSelectedImage(null)}
+        />
+      )}
     </div>
   );
 }
