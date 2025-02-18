@@ -265,11 +265,15 @@ const AdminCarts = () => {
                               <div className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted">
                                 {(() => {
                                   const product = productsMap.get(item.productId);
-                                  return product?.images && product.images.length > 0 ? (
+                                  if (!product || !Array.isArray(product.images)) {
+                                    return null;
+                                  }
+                                  return product.images.length > 0 ? (
                                     <ProductCarousel
                                       images={product.images}
                                       onImageClick={(image) => setSelectedImage(image)}
                                       priority={index < 2}
+                                      className="w-full h-full"
                                     />
                                   ) : null;
                                 })()}
