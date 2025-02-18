@@ -225,6 +225,27 @@ export class DatabaseStorage implements IStorage {
   async deleteCart(id: number): Promise<void> {
     await db.delete(cartsTable).where(eq(cartsTable.id, id));
   }
+
+  async getCarts(): Promise<Cart[]> {
+    try {
+      const carts = await db
+        .select()
+        .from(cartsTable)
+        .orderBy(desc(cartsTable.createdAt));
+      return carts;
+    } catch (error) {
+      console.error('Database error in getCarts:', error);
+      throw error;
+    }
+  }
+
+  async getCart(id: number): Promise<Cart | null> {
+    const [cart] = await db
+      .select()
+      .from(cartsTable)
+      .where(eq(cartsTable.id, id));
+    return cart || null;
+  }
 }
 
 export const storage = new DatabaseStorage();
