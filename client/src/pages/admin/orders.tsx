@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Link } from "wouter";
 import { Package, ArrowLeft } from "lucide-react";
+import { ProductCarousel } from "@/components/product-carousel";
 import {
   Card,
   CardContent,
@@ -126,10 +127,22 @@ export default function AdminOrders() {
                           order.items.map((item: any, index: number) => (
                             <div
                               key={index}
-                              className="flex items-center gap-2 text-sm"
+                              className="flex items-center gap-4 text-sm"
                             >
-                              <Package className="h-4 w-4" />
-                              <span>{item.name}</span>
+                              <div className="relative w-12 h-12 overflow-hidden rounded-md border bg-muted">
+                                {item.images && item.images.length > 0 ? (
+                                  <ProductCarousel
+                                    images={item.images}
+                                    onImageClick={() => {}}
+                                    priority={index < 2}
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                    <Package className="w-4 h-4" />
+                                  </div>
+                                )}
+                              </div>
+                              <span className="flex-1">{item.name}</span>
                             </div>
                           ))}
                       </div>
