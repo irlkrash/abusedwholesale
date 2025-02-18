@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertProductSchema, insertCartSchema, insertCategorySchema } from "@shared/schema";
+import { insertProductSchema, insertCartSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -29,13 +29,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Products routes with pagination - Make GET public, but keep POST/PATCH/DELETE protected
   app.get("/api/products", async (req, res) => {
     try {
-      console.log(`Fetching products: page=${req.query.page || 1}, limit=${req.query.limit || 12}, categoryId=${req.query.categoryId || 'all'}`);
+      console.log(`Fetching products: page=${req.query.page || 1}, limit=${req.query.limit || 12}`);
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 12;
-      const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string) : null;
       const offset = (page - 1) * limit;
-      
-      const products = await storage.getProducts(offset, limit, categoryId);
+
+      const products = await storage.getProducts(offset, limit);
       console.log(`Retrieved ${products.length} products from database`);
       res.json(products);
     } catch (error) {
@@ -72,86 +71,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error deleting product:', error);
       res.status(500).json({ message: "Failed to delete product" });
-    }
-  });
-
-  // Category routes
-  app.get("/api/categories", async (req, res) => {
-    try {
-      const categories = await storage.getCategories();
-      res.json(categories);
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-      res.status(500).json({ message: "Failed to fetch categories" });
-    }
-  });
-
-  app.post("/api/categories", requireAdmin, async (req, res) => {
-    try {
-      const parsed = insertCategorySchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json(parsed.error);
-      }
-
-      // Check if category exists first
-      const existingCategories = await storage.getCategories();
-      const exists = existingCategories.some(
-        cat => cat.name.toLowerCase() === parsed.data.name.toLowerCase()
-      );
-      
-      if (exists) {
-        return res.status(409).json({ message: "A category with this name already exists" });
-      }
-
-      const category = await storage.createCategory(parsed.data);
-      res.status(201).json(category);
-    } catch (error) {
-      console.error('Error creating category:', error);
-      res.status(500).json({ message: "Failed to create category" });
-    }
-  });
-
-  app.delete("/api/categories/:id", requireAdmin, async (req, res) => {
-    try {
-      const categoryId = parseInt(req.params.id);
-      if (isNaN(categoryId)) {
-        return res.status(400).json({ message: "Invalid category ID" });
-      }
-      await storage.deleteCategory(categoryId);
-      res.sendStatus(200);
-    } catch (error) {
-      console.error('Error deleting category:', error);
-      res.status(500).json({ message: "Failed to delete category" });
-    }
-  });
-
-  // Product category association routes
-  app.get("/api/products/:id/categories", async (req, res) => {
-    try {
-      const productId = parseInt(req.params.id);
-      const categories = await storage.getProductCategories(productId);
-      res.json(categories);
-    } catch (error) {
-      console.error('Error fetching product categories:', error);
-      res.status(500).json({ message: "Failed to fetch product categories" });
-    }
-  });
-
-  app.put("/api/products/:id/categories", requireAdmin, async (req, res) => {
-    try {
-      const productId = parseInt(req.params.id);
-      const categoryIds = req.body.categoryIds;
-
-      if (!Array.isArray(categoryIds)) {
-        return res.status(400).json({ message: "categoryIds must be an array" });
-      }
-
-      await storage.setProductCategories(productId, categoryIds);
-      const categories = await storage.getProductCategories(productId);
-      res.json(categories);
-    } catch (error) {
-      console.error('Error updating product categories:', error);
-      res.status(500).json({ message: "Failed to update product categories" });
     }
   });
 

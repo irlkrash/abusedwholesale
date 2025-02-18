@@ -1,8 +1,8 @@
-import { InsertUser, User, Product, Cart, InsertProduct, InsertCart, Category, InsertCategory } from "@shared/schema";
-import { users, products as productsTable, carts, categories, productCategories } from "@shared/schema";
+import { InsertUser, User, Product, Cart, InsertProduct, InsertCart } from "@shared/schema";
+import { users, products as productsTable, carts } from "@shared/schema";
 import session from "express-session";
 import { db } from "./db";
-import { eq, desc, and, sql, inArray } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 
 const PostgresSessionStore = connectPg(session);
@@ -17,21 +17,11 @@ export interface IStorage {
   createUser(user: InsertUser & { isAdmin?: boolean }): Promise<User>;
 
   // Product operations with pagination
-  getProducts(offset?: number, limit?: number, categoryId?: number | null): Promise<(Product & { categories?: Category[] })[]>;
+  getProducts(offset?: number, limit?: number): Promise<Product[]>;
   getProduct(id: number): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: number, product: Partial<Product>): Promise<Product>;
   deleteProduct(id: number): Promise<void>;
-
-  // Category operations
-  getCategories(): Promise<Category[]>;
-  getCategory(id: number): Promise<Category | undefined>;
-  createCategory(category: InsertCategory): Promise<Category>;
-  deleteCategory(id: number): Promise<void>;
-
-  // Product-Category operations
-  getProductCategories(productId: number): Promise<Category[]>;
-  setProductCategories(productId: number, categoryIds: number[]): Promise<void>;
 
   // Cart operations
   getCarts(): Promise<Cart[]>;
@@ -58,58 +48,18 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async getProducts(pageOffset = 0, pageLimit = 12, categoryId: number | null = null): Promise<(Product & { categories?: Category[] })[]> {
-    console.log(`Getting products with offset ${pageOffset} and limit ${pageLimit}, categoryId: ${categoryId}`);
+  async getProducts(pageOffset = 0, pageLimit = 12): Promise<Product[]> {
+    console.log(`Getting products with offset ${pageOffset} and limit ${pageLimit}`);
 
-    let query = db
-      .select({
-        id: productsTable.id,
-        name: productsTable.name,
-        description: productsTable.description,
-        images: productsTable.images,
-        isAvailable: productsTable.isAvailable,
-        createdAt: productsTable.createdAt,
-        categories: sql<Category[]>`COALESCE(
-          jsonb_agg(
-            DISTINCT jsonb_build_object(
-              'id', ${categories.id}, 
-              'name', ${categories.name},
-              'createdAt', ${categories.createdAt}
-            )
-          ) FILTER (WHERE ${categories.id} IS NOT NULL),
-          '[]'::jsonb
-        )`
-      })
+    const products = await db
+      .select()
       .from(productsTable)
-      .leftJoin(productCategories, eq(productsTable.id, productCategories.productId))
-      .leftJoin(categories, eq(productCategories.categoryId, categories.id));
-
-    // Apply category filter if categoryId is provided
-    if (categoryId !== null) {
-      query = query.where(eq(productCategories.categoryId, categoryId));
-    }
-
-    // Add grouping and ordering
-    query = query
-      .groupBy(
-        productsTable.id,
-        productsTable.name,
-        productsTable.description,
-        productsTable.images,
-        productsTable.isAvailable,
-        productsTable.createdAt
-      )
       .orderBy(desc(productsTable.createdAt))
       .limit(pageLimit)
       .offset(pageOffset);
 
-    const result = await query;
-    console.log(`Retrieved ${result.length} products from database`);
-
-    return result.map(product => ({
-      ...product,
-      categories: Array.isArray(product.categories) ? product.categories : []
-    }));
+    console.log(`Retrieved ${products.length} products from database`);
+    return products;
   }
 
   async getProduct(id: number): Promise<Product | undefined> {
@@ -211,72 +161,6 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCart(id: number): Promise<void> {
     await db.delete(carts).where(eq(carts.id, id));
-  }
-
-  async getCategories(): Promise<Category[]> {
-    return await db.select().from(categories).orderBy(categories.name);
-  }
-
-  async getCategory(id: number): Promise<Category | undefined> {
-    const [category] = await db
-      .select()
-      .from(categories)
-      .where(eq(categories.id, id));
-    return category;
-  }
-
-  async createCategory(category: InsertCategory): Promise<Category> {
-    const [newCategory] = await db
-      .insert(categories)
-      .values(category)
-      .returning();
-    return newCategory;
-  }
-
-  async deleteCategory(id: number): Promise<void> {
-    await db.transaction(async (tx) => {
-      // First remove all associations
-      await tx.delete(productCategories).where(eq(productCategories.categoryId, id));
-      // Then delete the category
-      await tx.delete(categories).where(eq(categories.id, id));
-    });
-  }
-
-  async clearCategoryAssociations(categoryId: number): Promise<void> {
-    await db.delete(productCategories).where(eq(productCategories.categoryId, categoryId));
-  }
-
-  async getProductCategories(productId: number): Promise<Category[]> {
-    const result = await db
-      .select({
-        id: categories.id,
-        name: categories.name,
-        createdAt: categories.createdAt,
-      })
-      .from(productCategories)
-      .innerJoin(categories, eq(categories.id, productCategories.categoryId))
-      .where(eq(productCategories.productId, productId));
-
-    return result;
-  }
-
-  async setProductCategories(productId: number, categoryIds: number[]): Promise<void> {
-    await db.transaction(async (tx) => {
-      // Remove existing categories
-      await tx
-        .delete(productCategories)
-        .where(eq(productCategories.productId, productId));
-
-      // Add new categories
-      if (categoryIds.length > 0) {
-        await tx.insert(productCategories).values(
-          categoryIds.map(categoryId => ({
-            productId,
-            categoryId,
-          }))
-        );
-      }
-    });
   }
 }
 
