@@ -103,9 +103,9 @@ export default function AdminCarts() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const getProductImage = (productId: number): string | undefined => {
-    if (!Array.isArray(products)) return undefined;
-    const product = products.find(p => p.id === productId);
-    return product?.images?.[0];
+    if (!products || !Array.isArray(products)) return undefined;
+    const product = products.find((p: Product) => p.id === productId);
+    return product?.images?.[0] || undefined;
   };
 
   if (isLoading || productsLoading) {
