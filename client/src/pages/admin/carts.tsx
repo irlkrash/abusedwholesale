@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Link } from "wouter";
-import { ShoppingCart, ArrowLeft, Trash2, Loader2 } from "lucide-react";
+import { ShoppingCart, ArrowLeft, Trash2, Loader2, AlertCircle } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -35,6 +35,9 @@ export default function AdminCarts() {
     queryKey: ["/api/products"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/products");
+      if (!response.ok) {
+        throw new Error('Failed to fetch products');
+      }
       return response.json();
     },
     initialData: [],
@@ -44,20 +47,27 @@ export default function AdminCarts() {
     queryKey: ["/api/carts"],
     queryFn: async () => {
       try {
+        console.log("Fetching carts...");
         const response = await apiRequest("GET", "/api/carts");
+        console.log("Cart response status:", response.status);
+
         if (!response.ok) {
           console.error("Cart fetch failed:", response.status);
           throw new Error(`Failed to fetch carts: ${response.status}`);
         }
+
         const data = await response.json();
         console.log("Cart data received:", data);
+
         if (!Array.isArray(data)) {
           console.error("Invalid cart data format:", data);
           throw new Error("Invalid cart data received");
         }
+
         if (data.length === 0) {
           console.log("No carts found in database");
         }
+
         return data;
       } catch (err) {
         console.error("Cart fetch error:", err);
@@ -70,7 +80,19 @@ export default function AdminCarts() {
 
   if (error) {
     console.error("Query error:", error);
-    return <div>Error loading carts: {(error as Error).message}</div>;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4 p-4">
+        <AlertCircle className="w-12 h-12 text-destructive" />
+        <h2 className="text-xl font-semibold">Error loading carts</h2>
+        <p className="text-muted-foreground">{(error as Error).message}</p>
+        <Link href="/admin">
+          <Button variant="outline" className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </Button>
+        </Link>
+      </div>
+    );
   }
 
   const deleteCartMutation = useMutation({
@@ -123,6 +145,22 @@ export default function AdminCarts() {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user?.isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4 p-4">
+        <AlertCircle className="w-12 h-12 text-destructive" />
+        <h2 className="text-xl font-semibold">Access Denied</h2>
+        <p className="text-muted-foreground">You need admin privileges to view this page.</p>
+        <Link href="/">
+          <Button variant="outline" className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Home
+          </Button>
+        </Link>
       </div>
     );
   }
