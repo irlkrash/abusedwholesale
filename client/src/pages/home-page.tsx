@@ -108,10 +108,6 @@ export default function HomePage() {
 
   const allProducts = data?.pages?.flatMap(page => page.data) ?? [];
 
-  // Filter products based on selected category
-  // No need for additional filtering since the server handles it
-  const filteredProducts = data?.pages?.flatMap(page => page.data) ?? [];
-
   const handleAddToCart = (product: Product) => {
     if (cartItems.some(item => item.id === product.id)) {
       toast({
@@ -201,7 +197,6 @@ export default function HomePage() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        {/* Category Filter */}
         <div className="mb-8">
           <Tabs
             defaultValue="all"
@@ -247,10 +242,10 @@ export default function HomePage() {
               {error instanceof Error && <p>{error.message}</p>}
             </CardContent>
           </Card>
-        ) : filteredProducts.length > 0 ? (
+        ) : allProducts.length > 0 ? (
           <>
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {filteredProducts.map((product, index) => (
+              {allProducts.map((product, index) => (
                 <ProductCard
                   key={product.id}
                   product={product}
