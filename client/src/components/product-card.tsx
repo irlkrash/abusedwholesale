@@ -14,19 +14,14 @@ interface ProductCardProps {
 
 export function ProductCard({ product, onAddToCart, priority = false }: ProductCardProps) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [isImageLoaded, setIsImageLoaded] = useState(false);
 
   return (
     <Card className="overflow-hidden transition-shadow hover:shadow-lg">
       <CardContent className="p-0">
         <div className="relative">
-          {!isImageLoaded && (
-            <div className="absolute inset-0 bg-muted animate-pulse" />
-          )}
           <ProductCarousel 
             images={product.images} 
             onImageClick={(image) => setSelectedImage(image)}
-            onLoadComplete={() => setIsImageLoaded(true)}
             priority={priority}
             loading="lazy"
           />
@@ -34,7 +29,7 @@ export function ProductCard({ product, onAddToCart, priority = false }: ProductC
         <div className="p-4">
           <h3 className="text-lg font-semibold">{product.name}</h3>
           <p className="text-sm text-muted-foreground mt-2">{product.description}</p>
-          {product.categories && product.categories.length > 0 && (
+          {product.categories?.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {product.categories.map((category) => (
                 <Badge

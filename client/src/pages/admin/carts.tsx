@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Link } from "wouter";
-import { ShoppingCart, ArrowLeft, Trash2, Loader2, AlertCircle, Image as ImageIcon } from "lucide-react";
+import { ShoppingCart, ArrowLeft, Trash2, Loader2, AlertCircle } from "lucide-react";
+import { ProductCarousel } from "@/components/product-carousel";
 import {
   Card,
   CardContent,
@@ -28,7 +29,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ProductCarousel } from "@/components/product-carousel";
+import { ImageIcon } from "lucide-react";
+
 
 const AdminCarts = () => {
   const { user } = useAuth();
@@ -263,13 +265,11 @@ const AdminCarts = () => {
                               className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors"
                             >
                               <div className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted">
-                                {product && product.images && product.images.length > 0 ? (
-                                  <img
-                                    src={product.images[0]}
-                                    alt={item.name}
-                                    className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                                    onClick={() => setSelectedImage(product.images[0])}
-                                    loading={index < 2 ? "eager" : "lazy"}
+                                {product && productImages.length > 0 ? (
+                                  <ProductCarousel
+                                    images={productImages}
+                                    onImageClick={(image) => setSelectedImage(image)}
+                                    priority={index < 2}
                                   />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center text-muted-foreground">

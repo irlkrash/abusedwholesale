@@ -27,11 +27,11 @@ export function ProductCarousel({
   const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set());
 
   const handleImageLoad = (index: number) => {
-    setLoadedImages(prev => new Set(Array.from(prev).concat([index])));
+    setLoadedImages(prev => new Set([...prev, index]));
   };
 
   return (
-    <Carousel className={cn("relative", className)}>
+    <Carousel className={cn("relative w-full h-full", className)}>
       <CarouselContent>
         {images.map((image, index) => (
           <CarouselItem key={index}>
@@ -50,9 +50,9 @@ export function ProductCarousel({
                   width={600}
                   height={600}
                   className={cn(
-                    "object-cover w-full h-full rounded-t-lg cursor-pointer transition-opacity duration-200",
+                    "object-cover w-full h-full rounded-lg cursor-pointer transition-opacity duration-200",
                     !loadedImages.has(index) && "opacity-0",
-                    "hover:opacity-90 transition-opacity"
+                    "hover:opacity-90"
                   )}
                   onClick={() => onImageClick?.(image)}
                   onLoad={() => handleImageLoad(index)}
@@ -63,8 +63,8 @@ export function ProductCarousel({
           </CarouselItem>
         ))}
       </CarouselContent>
-      <CarouselPrevious className="absolute left-2 top-1/2" />
-      <CarouselNext className="absolute right-2 top-1/2" />
+      <CarouselPrevious className="absolute left-1 top-1/2 -translate-y-1/2 h-6 w-6" />
+      <CarouselNext className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6" />
     </Carousel>
   );
 }
