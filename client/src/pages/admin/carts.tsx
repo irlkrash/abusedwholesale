@@ -32,29 +32,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 export default function AdminCarts() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const { data: products = [], isLoading: productsLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
-    queryFn: async () => {
-      const response = await apiRequest("GET", "/api/products");
-      if (!response.ok) {
-        throw new Error('Failed to fetch products');
-      }
-      const data = await response.json();
-      return Array.isArray(data) ? data : [];
-    },
+    enabled: true,
   });
 
   const { data: carts = [], isLoading, error } = useQuery<Cart[]>({
     queryKey: ["/api/carts"],
-    queryFn: async () => {
-      const response = await apiRequest("GET", "/api/carts");
-      if (!response.ok) {
-        throw new Error(`Failed to fetch carts: ${response.status}`);
-      }
-      const data = await response.json();
-      return Array.isArray(data) ? data : [];
-    },
     staleTime: 1000,
     refetchInterval: 5000,
   });
@@ -100,10 +86,7 @@ export default function AdminCarts() {
     },
   });
 
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-
   const getProductImage = (productId: number): string | undefined => {
-    if (!Array.isArray(products)) return undefined;
     const product = products.find(p => p.id === productId);
     return product?.images?.[0];
   };
@@ -231,30 +214,27 @@ export default function AdminCarts() {
                     <ScrollArea className="h-[300px]">
                       <div className="grid gap-4">
                         {cartItems.map((item, index) => {
-                          const image = getProductImage(item.productId);
+                          const productImage = getProductImage(item.productId);
                           return (
                             <div
                               key={index}
                               className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors"
                             >
                               <div
-                                className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted cursor-pointer flex items-center justify-center"
-                                onClick={() => {
-                                  const img = getProductImage(item.productId);
-                                  if (img) setSelectedImage(img);
-                                }}
+                                className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted cursor-pointer"
+                                onClick={() => productImage && setSelectedImage(productImage)}
                               >
-                                {products?.length > 0 && (
+                                {productImage ? (
                                   <img
-                                    src={getProductImage(item.productId)}
+                                    src={productImage}
                                     alt={item.name}
                                     className="w-full h-full object-cover"
                                     loading="lazy"
-                                    onError={(e) => {
-                                      (e.target as HTMLImageElement).style.display = 'none';
-                                      e.currentTarget.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center text-muted-foreground text-sm">No image</div>';
-                                    }}
                                   />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+                                    No image
+                                  </div>
                                 )}
                               </div>
                               <div className="flex-1">
