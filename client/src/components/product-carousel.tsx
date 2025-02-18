@@ -17,42 +17,9 @@ interface ProductCarouselProps {
 
 export function ProductCarousel({ images, onImageClick, priority = false }: ProductCarouselProps) {
   const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set());
-  const [preloadedImages, setPreloadedImages] = useState<Set<string>>(new Set());
-
-  // Preload next and previous images
-  useEffect(() => {
-    const preloadImage = (src: string) => {
-      if (!preloadedImages.has(src)) {
-        const img = new Image();
-        img.src = src;
-        img.onload = () => {
-          setPreloadedImages(prev => new Set(Array.from(prev).concat([src])));
-        };
-      }
-    };
-
-    images.forEach((image, index) => {
-      // Preload current image and next 2 images
-      if (index < 3) {
-        preloadImage(image);
-      }
-    });
-  }, [images, preloadedImages]);
 
   const handleImageLoad = (index: number) => {
     setLoadedImages(prev => new Set(Array.from(prev).concat([index])));
-
-    // Preload next image when current one loads
-    if (index < images.length - 1) {
-      const nextImage = images[index + 1];
-      if (!preloadedImages.has(nextImage)) {
-        const img = new Image();
-        img.src = nextImage;
-        img.onload = () => {
-          setPreloadedImages(prev => new Set(Array.from(prev).concat([nextImage])));
-        };
-      }
-    }
   };
 
   return (

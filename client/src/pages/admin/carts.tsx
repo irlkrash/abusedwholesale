@@ -28,12 +28,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ProductCarousel } from "@/components/product-carousel";
 
 const AdminCarts = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
+  // Fetch products first
   const { data: products = [], isLoading: productsLoading, error: productsError } = useQuery<Product[]>({
     queryKey: ["/api/products"],
     queryFn: async () => {
@@ -42,26 +44,34 @@ const AdminCarts = () => {
       const data = await response.json();
       return Array.isArray(data) ? data : [];
     },
-    staleTime: 30000, // Cache data for 30 seconds
+    staleTime: 30000,
     retry: 2,
   });
 
-  const productsMap = useMemo(() => 
+  // Create products map for efficient lookups
+  const productsMap = useMemo(() =>
     new Map(products.map(product => [product.id, product])),
     [products]
-  );
-
-  const sortedCarts = useMemo(() => 
-    [...carts].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
-    [carts]
   );
 
   // Fetch carts
   const { data: carts = [], isLoading: cartsLoading, error: cartsError } = useQuery<Cart[]>({
     queryKey: ["/api/carts"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/carts");
+      if (!response.ok) throw new Error('Failed to fetch carts');
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
+    },
     staleTime: 1000,
     refetchInterval: 5000,
   });
+
+  // Now we can safely create sortedCarts after carts is defined
+  const sortedCarts = useMemo(() =>
+    [...carts].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    [carts]
+  );
 
   const deleteCartMutation = useMutation({
     mutationFn: async (cartId: number) => {
@@ -69,7 +79,7 @@ const AdminCarts = () => {
       if (!response.ok) throw new Error('Failed to delete cart');
     },
     onSuccess: (_, cartId) => {
-      queryClient.setQueryData<Cart[]>(["/api/carts"], (old) => 
+      queryClient.setQueryData<Cart[]>(["/api/carts"], (old) =>
         old?.filter(cart => cart.id !== cartId) ?? []
       );
       toast({
@@ -174,8 +184,8 @@ const AdminCarts = () => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-6">
-          {carts.length > 0 ? (
-            carts.map((cart) => {
+          {sortedCarts.length > 0 ? (
+            sortedCarts.map((cart) => {
               const cartItems = cart.items as CartItem[];
               return (
                 <Card key={cart.id} className="overflow-hidden">
@@ -249,23 +259,19 @@ const AdminCarts = () => {
                       <div className="grid gap-4">
                         {cartItems.map((item, index) => {
                           const product = productsMap.get(item.productId);
-                          const productImage = product?.images?.[0];
+                          const productImages = product?.images || [];
 
                           return (
                             <div
                               key={index}
                               className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors"
                             >
-                              <div
-                                className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted cursor-pointer"
-                                onClick={() => productImage && setSelectedImage(productImage)}
-                              >
-                                {productImage ? (
-                                  <img
-                                    src={productImage}
-                                    alt={item.name}
-                                    className="w-full h-full object-cover"
-                                    loading="lazy"
+                              <div className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted">
+                                {productImages.length > 0 ? (
+                                  <ProductCarousel
+                                    images={productImages}
+                                    onImageClick={(image) => setSelectedImage(image)}
+                                    priority={index === 0}
                                   />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
