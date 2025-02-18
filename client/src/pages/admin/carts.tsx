@@ -35,11 +35,16 @@ const AdminCarts = () => {
   const { toast } = useToast();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
+  // Modified to ensure we get complete product data
   const { data: products = [], isLoading: productsLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/products");
-      return response.json();
+      if (!response.ok) {
+        throw new Error('Failed to fetch products');
+      }
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     },
   });
 
@@ -60,13 +65,6 @@ const AdminCarts = () => {
         description: "The cart has been successfully deleted.",
       });
     },
-    onError: (error) => {
-      toast({
-        title: "Error deleting cart",
-        description: "Failed to delete the cart. Please try again.",
-        variant: "destructive",
-      });
-    },
   });
 
   const makeItemsUnavailableMutation = useMutation({
@@ -81,30 +79,12 @@ const AdminCarts = () => {
         description: "All items in the cart have been marked as unavailable.",
       });
     },
-    onError: (error) => {
-      toast({
-        title: "Error updating items",
-        description: "Failed to mark items as unavailable. Please try again.",
-        variant: "destructive",
-      });
-    },
   });
 
+  // Simplified and improved getProductImage function
   const getProductImage = (productId: number): string | undefined => {
-    console.log('Products array:', products);
-    console.log('Looking for product ID:', productId);
-    if (!Array.isArray(products)) {
-      console.log('Products is not an array');
-      return undefined;
-    }
     const product = products.find(p => p.id === productId);
-    console.log('Found product:', product);
-    if (!product) {
-      console.log('Product not found');
-      return undefined;
-    }
-    if (!product.images || !product.images.length) {
-      console.log('No images found for product');
+    if (!product?.images?.length) {
       return undefined;
     }
     return product.images[0];
