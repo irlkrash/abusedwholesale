@@ -115,6 +115,8 @@ export default function AdminCarts() {
     },
   });
 
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  
   const getProductImage = (productId: number): string | undefined => {
     if (!products || !Array.isArray(products)) return undefined;
     const product = products.find(p => p.id === productId);
@@ -251,12 +253,15 @@ export default function AdminCarts() {
                               key={index}
                               className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors"
                             >
-                              <div className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted">
+                              <div 
+                                className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted cursor-pointer"
+                                onClick={() => image && setSelectedImage(image)}
+                              >
                                 {image ? (
                                   <img
                                     src={image}
                                     alt={item.name}
-                                    className="w-full h-full object-cover"
+                                    className="w-full h-full object-cover hover:opacity-90 transition-opacity"
                                   />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center text-muted-foreground">
@@ -264,6 +269,14 @@ export default function AdminCarts() {
                                   </div>
                                 )}
                               </div>
+                              {selectedImage && (
+                                <ImageViewer
+                                  src={selectedImage}
+                                  alt="Product image"
+                                  isOpen={!!selectedImage}
+                                  onOpenChange={(open) => !open && setSelectedImage(null)}
+                                />
+                              )}
                               <div>
                                 <p className="font-medium">{item.name}</p>
                                 <p className="text-sm text-muted-foreground">
