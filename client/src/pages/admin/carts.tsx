@@ -118,12 +118,10 @@ export default function AdminCarts() {
   });
 
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  
+
   const getProductImage = (productId: number): string | undefined => {
-    if (!products || !Array.isArray(products)) return undefined;
     const product = products.find(p => p.id === productId);
-    const image = product?.images?.[0];
-    return image || undefined;
+    return product?.images?.[0];
   };
 
   if (isLoading) {
@@ -156,9 +154,9 @@ export default function AdminCarts() {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Link href="/">
-              <img 
+              <img
                 src="/assets/logo.png"
-                alt="Abused Goods Logo" 
+                alt="Abused Goods Logo"
                 className="h-12 cursor-pointer"
               />
             </Link>
@@ -255,31 +253,24 @@ export default function AdminCarts() {
                               key={index}
                               className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors"
                             >
-                              <div 
-                                className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted cursor-pointer"
+                              <div
+                                className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted cursor-pointer flex items-center justify-center"
                                 onClick={() => image && setSelectedImage(image)}
                               >
                                 {image ? (
                                   <img
                                     src={image}
                                     alt={item.name}
-                                    className="w-full h-full object-cover hover:opacity-90 transition-opacity"
+                                    className="w-full h-full object-cover"
+                                    loading="lazy"
                                   />
                                 ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
                                     No image
                                   </div>
                                 )}
                               </div>
-                              {selectedImage && (
-                                <ImageViewer
-                                  src={selectedImage}
-                                  alt="Product image"
-                                  isOpen={!!selectedImage}
-                                  onOpenChange={(open) => !open && setSelectedImage(null)}
-                                />
-                              )}
-                              <div>
+                              <div className="flex-1">
                                 <p className="font-medium">{item.name}</p>
                                 <p className="text-sm text-muted-foreground">
                                   Product ID: {item.productId}
