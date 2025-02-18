@@ -1,5 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useState } from "react";
+import React from 'react'; // Added import statement
 import { ImageViewer } from "@/components/image-viewer";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Cart, Product, CartItem } from "@shared/schema";
@@ -29,7 +30,7 @@ import {
 import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-export default function AdminCarts() {
+const AdminCarts = () => { // Changed to const AdminCarts = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -87,7 +88,7 @@ export default function AdminCarts() {
   });
 
   const getProductImage = (productId: number): string | undefined => {
-    const product = products.find(p => p.id === productId);
+    const product = products?.find(p => p.id === productId); // Updated line
     return product?.images?.[0];
   };
 
@@ -272,4 +273,6 @@ export default function AdminCarts() {
       )}
     </div>
   );
-}
+};
+
+export default AdminCarts;
