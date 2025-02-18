@@ -265,11 +265,12 @@ const AdminCarts = () => {
                               className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors"
                             >
                               <div className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted">
-                                {product && productImages.length > 0 ? (
-                                  <ProductCarousel
-                                    images={productImages}
-                                    onImageClick={(image) => setSelectedImage(image)}
-                                    priority={index < 2}
+                                {productImages && productImages.length > 0 ? (
+                                  <img
+                                    src={productImages[0]}
+                                    alt={item.name}
+                                    className="w-full h-full object-cover cursor-pointer"
+                                    onClick={() => setSelectedImage(productImages[0])}
                                   />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center text-muted-foreground">
