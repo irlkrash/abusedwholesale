@@ -46,36 +46,15 @@ export default function AdminCarts() {
   const { data: carts = [], isLoading, error } = useQuery<Cart[]>({
     queryKey: ["/api/carts"],
     queryFn: async () => {
-      try {
-        console.log("Fetching carts...");
-        const response = await apiRequest("GET", "/api/carts");
-        console.log("Cart response status:", response.status);
-
-        if (!response.ok) {
-          console.error("Cart fetch failed:", response.status);
-          throw new Error(`Failed to fetch carts: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log("Cart data received:", data);
-
-        if (!Array.isArray(data)) {
-          console.error("Invalid cart data format:", data);
-          throw new Error("Invalid cart data received");
-        }
-
-        if (data.length === 0) {
-          console.log("No carts found in database");
-        }
-
-        return data;
-      } catch (err) {
-        console.error("Cart fetch error:", err);
-        throw err;
+      const response = await apiRequest("GET", "/api/carts");
+      if (!response.ok) {
+        throw new Error(`Failed to fetch carts: ${response.status}`);
       }
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     },
-    initialData: [],
-    retry: 1,
+    staleTime: 1000,
+    refetchInterval: 5000,
   });
 
   if (error) {
