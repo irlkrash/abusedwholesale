@@ -118,7 +118,8 @@ export default function AdminCarts() {
   const getProductImage = (productId: number): string | undefined => {
     if (!products || !Array.isArray(products)) return undefined;
     const product = products.find(p => p.id === productId);
-    return product?.images?.[0];
+    const image = product?.images?.[0];
+    return image || undefined;
   };
 
   if (isLoading) {
