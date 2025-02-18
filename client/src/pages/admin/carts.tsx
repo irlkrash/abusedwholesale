@@ -263,13 +263,16 @@ const AdminCarts = () => {
                               className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors"
                             >
                               <div className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted">
-                                {productsMap.get(item.productId)?.images && productsMap.get(item.productId)?.images.length > 0 ? (
-                            <ProductCarousel
-                              images={productsMap.get(item.productId)?.images || []}
-                              onImageClick={(image) => setSelectedImage(image)}
-                              priority={index < 2}
-                            />
-                          ) : null}
+                                {(() => {
+                                  const product = productsMap.get(item.productId);
+                                  return product?.images && product.images.length > 0 ? (
+                                    <ProductCarousel
+                                      images={product.images}
+                                      onImageClick={(image) => setSelectedImage(image)}
+                                      priority={index < 2}
+                                    />
+                                  ) : null;
+                                })()}
                               </div>
                               <div className="flex-1">
                                 <p className="font-medium">{item.name}</p>
