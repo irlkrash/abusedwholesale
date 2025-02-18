@@ -37,7 +37,10 @@ const AdminCarts = () => { // Changed to const AdminCarts = () => {
 
   const { data: products = [], isLoading: productsLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
-    enabled: true,
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/products");
+      return response.json();
+    },
   });
 
   const { data: carts = [], isLoading, error } = useQuery<Cart[]>({
