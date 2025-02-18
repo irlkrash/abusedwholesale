@@ -38,6 +38,10 @@ export default function AdminCarts() {
 
   const { data: carts = [], isLoading } = useQuery<Cart[]>({
     queryKey: ["/api/carts"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/carts");
+      return response.json();
+    },
     initialData: [],
   });
 
