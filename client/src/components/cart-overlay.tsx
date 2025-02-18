@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Product } from "@shared/schema";
+import { Product, CartItem } from "@shared/schema";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -33,16 +33,20 @@ export function CartOverlay({
   const { toast } = useToast();
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmitCart = async () => {
     try {
+      setIsSubmitting(true);
+      const cartItems: CartItem[] = items.map(item => ({
+        productId: item.id,
+        name: item.name,
+      }));
+
       await apiRequest("POST", "/api/carts", {
         customerName,
         customerEmail,
-        items: items.map(item => ({ 
-          productId: item.id,
-          name: item.name
-        })),
+        items: cartItems,
       });
 
       toast({
@@ -58,6 +62,8 @@ export function CartOverlay({
         description: "Please try again later.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -118,9 +124,9 @@ export function CartOverlay({
           </SheetClose>
           <Button 
             onClick={handleSubmitCart}
-            disabled={!customerName || !customerEmail || items.length === 0}
+            disabled={!customerName || !customerEmail || items.length === 0 || isSubmitting}
           >
-            Submit Cart
+            {isSubmitting ? "Submitting..." : "Submit Cart"}
           </Button>
         </SheetFooter>
       </SheetContent>

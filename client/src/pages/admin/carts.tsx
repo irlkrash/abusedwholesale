@@ -1,11 +1,11 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Cart, Product } from "@shared/schema";
+import { Cart, Product, CartItem } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Link } from "wouter";
-import { ShoppingCart, ArrowLeft, Trash2 } from "lucide-react";
+import { ShoppingCart, ArrowLeft, Trash2, Loader2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -27,12 +27,6 @@ import {
 import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-type CartItem = {
-  productId: number;
-  name: string;
-  image?: string;
-};
-
 export default function AdminCarts() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -42,16 +36,9 @@ export default function AdminCarts() {
     initialData: [],
   });
 
-  const { data: carts = [], isError, isLoading } = useQuery<Cart[]>({
+  const { data: carts = [], isLoading } = useQuery<Cart[]>({
     queryKey: ["/api/carts"],
     initialData: [],
-    onError: (error: any) => {
-      toast({
-        title: "Error loading carts",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
   });
 
   const deleteCartMutation = useMutation({
@@ -63,6 +50,13 @@ export default function AdminCarts() {
       toast({
         title: "Cart deleted",
         description: "The cart has been successfully deleted.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error deleting cart",
+        description: "Failed to delete the cart. Please try again.",
+        variant: "destructive",
       });
     },
   });
@@ -79,6 +73,13 @@ export default function AdminCarts() {
         description: "All items in the cart have been marked as unavailable.",
       });
     },
+    onError: (error) => {
+      toast({
+        title: "Error updating items",
+        description: "Failed to mark items as unavailable. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const getProductImage = (productId: number): string | undefined => {
@@ -89,7 +90,7 @@ export default function AdminCarts() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <span>Loading carts...</span>
+        <Loader2 className="w-8 h-8 animate-spin" />
       </div>
     );
   }
@@ -119,79 +120,80 @@ export default function AdminCarts() {
 
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-6">
-          {carts && carts.length > 0 ? (
-            carts.map((cart) => (
-              <Card key={cart.id} className="overflow-hidden">
-                <CardHeader className="space-y-0 pb-4">
-                  <div className="flex flex-wrap justify-between items-center gap-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <CardTitle className="text-xl">Cart #{cart.id}</CardTitle>
-                        <span className="text-sm text-muted-foreground">
-                          {format(new Date(cart.createdAt), "PPp")}
-                        </span>
+          {carts.length > 0 ? (
+            carts.map((cart) => {
+              const cartItems = cart.items as CartItem[];
+              return (
+                <Card key={cart.id} className="overflow-hidden">
+                  <CardHeader className="space-y-0 pb-4">
+                    <div className="flex flex-wrap justify-between items-center gap-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <CardTitle className="text-xl">Cart #{cart.id}</CardTitle>
+                          <span className="text-sm text-muted-foreground">
+                            {format(new Date(cart.createdAt), "PPp")}
+                          </span>
+                        </div>
+                        <CardDescription>
+                          Customer: {cart.customerName} ({cart.customerEmail})
+                        </CardDescription>
                       </div>
-                      <CardDescription>
-                        Customer: {cart.customerName} ({cart.customerEmail})
-                      </CardDescription>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            Make Unavailable
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Make Items Unavailable</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will mark all items in this cart as unavailable in the store.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => makeItemsUnavailableMutation.mutate(cart.id)}
-                            >
-                              Confirm
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline" size="sm">
+                              Make Unavailable
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Make Items Unavailable</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will mark all items in this cart as unavailable in the store.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => makeItemsUnavailableMutation.mutate(cart.id)}
+                              >
+                                Confirm
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
 
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="destructive" size="sm">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Cart</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete this cart?
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => deleteCartMutation.mutate(cart.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="sm">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Cart</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete this cart?
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteCartMutation.mutate(cart.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-[300px]">
-                    <div className="grid gap-4">
-                      {cart.items && Array.isArray(cart.items) &&
-                        (cart.items as CartItem[]).map((item, index) => {
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-[300px]">
+                      <div className="grid gap-4">
+                        {cartItems.map((item, index) => {
                           const image = getProductImage(item.productId);
                           return (
                             <div
@@ -214,11 +216,12 @@ export default function AdminCarts() {
                             </div>
                           );
                         })}
-                    </div>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            ))
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              );
+            })
           ) : (
             <Card>
               <CardContent className="p-6 text-center text-muted-foreground">

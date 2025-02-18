@@ -57,10 +57,16 @@ export const insertProductSchema = createInsertSchema(products).pick({
   isAvailable: true,
 });
 
+export const cartItemSchema = z.object({
+  productId: z.number(),
+  name: z.string(),
+});
+
 export const insertCartSchema = createInsertSchema(carts).pick({
   customerName: true,
   customerEmail: true,
-  items: true,
+}).extend({
+  items: z.array(cartItemSchema),
 });
 
 export const insertOrderSchema = createInsertSchema(orders).pick({
@@ -70,6 +76,7 @@ export const insertOrderSchema = createInsertSchema(orders).pick({
   status: true,
 });
 
+export type CartItem = z.infer<typeof cartItemSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type InsertCart = z.infer<typeof insertCartSchema>;
