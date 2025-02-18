@@ -43,7 +43,7 @@ const AdminCarts = () => {
       const response = await apiRequest("GET", "/api/products");
       if (!response.ok) throw new Error('Failed to fetch products');
       const data = await response.json();
-      return data.products || [];
+      return Array.isArray(data) ? data : [];
     },
     staleTime: 30000,
     retry: 2,
@@ -265,12 +265,12 @@ const AdminCarts = () => {
                               className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors"
                             >
                               <div className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted">
-                                {productImages && productImages.length > 0 ? (
+                                {product?.images && product.images.length > 0 ? (
                                   <img
-                                    src={productImages[0]}
+                                    src={product.images[0]}
                                     alt={item.name}
                                     className="w-full h-full object-cover cursor-pointer"
-                                    onClick={() => setSelectedImage(productImages[0])}
+                                    onClick={() => setSelectedImage(product.images[0])}
                                   />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center text-muted-foreground">
