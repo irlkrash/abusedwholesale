@@ -1,6 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useState } from "react";
-import React from 'react';
+import { useState, useMemo } from "react";
 import { ImageViewer } from "@/components/image-viewer";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Cart, Product, CartItem } from "@shared/schema";
@@ -35,20 +34,32 @@ const AdminCarts = () => {
   const { toast } = useToast();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  // Modified to ensure we get complete product data
-  const { data: products = [], isLoading: productsLoading } = useQuery<Product[]>({
+  // Fetch products with proper error handling
+  const { data: productsData, isLoading: productsLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/products");
-      if (!response.ok) {
-        throw new Error('Failed to fetch products');
+      try {
+        const response = await apiRequest("GET", "/api/products");
+        if (!response.ok) {
+          throw new Error('Failed to fetch products');
+        }
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        throw error;
       }
-      const data = await response.json();
-      return Array.isArray(data) ? data : [];
     },
   });
 
-  const { data: carts = [], isLoading, error } = useQuery<Cart[]>({
+  // Create a products lookup map for efficient access
+  const productsMap = useMemo(() => {
+    if (!productsData) return new Map<number, Product>();
+    return new Map(productsData.map(product => [product.id, product]));
+  }, [productsData]);
+
+  // Fetch carts
+  const { data: carts = [], isLoading: cartsLoading, error: cartsError } = useQuery<Cart[]>({
     queryKey: ["/api/carts"],
     staleTime: 1000,
     refetchInterval: 5000,
@@ -56,7 +67,10 @@ const AdminCarts = () => {
 
   const deleteCartMutation = useMutation({
     mutationFn: async (cartId: number) => {
-      await apiRequest("DELETE", `/api/carts/${cartId}`);
+      const response = await apiRequest("DELETE", `/api/carts/${cartId}`);
+      if (!response.ok) {
+        throw new Error('Failed to delete cart');
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/carts"] });
@@ -65,11 +79,21 @@ const AdminCarts = () => {
         description: "The cart has been successfully deleted.",
       });
     },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete cart. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const makeItemsUnavailableMutation = useMutation({
     mutationFn: async (cartId: number) => {
-      await apiRequest("POST", `/api/carts/${cartId}/make-items-unavailable`);
+      const response = await apiRequest("POST", `/api/carts/${cartId}/make-items-unavailable`);
+      if (!response.ok) {
+        throw new Error('Failed to update items');
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
@@ -79,21 +103,32 @@ const AdminCarts = () => {
         description: "All items in the cart have been marked as unavailable.",
       });
     },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update items. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
-  // Simplified and improved getProductImage function
-  const getProductImage = (productId: number): string | undefined => {
-    const product = products.find(p => p.id === productId);
-    if (!product?.images?.length) {
-      return undefined;
-    }
-    return product.images[0];
-  };
-
-  if (isLoading || productsLoading) {
+  if (cartsLoading || productsLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (cartsError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4 p-4">
+        <AlertCircle className="w-12 h-12 text-destructive" />
+        <h2 className="text-xl font-semibold">Error Loading Carts</h2>
+        <p className="text-muted-foreground">Failed to load cart data. Please try again.</p>
+        <Button onClick={() => window.location.reload()} variant="outline">
+          Retry
+        </Button>
       </div>
     );
   }
@@ -213,7 +248,9 @@ const AdminCarts = () => {
                     <ScrollArea className="h-[300px]">
                       <div className="grid gap-4">
                         {cartItems.map((item, index) => {
-                          const productImage = getProductImage(item.productId);
+                          const product = productsMap.get(item.productId);
+                          const productImage = product?.images?.[0];
+
                           return (
                             <div
                               key={index}
@@ -241,6 +278,11 @@ const AdminCarts = () => {
                                 <p className="text-sm text-muted-foreground">
                                   Product ID: {item.productId}
                                 </p>
+                                {product && (
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    Status: {product.isAvailable ? 'Available' : 'Unavailable'}
+                                  </p>
+                                )}
                               </div>
                             </div>
                           );
