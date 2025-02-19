@@ -49,6 +49,18 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
+  async getProductCount(): Promise<number> {
+    try {
+      const [result] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(productsTable);
+      return result?.count || 0;
+    } catch (error) {
+      console.error('Database error in getProductCount:', error);
+      throw error;
+    }
+  }
+
   async getProducts(pageOffset = 0, pageLimit = 12): Promise<Product[]> {
     try {
       console.log(`Getting products with offset ${pageOffset} and limit ${pageLimit}`);
