@@ -27,6 +27,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Products routes with pagination - Make GET public, but keep POST/PATCH/DELETE protected
+  app.get("/api/images/:key", async (req, res) => {
+    try {
+      const image = await storage.getProductImage(req.params.key);
+      if (!image) {
+        return res.status(404).send('Image not found');
+      }
+      res.setHeader('Content-Type', 'image/jpeg');
+      res.send(image);
+    } catch (error) {
+      console.error('Error serving image:', error);
+      res.status(500).json({ 
+        message: "Failed to serve image",
+        error: error instanceof Error ? error.message : "Unknown error occurred"
+      });
+    }
+  });
+
   app.get("/api/products", async (req, res) => {
     try {
       console.log(`Fetching products: page=${req.query.page || 1}, limit=${req.query.limit || 12}`);

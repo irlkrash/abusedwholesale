@@ -1,4 +1,8 @@
 import { InsertUser, User, Product, Cart, InsertProduct, InsertCart } from "@shared/schema";
+
+import { Client as ObjectStorageClient } from '@replit/node-object-storage';
+const storageClient = new ObjectStorageClient();
+
 import { users, products as productsTable, carts as cartsTable } from "@shared/schema";
 import session from "express-session";
 import { db } from "./db";
@@ -88,12 +92,22 @@ export class DatabaseStorage implements IStorage {
 
   async createProduct(insertProduct: InsertProduct): Promise<Product> {
     try {
+      const imageUrls = await Promise.all(
+        insertProduct.images.map(async (imageData, index) => {
+          const base64Data = imageData.split(',')[1];
+          const buffer = Buffer.from(base64Data, 'base64');
+          const key = `products/${Date.now()}-${index}.jpg`;
+          await storageClient.put(key, buffer);
+          return key;
+        })
+      );
+
       const [product] = await db
         .insert(productsTable)
         .values({
           name: insertProduct.name,
           description: insertProduct.description,
-          images: insertProduct.images,
+          images: imageUrls,
           isAvailable: insertProduct.isAvailable ?? true,
         })
         .returning();
@@ -101,6 +115,15 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Database error in createProduct:', error);
       throw error;
+    }
+  }
+
+  async getProductImage(key: string): Promise<Buffer | null> {
+    try {
+      return await storageClient.get(key);
+    } catch (error) {
+      console.error('Storage error in getProductImage:', error);
+      return null;
     }
   }
 
