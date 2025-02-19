@@ -39,18 +39,25 @@ const AdminCarts = () => {
   const { data: products = [], isLoading: productsLoading, error: productsError } = useQuery<Product[]>({
     queryKey: ["/api/products"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/products");
+      const response = await apiRequest("GET", "/api/products", {
+        headers: { 'Cache-Control': 'no-cache' }
+      });
       if (!response.ok) throw new Error('Failed to fetch products');
       const data = await response.json();
-      // Ensure we're getting full product data including images
-      const productsArray = Array.isArray(data) ? data : [];
-      console.log('Loaded products:', productsArray);
-      return productsArray;
+      return Array.isArray(data) ? data : [];
     },
-    staleTime: 1000,
-    retry: 3,
-    refetchOnMount: true
+    staleTime: 0,
+    cacheTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    enabled: true
   });
+
+  useEffect(() => {
+    if (products.length > 0) {
+      console.log('Products loaded:', products.length);
+    }
+  }, [products]);
 
   const productsMap = useMemo(() => {
     if (!Array.isArray(products)) return new Map();
