@@ -238,50 +238,30 @@ export class DatabaseStorage implements IStorage {
 
   async getCarts(limit: number = 50): Promise<Cart[]> {
     try {
-      console.log('Fetching carts from database...');
       const result = await db.select().from(cartsTable)
         .orderBy(desc(cartsTable.createdAt))
         .limit(limit);
 
-      console.log(`Successfully fetched ${result.length} carts`);
-      console.log('Raw cart data:', JSON.stringify(result, null, 2));
-
       return result.map(cart => {
+        let items = [];
         try {
-          console.log(`Processing cart ${cart.id}, items type:`, typeof cart.items);
-          if (cart.items) {
-            console.log(`Cart ${cart.id} items:`, cart.items);
-          }
-
-          let parsedItems = [];
           if (typeof cart.items === 'string') {
-            parsedItems = JSON.parse(cart.items);
-          } else if (Array.isArray(cart.items)) {
-            parsedItems = cart.items;
+            items = JSON.parse(cart.items);
           } else if (cart.items && typeof cart.items === 'object') {
-            parsedItems = [cart.items];
+            items = Array.isArray(cart.items) ? cart.items : [cart.items];
           }
-
-          return {
-            id: cart.id,
-            customerName: cart.customerName || '',
-            customerEmail: cart.customerEmail || '',
-            items: parsedItems,
-            createdAt: cart.createdAt || new Date(),
-            updatedAt: cart.updatedAt || new Date()
-          };
-        } catch (parseError) {
-          console.error(`Error parsing items for cart ${cart.id}:`, parseError);
-          console.error('Problematic items data:', cart.items);
-          return {
-            id: cart.id,
-            customerName: cart.customerName || '',
-            customerEmail: cart.customerEmail || '',
-            items: [],
-            createdAt: cart.createdAt || new Date(),
-            updatedAt: cart.updatedAt || new Date()
-          };
+        } catch (error) {
+          console.error(`Error parsing items for cart ${cart.id}:`, error);
         }
+
+        return {
+          id: cart.id,
+          customerName: cart.customerName || '',
+          customerEmail: cart.customerEmail || '',
+          items,
+          createdAt: cart.createdAt || new Date(),
+          updatedAt: cart.updatedAt || new Date()
+        };
       });
     } catch (error) {
       console.error('Database error in getCarts:', error);
