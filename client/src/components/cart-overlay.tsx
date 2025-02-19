@@ -38,9 +38,11 @@ export function CartOverlay({
   const handleSubmitCart = async () => {
     try {
       setIsSubmitting(true);
-      const cartItems: CartItem[] = items.map(item => ({
+      const cartItems = items.map(item => ({
         productId: item.id,
         name: item.name,
+        description: item.description,
+        images: item.images
       }));
 
       await apiRequest("POST", "/api/carts", {

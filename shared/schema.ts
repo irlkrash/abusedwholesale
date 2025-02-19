@@ -60,6 +60,8 @@ export const insertProductSchema = createInsertSchema(products).pick({
 export const cartItemSchema = z.object({
   productId: z.number(),
   name: z.string(),
+  description: z.string().optional(),
+  images: z.array(z.string()).optional()
 });
 
 export const insertCartSchema = createInsertSchema(carts).pick({
