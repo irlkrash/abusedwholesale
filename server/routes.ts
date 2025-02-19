@@ -147,26 +147,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const sanitizedCarts = carts.map(cart => {
         try {
-          let items = [];
-          if (typeof cart.items === 'string') {
+          let items = cart.items;
+          if (typeof items === 'string') {
             try {
-              items = JSON.parse(cart.items);
-            } catch {
-              console.warn(`Failed to parse items for cart ${cart.id}, defaulting to empty array`);
+              items = JSON.parse(items);
+            } catch (e) {
+              console.warn(`Failed to parse items for cart ${cart.id}:`, e);
               items = [];
             }
-          } else if (Array.isArray(cart.items)) {
-            items = cart.items;
+          } else if (!Array.isArray(items)) {
+            items = [];
           }
 
           return {
-            ...cart,
+            id: cart.id,
+            customerName: cart.customerName || '',
+            customerEmail: cart.customerEmail || '',
+            createdAt: cart.createdAt,
             items: items
           };
         } catch (e) {
           console.error(`Error processing cart ${cart.id}:`, e);
           return {
-            ...cart,
+            id: cart.id,
+            customerName: '',
+            customerEmail: '',
+            createdAt: cart.createdAt || new Date(),
             items: []
           };
         }
