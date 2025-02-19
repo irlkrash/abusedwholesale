@@ -244,8 +244,15 @@ export class DatabaseStorage implements IStorage {
         .limit(limit);
 
       console.log(`Successfully fetched ${result.length} carts`);
+      console.log('Raw cart data:', JSON.stringify(result, null, 2));
+
       return result.map(cart => {
         try {
+          console.log(`Processing cart ${cart.id}, items type:`, typeof cart.items);
+          if (cart.items) {
+            console.log(`Cart ${cart.id} items:`, cart.items);
+          }
+
           let parsedItems = [];
           if (typeof cart.items === 'string') {
             parsedItems = JSON.parse(cart.items);
@@ -265,6 +272,7 @@ export class DatabaseStorage implements IStorage {
           };
         } catch (parseError) {
           console.error(`Error parsing items for cart ${cart.id}:`, parseError);
+          console.error('Problematic items data:', cart.items);
           return {
             id: cart.id,
             customerName: cart.customerName || '',
@@ -277,6 +285,7 @@ export class DatabaseStorage implements IStorage {
       });
     } catch (error) {
       console.error('Database error in getCarts:', error);
+      console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
       throw error;
     }
   }
