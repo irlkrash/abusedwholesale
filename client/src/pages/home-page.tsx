@@ -47,6 +47,9 @@ export default function HomePage() {
           "GET",
           `/api/products?${queryParams.toString()}`
         );
+        if (!response.ok) {
+          throw new Error('Failed to fetch products');
+        }
         const data = await response.json();
         return data;
       } catch (err) {
@@ -58,33 +61,8 @@ export default function HomePage() {
     getNextPageParam: (lastPage) => lastPage.nextPage,
   });
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          void fetchNextPage();
-        }
-      },
-      { 
-        threshold: 0.1,
-        rootMargin: '100px' 
-      }
-    );
-
-    const currentRef = loadMoreRef.current;
-    if (currentRef) {
-      observer.observe(currentRef);
-    }
-
-    return () => {
-      if (currentRef) {
-        observer.unobserve(currentRef);
-      }
-      observer.disconnect();
-    };
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
-
-  const allProducts = data?.pages?.flatMap(page => page.data) ?? [];
+  // Safely extract products with null checks
+  const allProducts = data?.pages?.flatMap(page => page.data ?? []) ?? [];
 
   const handleAddToCart = (product: Product) => {
     if (cartItems.some(item => item.productId === product.id)) {
@@ -138,6 +116,32 @@ export default function HomePage() {
       </Button>
     </>
   );
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          void fetchNextPage();
+        }
+      },
+      { 
+        threshold: 0.1,
+        rootMargin: '100px' 
+      }
+    );
+
+    const currentRef = loadMoreRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+      observer.disconnect();
+    };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -207,16 +211,18 @@ export default function HomePage() {
               {error instanceof Error && <p>{error.message}</p>}
             </CardContent>
           </Card>
-        ) : !isLoading && allProducts?.length > 0 ? (
+        ) : allProducts.length > 0 ? (
           <>
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {allProducts.map((product, index) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onAddToCart={() => handleAddToCart(product)}
-                  priority={index < 8}
-                />
+                product && (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onAddToCart={() => handleAddToCart(product)}
+                    priority={index < 8}
+                  />
+                )
               ))}
             </div>
 

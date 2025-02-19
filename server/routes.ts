@@ -62,7 +62,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add pagination info in headers for client caching
       res.setHeader('X-Pagination-Page', page.toString());
       res.setHeader('X-Pagination-Limit', limit.toString());
-      
+
       res.json({
         data: products,
         nextPage: products.length === limit ? page + 1 : undefined,
