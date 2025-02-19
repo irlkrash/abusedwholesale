@@ -42,15 +42,21 @@ const AdminCarts = () => {
       const response = await apiRequest("GET", "/api/products");
       if (!response.ok) throw new Error('Failed to fetch products');
       const data = await response.json();
-      return Array.isArray(data) ? data : [];
+      // Ensure we're getting full product data including images
+      const productsArray = Array.isArray(data) ? data : [];
+      console.log('Loaded products:', productsArray);
+      return productsArray;
     },
-    staleTime: 30000,
-    retry: 2,
+    staleTime: 1000,
+    retry: 3,
+    refetchOnMount: true
   });
 
   const productsMap = useMemo(() => {
     if (!Array.isArray(products)) return new Map();
-    return new Map(products.map(product => [product.id, product]));
+    const map = new Map(products.map(product => [product.id, product]));
+    console.log('Products map created:', map);
+    return map;
   }, [products]);
 
   const { data: carts = [], isLoading: cartsLoading, error: cartsError } = useQuery<Cart[]>({
