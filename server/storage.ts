@@ -11,39 +11,20 @@ const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   sessionStore: session.Store;
-
-  // User operations
   getUsers(): Promise<User[]>;
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser & { isAdmin?: boolean }): Promise<User>;
-
-  // Product operations with pagination
   getProducts(offset?: number, limit?: number): Promise<Product[]>;
   getProduct(id: number): Promise<Product | undefined>;
-  createProduct(product: InsertProduct): Promise<Product>;
+  createProduct(product: Product): Promise<Product>;
   updateProduct(id: number, product: Partial<Product>): Promise<Product>;
   deleteProduct(id: number): Promise<void>;
-
-  // Cart operations
   getCarts(): Promise<Cart[]>;
   createCart(cart: InsertCart): Promise<Cart>;
   updateCart(id: number, cart: Partial<Cart>): Promise<Cart>;
   deleteCart(id: number): Promise<void>;
   getCart(id: number): Promise<Cart | undefined>;
-}
-
-async function storeImage(imageData: string, prefix: string): Promise<{ thumbnail: string; full: string }> {
-  const thumbnailKey = `${prefix}_thumb_${Date.now()}`;
-  const fullKey = `${prefix}_full_${Date.now()}`;
-
-  await db_client.set(thumbnailKey, imageData);
-  await db_client.set(fullKey, imageData); // Store full resolution version
-
-  return {
-    thumbnail: thumbnailKey,
-    full: fullKey,
-  };
 }
 
 export class DatabaseStorage implements IStorage {
@@ -64,34 +45,22 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async getProducts(pageOffset = 0, pageLimit = 12, noLimit = false): Promise<Product[]> {
+  async getProducts(pageOffset = 0, pageLimit = 12): Promise<Product[]> {
     try {
-      console.log(`Getting products with offset ${pageOffset} and limit ${pageLimit}, noLimit: ${noLimit}`);
+      console.log(`Fetching products with offset: ${pageOffset}, limit: ${pageLimit}`);
 
-      const query = db
+      const products = await db
         .select()
         .from(productsTable)
-        .orderBy(desc(productsTable.createdAt));
+        .orderBy(desc(productsTable.createdAt))
+        .limit(pageLimit)
+        .offset(pageOffset);
 
-      if (!noLimit) {
-        const products = await query
-          .limit(pageLimit)
-          .offset(pageOffset);
-
-        if (!products) {
-          throw new Error('Failed to fetch products from database');
-        }
-
-        console.log(`Retrieved ${products.length} products from database`);
-        return products;
-      }
-
-      const products = await query;
-      console.log(`Retrieved ${products.length} products from database`);
+      console.log(`Successfully retrieved ${products.length} products`);
       return products;
     } catch (error) {
-      console.error('Database error in getProducts:', error);
-      throw error;
+      console.error('Error in getProducts:', error);
+      throw new Error('Failed to fetch products from database');
     }
   }
 
@@ -109,7 +78,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async createProduct(insertProduct: InsertProduct): Promise<Product> {
+  async createProduct(insertProduct: Product): Promise<Product> {
     try {
       const imageKeys = await Promise.all(
         insertProduct.images.map(async (imageData, index) => {
@@ -269,6 +238,19 @@ export class DatabaseStorage implements IStorage {
   async deleteCart(id: number): Promise<void> {
     await db.delete(cartsTable).where(eq(cartsTable.id, id));
   }
+}
+
+async function storeImage(imageData: string, prefix: string): Promise<{ thumbnail: string; full: string }> {
+  const thumbnailKey = `${prefix}_thumb_${Date.now()}`;
+  const fullKey = `${prefix}_full_${Date.now()}`;
+
+  await db_client.set(thumbnailKey, imageData);
+  await db_client.set(fullKey, imageData); // Store full resolution version
+
+  return {
+    thumbnail: thumbnailKey,
+    full: fullKey,
+  };
 }
 
 export const storage = new DatabaseStorage();
