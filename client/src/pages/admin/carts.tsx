@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useState, useMemo, useEffect } from "react";
+import { useState } from "react";
 import { ImageViewer } from "@/components/image-viewer";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Cart, Product, CartItem } from "@shared/schema";
@@ -35,35 +35,41 @@ const AdminCarts = () => {
   const { toast } = useToast();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  const { data: products = [], isLoading: productsLoading, error: productsError } = useQuery<Product[]>({
+  const { data: products = [], isLoading: productsLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/products?admin=true");
-      if (!response.ok) throw new Error('Failed to fetch products');
-      const data = await response.json();
-      console.log('Products loaded:', data);
-      return Array.isArray(data) ? data : data.products || [];
-    },
-    staleTime: 30000
+      try {
+        const response = await apiRequest("GET", "/api/products?admin=true");
+        if (!response.ok) throw new Error('Failed to fetch products');
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        throw error;
+      }
+    }
   });
-
 
   const { data: carts = [], isLoading: cartsLoading, error: cartsError } = useQuery<Cart[]>({
     queryKey: ["/api/carts"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/carts");
-      if (!response.ok) throw new Error('Failed to fetch carts');
-      const data = await response.json();
-      console.log('Carts loaded:', data);
-      return Array.isArray(data) ? data : [];
+      try {
+        const response = await apiRequest("GET", "/api/carts");
+        if (!response.ok) throw new Error('Failed to fetch carts');
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error('Error fetching carts:', error);
+        throw error;
+      }
     },
-    refetchInterval: 5000,
-    keepPreviousData: true
+    refetchInterval: 5000
   });
 
-  const sortedCarts = useMemo(() =>
-    [...carts].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
-    [carts]
+  const productsMap = new Map(products.map(product => [product.id, product]));
+
+  const sortedCarts = [...carts].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
   const deleteCartMutation = useMutation({
@@ -92,9 +98,7 @@ const AdminCarts = () => {
   const makeItemsUnavailableMutation = useMutation({
     mutationFn: async (cartId: number) => {
       const response = await apiRequest("POST", `/api/carts/${cartId}/make-items-unavailable`);
-      if (!response.ok) {
-        throw new Error('Failed to update items');
-      }
+      if (!response.ok) throw new Error('Failed to update items');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
@@ -121,14 +125,12 @@ const AdminCarts = () => {
     );
   }
 
-  if (cartsError || productsError) {
+  if (cartsError) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4 p-4">
         <AlertCircle className="w-12 h-12 text-destructive" />
         <h2 className="text-xl font-semibold">Error Loading Data</h2>
-        <p className="text-muted-foreground">
-          {cartsError ? "Failed to load cart data." : "Failed to load product data."}
-        </p>
+        <p className="text-muted-foreground">Failed to load cart data.</p>
         <Button onClick={() => window.location.reload()} variant="outline">
           Retry
         </Button>
@@ -251,20 +253,7 @@ const AdminCarts = () => {
                     <ScrollArea className="h-[300px]">
                       <div className="grid gap-4">
                         {cartItems.map((item, index) => {
-                          const { data: product, error } = useQuery({
-                            queryKey: [`/api/products/${item.productId}`],
-                            queryFn: async () => {
-                              const response = await fetch(`/api/products/${item.productId}?admin=true`);
-                              if (!response.ok) throw new Error('Failed to fetch product');
-                              return response.json();
-                            }
-                          });
-
-                          if (error) {
-                            console.error('Error fetching product:', error);
-                            return <p key={index}>Error loading product {item.productId}</p>;
-                          }
-
+                          const product = productsMap.get(item.productId);
                           return (
                             <div
                               key={index}
