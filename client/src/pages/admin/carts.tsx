@@ -42,8 +42,9 @@ const AdminCarts = () => {
       if (!response.ok) throw new Error('Failed to fetch products');
       const data = await response.json();
       console.log('Products loaded:', data);
-      return data.products || [];
-    }
+      return Array.isArray(data) ? data : data.products || [];
+    },
+    staleTime: 30000
   });
 
   const productsMap = useMemo(() => {
@@ -51,7 +52,6 @@ const AdminCarts = () => {
     if (Array.isArray(products)) {
       products.forEach(product => {
         map.set(product.id, product);
-        console.log('Product mapped:', product.id, product.images);
       });
     }
     return map;
