@@ -35,21 +35,6 @@ const AdminCarts = () => {
   const { toast } = useToast();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  const { data: products = [], isLoading: productsLoading } = useQuery<Product[]>({
-    queryKey: ["/api/products"],
-    queryFn: async () => {
-      try {
-        const response = await apiRequest("GET", "/api/products?admin=true");
-        if (!response.ok) throw new Error('Failed to fetch products');
-        const data = await response.json();
-        return Array.isArray(data) ? data : [];
-      } catch (error) {
-        console.error('Error fetching products:', error);
-        throw error;
-      }
-    }
-  });
-
   const { data: carts = [], isLoading: cartsLoading, error: cartsError } = useQuery<Cart[]>({
     queryKey: ["/api/carts"],
     queryFn: async () => {
@@ -65,13 +50,6 @@ const AdminCarts = () => {
     },
     refetchInterval: 5000
   });
-
-  // Ensure products is an array before creating the Map
-  const productsMap = new Map(
-    Array.isArray(products) 
-      ? products.map(product => [product.id, product as Product])
-      : []
-  );
 
   const sortedCarts = [...(Array.isArray(carts) ? carts : [])].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -122,7 +100,7 @@ const AdminCarts = () => {
     },
   });
 
-  if (cartsLoading || productsLoading) {
+  if (cartsLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="w-8 h-8 animate-spin" />
@@ -257,47 +235,40 @@ const AdminCarts = () => {
                   <CardContent>
                     <ScrollArea className="h-[300px]">
                       <div className="grid gap-4">
-                        {cartItems.map((item, index) => {
-                          const product = productsMap.get(item.productId);
-                          const images = item.images || product?.images || [];
-                          return (
-                            <div
-                              key={index}
-                              className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors"
-                            >
-                              <div className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted">
-                                {images.length > 0 ? (
-                                  <ProductCarousel
-                                    images={images}
-                                    onImageClick={(image) => setSelectedImage(image)}
-                                    priority={index < 2}
-                                    loading="lazy"
-                                  />
-                                ) : (
-                                  <div className="flex items-center justify-center w-full h-full bg-muted">
-                                    <span className="text-xs text-muted-foreground">No image</span>
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex-1">
-                                <p className="font-medium">{item.name}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  Product ID: {item.productId}
-                                </p>
-                                {product && (
-                                  <p className="text-sm text-muted-foreground mt-1">
-                                    Status: {product.isAvailable ? 'Available' : 'Unavailable'}
-                                  </p>
-                                )}
-                                {item.description && (
-                                  <p className="text-sm text-muted-foreground mt-1">
-                                    {item.description}
-                                  </p>
-                                )}
-                              </div>
+                        {cartItems.map((item, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors"
+                          >
+                            <div className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted">
+                              {item.images && item.images.length > 0 ? (
+                                <ProductCarousel
+                                  images={item.images}
+                                  onImageClick={(image) => setSelectedImage(image)}
+                                  priority={index < 2}
+                                />
+                              ) : (
+                                <div className="flex items-center justify-center w-full h-full bg-muted">
+                                  <span className="text-xs text-muted-foreground">No image</span>
+                                </div>
+                              )}
                             </div>
-                          );
-                        })}
+                            <div className="flex-1">
+                              <p className="font-medium">{item.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                Product ID: {item.productId}
+                              </p>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                Status: {item.isAvailable ? 'Available' : 'Unavailable'}
+                              </p>
+                              {item.description && (
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  {item.description}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </ScrollArea>
                   </CardContent>

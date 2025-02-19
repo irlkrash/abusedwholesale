@@ -99,15 +99,17 @@ export default function HomePage() {
       });
       return;
     }
-    
+
+    // Include all product data in cart item
     const cartItem = {
       productId: product.id,
       name: product.name,
       description: product.description,
       images: product.images,
-      id: product.id
+      isAvailable: product.isAvailable,
+      createdAt: product.createdAt.toISOString()
     };
-    
+
     setCartItems(prev => [...prev, cartItem]);
     toast({
       title: "Added to cart",
