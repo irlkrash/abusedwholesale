@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,7 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 interface ImageViewerProps {
   src: string;
-  fullSrc?: string; // Optional full resolution source
+  fullSrc?: string;
   alt: string;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -29,9 +29,11 @@ export function ImageViewer({ src, fullSrc, alt, isOpen, onOpenChange }: ImageVi
   const [position, setPosition] = useState<Position>({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [isFullResLoaded, setIsFullResLoaded] = useState(false);
+  const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
   const dragStart = useRef<Position | null>(null);
 
-  // Use full resolution image if available, otherwise use thumbnail
   const displaySrc = (isOpen && fullSrc) ? fullSrc : src;
 
   const handleZoomIn = () => {
@@ -39,7 +41,14 @@ export function ImageViewer({ src, fullSrc, alt, isOpen, onOpenChange }: ImageVi
   };
 
   const handleZoomOut = () => {
-    setScale((prev) => Math.max(prev - 0.25, 0.5));
+    setScale((prev) => {
+      const newScale = Math.max(prev - 0.25, 0.5);
+      // If zooming out below 1, reset position to center
+      if (newScale <= 1) {
+        setPosition({ x: 0, y: 0 });
+      }
+      return newScale;
+    });
   };
 
   const handleRotate = () => {
@@ -51,6 +60,33 @@ export function ImageViewer({ src, fullSrc, alt, isOpen, onOpenChange }: ImageVi
     setRotation(0);
     setPosition({ x: 0, y: 0 });
   };
+
+  // Calculate boundaries for dragging
+  const calculateBoundaries = useCallback(() => {
+    if (!containerRef.current || !imageRef.current) return { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+
+    const container = containerRef.current.getBoundingClientRect();
+    const scaledWidth = imageDimensions.width * scale;
+    const scaledHeight = imageDimensions.height * scale;
+
+    const horizontalExcess = Math.max(0, (scaledWidth - container.width) / 2);
+    const verticalExcess = Math.max(0, (scaledHeight - container.height) / 2);
+
+    return {
+      minX: -horizontalExcess,
+      maxX: horizontalExcess,
+      minY: -verticalExcess,
+      maxY: verticalExcess,
+    };
+  }, [scale, imageDimensions]);
+
+  const clampPosition = useCallback((pos: Position) => {
+    const boundaries = calculateBoundaries();
+    return {
+      x: Math.min(Math.max(pos.x, boundaries.minX), boundaries.maxX),
+      y: Math.min(Math.max(pos.y, boundaries.minY), boundaries.maxY),
+    };
+  }, [calculateBoundaries]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (scale > 1) {
@@ -65,16 +101,29 @@ export function ImageViewer({ src, fullSrc, alt, isOpen, onOpenChange }: ImageVi
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (isDragging && dragStart.current) {
-      const newX = e.clientX - dragStart.current.x;
-      const newY = e.clientY - dragStart.current.y;
-      setPosition({ x: newX, y: newY });
+      const newPosition = {
+        x: e.clientX - dragStart.current.x,
+        y: e.clientY - dragStart.current.y,
+      };
+      setPosition(clampPosition(newPosition));
     }
-  }, [isDragging]);
+  }, [isDragging, clampPosition]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
     dragStart.current = null;
   }, []);
+
+  // Update image dimensions when loaded
+  const handleImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    setImageDimensions({
+      width: img.naturalWidth,
+      height: img.naturalHeight,
+    });
+    setIsImageLoaded(true);
+    if (fullSrc) setIsFullResLoaded(true);
+  }, [fullSrc]);
 
   // Reset state when dialog closes
   const handleOpenChange = (open: boolean) => {
@@ -88,7 +137,7 @@ export function ImageViewer({ src, fullSrc, alt, isOpen, onOpenChange }: ImageVi
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent 
-        className="w-[90vw] md:w-[70vw] lg:w-[50vw] h-[90vh] p-0"
+        className="w-[90vw] md:w-[70vw] lg:w-[50vw] h-[90vh] p-0 overflow-hidden"
         aria-label="Image viewer"
       >
         <DialogHeader className="sr-only">
@@ -151,7 +200,8 @@ export function ImageViewer({ src, fullSrc, alt, isOpen, onOpenChange }: ImageVi
 
         {/* Image Container */}
         <div 
-          className="h-[calc(90vh-4rem)] w-full flex items-center justify-center bg-black/5 dark:bg-white/5 mt-16"
+          ref={containerRef}
+          className="h-[calc(90vh-4rem)] w-full flex items-center justify-center bg-black/5 dark:bg-white/5 mt-16 overflow-hidden"
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
@@ -162,6 +212,7 @@ export function ImageViewer({ src, fullSrc, alt, isOpen, onOpenChange }: ImageVi
             </div>
           )}
           <img
+            ref={imageRef}
             src={displaySrc}
             alt={alt}
             className="max-w-[90%] max-h-[calc(90vh-8rem)] object-contain transition-transform duration-200 ease-out select-none"
@@ -170,10 +221,7 @@ export function ImageViewer({ src, fullSrc, alt, isOpen, onOpenChange }: ImageVi
               opacity: isImageLoaded ? 1 : 0,
               cursor: scale > 1 ? (isDragging ? "grabbing" : "grab") : "default",
             }}
-            onLoad={() => {
-              setIsImageLoaded(true);
-              if (fullSrc) setIsFullResLoaded(true);
-            }}
+            onLoad={handleImageLoad}
             onMouseDown={handleMouseDown}
             draggable={false}
           />
