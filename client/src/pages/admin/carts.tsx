@@ -43,7 +43,9 @@ const AdminCarts = () => {
         const error = await response.text();
         throw new Error(error || 'Failed to fetch carts');
       }
-      return response.json();
+      const data = await response.json();
+      console.log('Cart data received:', data);
+      return Array.isArray(data) ? data : [];
     },
     refetchInterval: 30000,
     retry: 3,
