@@ -100,18 +100,32 @@ app.use((req, res, next) => {
 
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+    process.on('uncaughtException', (error) => {
+      console.error('Uncaught Exception:', error);
+      console.error('Stack:', error.stack);
+    });
+    process.on('unhandledRejection', (reason, promise) => {
+      console.error('Unhandled Rejection at:', promise);
+      console.error('Reason:', reason);
+    });
 
     // Improved server listening with error handling
     const startServer = async (initialPort: number) => {
       try {
+        console.log('Environment:', process.env.NODE_ENV);
+        console.log('Starting server on port:', initialPort);
+        
         await server.listen(initialPort, '0.0.0.0');
         console.log(`Server started successfully on port ${initialPort}`);
       } catch (error) {
+        console.error('Server start error:', error);
+        console.error('Stack:', error.stack);
+        
         if (error.code === 'EADDRINUSE') {
           console.log(`Port ${initialPort} is already in use. Trying port ${initialPort + 1}`);
           await startServer(initialPort + 1);
         } else {
-          console.error('Failed to start server:', error);
+          console.error('Critical server error:', error);
           process.exit(1);
         }
       }
