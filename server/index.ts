@@ -5,9 +5,28 @@ import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
 
-// Increase timeout and payload limits
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+// Optimize payload limits for production
+const payloadLimit = process.env.NODE_ENV === 'production' ? '10mb' : '50mb';
+app.use(express.json({ limit: payloadLimit }));
+app.use(express.urlencoded({ extended: false, limit: payloadLimit }));
+
+// Handle termination signals
+const gracefulShutdown = (signal: string) => {
+  console.log(`${signal} received. Starting graceful shutdown...`);
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+  
+  // Force close after 10s
+  setTimeout(() => {
+    console.error('Could not close connections in time, forcefully shutting down');
+    process.exit(1);
+  }, 10000);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Add CORS headers for all routes
 app.use((req, res, next) => {
