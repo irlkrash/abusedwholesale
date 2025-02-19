@@ -10,24 +10,6 @@ const payloadLimit = process.env.NODE_ENV === 'production' ? '10mb' : '50mb';
 app.use(express.json({ limit: payloadLimit }));
 app.use(express.urlencoded({ extended: false, limit: payloadLimit }));
 
-// Handle termination signals
-const gracefulShutdown = (signal: string) => {
-  console.log(`${signal} received. Starting graceful shutdown...`);
-  server.close(() => {
-    console.log('Server closed');
-    process.exit(0);
-  });
-  
-  // Force close after 10s
-  setTimeout(() => {
-    console.error('Could not close connections in time, forcefully shutting down');
-    process.exit(1);
-  }, 10000);
-};
-
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
 // Add CORS headers for all routes
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -98,28 +80,37 @@ app.use((req, res, next) => {
     }
 
     // Configure server timeouts and keepalive
-    server.keepAliveTimeout = 65000; // Slightly higher than ALB's idle timeout
-    server.headersTimeout = 66000; // Slightly higher than keepAliveTimeout
+    server.keepAliveTimeout = 65000;
+    server.headersTimeout = 66000;
+
+    // Handle termination signals
+    const gracefulShutdown = (signal: string) => {
+      console.log(`${signal} received. Starting graceful shutdown...`);
+      server.close(() => {
+        console.log('Server closed');
+        process.exit(0);
+      });
+
+      // Force close after 10s
+      setTimeout(() => {
+        console.error('Could not close connections in time, forcefully shutting down');
+        process.exit(1);
+      }, 10000);
+    };
+
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
     // Improved server listening with error handling
     const port = process.env.PORT || 5000;
-    const startServer = (p: number) => {
-      server.listen(p, "0.0.0.0")
-        .once('listening', () => {
-          log(`Server started successfully on port ${p}`);
-        })
-        .once('error', (err: any) => {
-          if (err.code === 'EADDRINUSE') {
-            log(`Port ${p} in use, trying ${p + 1}...`);
-            startServer(p + 1);
-          } else {
-            console.error('Failed to start server:', err);
-            process.exit(1);
-          }
-        });
-    };
-
-    startServer(port);
+    server.listen(port, "0.0.0.0")
+      .once('listening', () => {
+        log(`Server started successfully on port ${port}`);
+      })
+      .once('error', (err: any) => {
+        console.error('Failed to start server:', err);
+        process.exit(1);
+      });
 
   } catch (error) {
     console.error('Failed to initialize application:', error);

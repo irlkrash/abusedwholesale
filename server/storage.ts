@@ -250,22 +250,34 @@ export class DatabaseStorage implements IStorage {
 
       return result.map(cart => {
         try {
-          const items = typeof cart.items === 'string' ? 
-            JSON.parse(cart.items) : 
-            (Array.isArray(cart.items) ? cart.items : []);
-          
+          // Safely parse cart items
+          let parsedItems = [];
+          if (typeof cart.items === 'string') {
+            try {
+              parsedItems = JSON.parse(cart.items);
+            } catch (parseError) {
+              console.error(`Error parsing items for cart ${cart.id}:`, parseError);
+              parsedItems = [];
+            }
+          } else if (Array.isArray(cart.items)) {
+            parsedItems = cart.items;
+          }
+
+          // Ensure items is always an array and limit its size
+          parsedItems = Array.isArray(parsedItems) ? parsedItems.slice(0, 100) : [];
+
           return {
             ...cart,
-            items: Array.isArray(items) ? items.slice(0, 100) : [] // Limit items array size
+            items: parsedItems
           };
         } catch (err) {
-          console.error(`Error parsing cart ${cart.id} items:`, err);
+          console.error(`Error processing cart ${cart.id}:`, err);
           return { ...cart, items: [] };
         }
       });
     } catch (error) {
       console.error('Database error in getCarts:', error);
-      return []; // Return empty array instead of throwing
+      throw new Error('Failed to fetch carts from database');
     }
   }
 
@@ -296,11 +308,13 @@ export class DatabaseStorage implements IStorage {
       console.log('Creating new cart:', insertCart);
       const now = new Date();
 
-      // Ensure items is properly stringified before storage
+      // Ensure items array is valid before stringifying
+      const items = Array.isArray(insertCart.items) ? insertCart.items : [];
+
       const cartData = {
         customerName: insertCart.customerName,
         customerEmail: insertCart.customerEmail,
-        items: Array.isArray(insertCart.items) ? JSON.stringify(insertCart.items) : insertCart.items,
+        items: JSON.stringify(items),
         createdAt: now,
         updatedAt: now,
       };
@@ -317,11 +331,11 @@ export class DatabaseStorage implements IStorage {
       // Return the cart with properly parsed items
       return {
         ...cart,
-        items: Array.isArray(cart.items) ? cart.items : JSON.parse(cart.items as string)
+        items: items
       };
     } catch (error) {
       console.error('Database error in createCart:', error);
-      throw error;
+      throw new Error('Failed to create cart in database');
     }
   }
 
