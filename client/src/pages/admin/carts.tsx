@@ -282,7 +282,8 @@ const AdminCarts = () => {
                                     <ProductCarousel
                                       images={product.images}
                                       onImageClick={(image) => setSelectedImage(image)}
-                                      priority={index < 2}
+                                      priority={true}
+                                      loading="eager"
                                       className="w-full h-full"
                                     />
                                   );
