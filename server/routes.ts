@@ -51,7 +51,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const limit = adminView ? undefined : parseInt(req.query.limit as string) || 12;
       const offset = page ? (page - 1) * limit : 0; //Updated offset calculation
 
-      const products = await storage.getProducts(offset, limit, adminView ? undefined : limit); //Pass limit only if not adminView
+      const products = await storage.getProducts(offset, limit, adminView); //Pass limit only if not adminView
 
       if (!products) {
         console.error('No products returned from database');
