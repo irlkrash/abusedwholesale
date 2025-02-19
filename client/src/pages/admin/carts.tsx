@@ -42,7 +42,6 @@ const AdminCarts = () => {
       const response = await apiRequest("GET", "/api/products");
       if (!response.ok) throw new Error('Failed to fetch products');
       const data = await response.json();
-      console.log('Fetched products:', data);
       return data;
     },
     refetchInterval: 1000,
@@ -59,7 +58,6 @@ const AdminCarts = () => {
   const productsMap = useMemo(() => {
     if (!Array.isArray(products)) return new Map();
     const map = new Map(products.map(product => [product.id, product]));
-    console.log('Products map created:', map);
     return map;
   }, [products]);
 
@@ -275,21 +273,8 @@ const AdminCarts = () => {
                               <div className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted">
                                 {(() => {
                                   const product = productsMap.get(item.productId);
-                                  console.log('Product for item:', item.productId, product);
-                                  console.log('Product images:', product?.images);
-                                  
-                                  if (!product) {
-                                    console.log('No product found for ID:', item.productId);
-                                    return null;
-                                  }
-                                  
-                                  if (!Array.isArray(product.images)) {
-                                    console.log('Images not in array format:', product.images);
-                                    return null;
-                                  }
 
-                                  if (product.images.length === 0) {
-                                    console.log('No images for product:', item.productId);
+                                  if (!product || !Array.isArray(product.images) || product.images.length === 0) {
                                     return null;
                                   }
 
