@@ -65,7 +65,7 @@ export class DatabaseStorage implements IStorage {
       return products;
     } catch (error) {
       console.error('Error in getProducts:', error);
-      throw new Error('Failed to fetch products from database');
+      return []; // Return empty array instead of throwing
     }
   }
 
@@ -183,10 +183,10 @@ export class DatabaseStorage implements IStorage {
         .orderBy(desc(cartsTable.createdAt));
 
       console.log(`Retrieved ${carts.length} carts from database:`, carts);
-      return carts;
+      return carts || [];
     } catch (error) {
       console.error('Database error in getCarts:', error);
-      throw error;
+      return []; // Return empty array instead of throwing
     }
   }
 
