@@ -247,28 +247,14 @@ export class DatabaseStorage implements IStorage {
         .from(cartsTable)
         .orderBy(desc(cartsTable.createdAt));
 
-      // Ensure items are properly parsed JSON objects
-      return result.map(cart => {
-        try {
-          const parsedItems = typeof cart.items === 'string'
-            ? JSON.parse(cart.items)
-            : (Array.isArray(cart.items) ? cart.items : []);
-
-          return {
-            ...cart,
-            items: parsedItems
-          };
-        } catch (parseError) {
-          console.error(`Failed to parse items for cart ${cart.id}:`, parseError);
-          return {
-            ...cart,
-            items: []
-          };
-        }
-      });
+      return result.map(cart => ({
+        ...cart,
+        items: Array.isArray(cart.items) ? cart.items : 
+               (typeof cart.items === 'string' ? JSON.parse(cart.items) : [])
+      }));
     } catch (error) {
       console.error('Database error in getCarts:', error);
-      return []; // Return empty array instead of throwing
+      throw new Error(`Failed to fetch carts: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

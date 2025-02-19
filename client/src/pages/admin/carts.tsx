@@ -40,7 +40,10 @@ const AdminCarts = () => {
     queryFn: async () => {
       try {
         const response = await apiRequest("GET", "/api/carts");
-        if (!response.ok) throw new Error('Failed to fetch carts');
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(error || 'Failed to fetch carts');
+        }
         const data = await response.json();
         return Array.isArray(data) ? data : [];
       } catch (error) {
@@ -48,7 +51,8 @@ const AdminCarts = () => {
         throw error;
       }
     },
-    refetchInterval: 5000
+    refetchInterval: 30000,
+    retry: 1
   });
 
   const sortedCarts = [...(Array.isArray(carts) ? carts : [])].sort(
