@@ -52,14 +52,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const products = await storage.getProducts(
         adminView ? 0 : offset,
-        adminView ? undefined : limit,
+        adminView ? null : limit,
         adminView
       );
 
-      if (!products) {
-        return res.status(404).json({ 
-          message: "No products found"
-        });
+      if (!products || products.length === 0) {
+        return res.status(200).json([]); // Return empty array instead of 404
       }
 
       res.json(products);
