@@ -14,6 +14,7 @@ export const products = pgTable("products", {
   name: text("name").notNull(),
   description: text("description").notNull(),
   images: text("images").array().notNull(),
+  fullImages: text("fullImages").array().notNull().default({}),
   isAvailable: boolean("is_available").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => ({
@@ -54,6 +55,7 @@ export const insertProductSchema = createInsertSchema(products).pick({
   name: true,
   description: true,
   images: true,
+  fullImages: true, //Added fullImages
   isAvailable: true,
 });
 

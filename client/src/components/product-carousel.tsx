@@ -11,7 +11,7 @@ import { useState } from "react";
 
 interface ProductCarouselProps {
   images: string[];
-  onImageClick?: (image: string) => void;
+  onImageClick?: (image: string, index: number) => void;
   priority?: boolean;
   loading?: "eager" | "lazy";
   className?: string;
@@ -55,7 +55,7 @@ export function ProductCarousel({
                     !loadedImages.has(index) && "opacity-0",
                     "hover:opacity-90"
                   )}
-                  onClick={() => onImageClick?.(image)}
+                  onClick={() => onImageClick?.(image, index)}
                   onLoad={() => handleImageLoad(index)}
                   decoding="async"
                 />

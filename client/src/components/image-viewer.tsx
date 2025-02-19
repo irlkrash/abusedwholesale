@@ -11,6 +11,7 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 interface ImageViewerProps {
   src: string;
+  fullSrc?: string; // Optional full resolution source
   alt: string;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -21,13 +22,17 @@ interface Position {
   y: number;
 }
 
-export function ImageViewer({ src, alt, isOpen, onOpenChange }: ImageViewerProps) {
+export function ImageViewer({ src, fullSrc, alt, isOpen, onOpenChange }: ImageViewerProps) {
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [position, setPosition] = useState<Position>({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  const [isFullResLoaded, setIsFullResLoaded] = useState(false);
   const dragStart = useRef<Position | null>(null);
+
+  // Use full resolution image if available, otherwise use thumbnail
+  const displaySrc = (isOpen && fullSrc) ? fullSrc : src;
 
   const handleZoomIn = () => {
     setScale((prev) => Math.min(prev + 0.25, 3));
@@ -71,8 +76,17 @@ export function ImageViewer({ src, alt, isOpen, onOpenChange }: ImageViewerProps
     dragStart.current = null;
   }, []);
 
+  // Reset state when dialog closes
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      resetView();
+      setIsFullResLoaded(false);
+    }
+    onOpenChange(open);
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent 
         className="w-[90vw] md:w-[70vw] lg:w-[50vw] h-[90vh] p-0"
         aria-label="Image viewer"
@@ -126,7 +140,7 @@ export function ImageViewer({ src, alt, isOpen, onOpenChange }: ImageViewerProps
           <Button
             variant="secondary"
             size="icon"
-            onClick={() => onOpenChange(false)}
+            onClick={() => handleOpenChange(false)}
             className="h-8 w-8 md:h-10 md:w-10"
             title="Close"
           >
@@ -148,7 +162,7 @@ export function ImageViewer({ src, alt, isOpen, onOpenChange }: ImageViewerProps
             </div>
           )}
           <img
-            src={src}
+            src={displaySrc}
             alt={alt}
             className="max-w-[90%] max-h-[calc(90vh-8rem)] object-contain transition-transform duration-200 ease-out select-none"
             style={{
@@ -156,7 +170,10 @@ export function ImageViewer({ src, alt, isOpen, onOpenChange }: ImageViewerProps
               opacity: isImageLoaded ? 1 : 0,
               cursor: scale > 1 ? (isDragging ? "grabbing" : "grab") : "default",
             }}
-            onLoad={() => setIsImageLoaded(true)}
+            onLoad={() => {
+              setIsImageLoaded(true);
+              if (fullSrc) setIsFullResLoaded(true);
+            }}
             onMouseDown={handleMouseDown}
             draggable={false}
           />

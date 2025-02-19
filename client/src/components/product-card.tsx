@@ -14,6 +14,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product, onAddToCart, priority = false }: ProductCardProps) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedFullImage, setSelectedFullImage] = useState<string | null>(null);
 
   return (
     <Card className="overflow-hidden transition-shadow hover:shadow-lg">
@@ -21,7 +22,10 @@ export function ProductCard({ product, onAddToCart, priority = false }: ProductC
         <div className="relative">
           <ProductCarousel 
             images={product.images} 
-            onImageClick={(image) => setSelectedImage(image)}
+            onImageClick={(image, index) => {
+              setSelectedImage(image);
+              setSelectedFullImage(product.fullImages?.[index] || image);
+            }}
             priority={priority}
             loading="lazy"
           />
@@ -57,9 +61,15 @@ export function ProductCard({ product, onAddToCart, priority = false }: ProductC
       {selectedImage && (
         <ImageViewer
           src={selectedImage}
+          fullSrc={selectedFullImage || selectedImage}
           alt={product.name}
           isOpen={!!selectedImage}
-          onOpenChange={(open) => !open && setSelectedImage(null)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedImage(null);
+              setSelectedFullImage(null);
+            }
+          }}
         />
       )}
     </Card>

@@ -1,8 +1,6 @@
-import { InsertUser, User, Product, Cart, InsertProduct, InsertCart } from "@shared/schema";
-
+import { InsertUser, User, Product, Cart, InsertCart } from "@shared/schema";
 import Database from '@replit/database';
 const db_client = new Database();
-
 import { users, products as productsTable, carts as cartsTable } from "@shared/schema";
 import session from "express-session";
 import { db } from "./db";
@@ -35,6 +33,19 @@ export interface IStorage {
   getCart(id: number): Promise<Cart | undefined>;
 }
 
+async function storeImage(imageData: string, prefix: string): Promise<{ thumbnail: string; full: string }> {
+  const thumbnailKey = `${prefix}_thumb_${Date.now()}`;
+  const fullKey = `${prefix}_full_${Date.now()}`;
+
+  await db_client.set(thumbnailKey, imageData);
+  await db_client.set(fullKey, imageData); // Store full resolution version
+
+  return {
+    thumbnail: thumbnailKey,
+    full: fullKey,
+  };
+}
+
 export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
 
@@ -45,11 +56,11 @@ export class DatabaseStorage implements IStorage {
     this.sessionStore = new PostgresSessionStore({
       conObject: {
         connectionString: process.env.DATABASE_URL,
-        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
       },
       tableName: 'session_store',
       createTableIfMissing: true,
-      pruneSessionInterval: false
+      pruneSessionInterval: false,
     });
   }
 
@@ -61,7 +72,7 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(productsTable)
         .orderBy(desc(productsTable.createdAt));
-        
+
       if (!noLimit) {
         query = query.limit(pageLimit).offset(pageOffset);
       }
@@ -96,11 +107,13 @@ export class DatabaseStorage implements IStorage {
 
   async createProduct(insertProduct: InsertProduct): Promise<Product> {
     try {
-      const imageUrls = await Promise.all(
+      const imageKeys = await Promise.all(
         insertProduct.images.map(async (imageData, index) => {
-          const key = `product_image_${Date.now()}_${index}`;
-          await db_client.set(key, imageData);
-          return key;
+          const keys = await storeImage(imageData, `product_image_${index}`);
+          return {
+            thumbnail: keys.thumbnail,
+            full: keys.full,
+          };
         })
       );
 
@@ -109,7 +122,8 @@ export class DatabaseStorage implements IStorage {
         .values({
           name: insertProduct.name,
           description: insertProduct.description,
-          images: imageUrls,
+          images: imageKeys.map((keys) => keys.thumbnail), // Store thumbnail keys as main images
+          fullImages: imageKeys.map((keys) => keys.full), // Store full resolution keys
           isAvailable: insertProduct.isAvailable ?? true,
         })
         .returning();
@@ -120,11 +134,11 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getProductImage(key: string): Promise<string | null> {
+  async getProductImage(key: string, type: 'thumbnail' | 'full' = 'thumbnail'): Promise<string | null> {
     try {
       return await db_client.get(key);
     } catch (error) {
-      console.error('Storage error in getProductImage:', error);
+      console.error(`Storage error in getProductImage (${type}):`, error);
       return null;
     }
   }
