@@ -39,13 +39,13 @@ export function CartOverlay({
     try {
       setIsSubmitting(true);
       const cartItems = items.map(item => ({
-        productId: item.id,
+        productId: item.productId || item.id,
         name: item.name,
         description: item.description,
         images: item.images
       }));
 
-      await apiRequest("POST", "/api/carts", {
+      const response = await apiRequest("POST", "/api/carts", {
         customerName,
         customerEmail,
         items: cartItems,

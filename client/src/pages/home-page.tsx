@@ -105,6 +105,7 @@ export default function HomePage() {
       name: product.name,
       description: product.description,
       images: product.images,
+      id: product.id
     };
     
     setCartItems(prev => [...prev, cartItem]);
