@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { Product } from "@shared/schema";
+import { Product, CartItem } from "@shared/schema";
 import { ProductCard } from "@/components/product-card";
 import { CartOverlay } from "@/components/cart-overlay";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { apiRequest } from "@/lib/queryClient";
 
 export default function HomePage() {
-  const [cartItems, setCartItems] = useState<Product[]>([]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -91,7 +91,7 @@ export default function HomePage() {
   const allProducts = data?.pages?.flatMap(page => page.data) ?? [];
 
   const handleAddToCart = (product: Product) => {
-    if (cartItems.some(item => item.id === product.id)) {
+    if (cartItems.some(item => item.productId === product.id)) {
       toast({
         title: "Item already in cart",
         description: "This item is already in your cart.",
@@ -100,14 +100,14 @@ export default function HomePage() {
       return;
     }
 
-    // Include all product data in cart item
-    const cartItem = {
+    // Include all product data in cart item, using createdAt directly as it's already a string
+    const cartItem: CartItem = {
       productId: product.id,
       name: product.name,
       description: product.description,
       images: product.images,
       isAvailable: product.isAvailable,
-      createdAt: product.createdAt.toISOString()
+      createdAt: product.createdAt // createdAt is already a string from the database
     };
 
     setCartItems(prev => [...prev, cartItem]);
@@ -245,7 +245,7 @@ export default function HomePage() {
           isOpen={isCartOpen}
           onOpenChange={setIsCartOpen}
           items={cartItems}
-          onRemoveItem={(id) => setCartItems(items => items.filter(item => item.id !== id))}
+          onRemoveItem={(id) => setCartItems(items => items.filter(item => item.productId !== id))}
           onClearCart={() => setCartItems([])}
         />
       </main>
