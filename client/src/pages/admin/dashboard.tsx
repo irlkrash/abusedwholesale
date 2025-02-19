@@ -90,7 +90,7 @@ export default function AdminDashboard() {
       try {
         const queryParams = new URLSearchParams({
           page: pageParam.toString(),
-          limit: '12',
+          limit: '1000', // Increased limit to load all products
           sort: 'createdAt:desc',
           admin: 'true'
         });
