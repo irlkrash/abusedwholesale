@@ -85,7 +85,7 @@ export function CartOverlay({
             >
               <div className="flex items-center gap-4">
                 <img
-                  src={item.images[0]}
+                  src={`/api/images/${item.images[0]}`}
                   alt={item.name}
                   className="w-16 h-16 object-cover rounded"
                 />
