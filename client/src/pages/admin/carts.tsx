@@ -66,9 +66,14 @@ const AdminCarts = () => {
     refetchInterval: 5000
   });
 
-  const productsMap = new Map(products.map(product => [product.id, product]));
+  // Ensure products is an array before creating the Map
+  const productsMap = new Map(
+    Array.isArray(products) 
+      ? products.map(product => [product.id, product as Product])
+      : []
+  );
 
-  const sortedCarts = [...carts].sort(
+  const sortedCarts = [...(Array.isArray(carts) ? carts : [])].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
@@ -181,7 +186,7 @@ const AdminCarts = () => {
         <div className="space-y-6">
           {sortedCarts.length > 0 ? (
             sortedCarts.map((cart) => {
-              const cartItems = cart.items as CartItem[];
+              const cartItems = Array.isArray(cart.items) ? cart.items : [] as CartItem[];
               return (
                 <Card key={cart.id} className="overflow-hidden">
                   <CardHeader className="space-y-0 pb-4">
@@ -260,7 +265,7 @@ const AdminCarts = () => {
                               className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors"
                             >
                               <div className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted">
-                                {product?.images?.length > 0 ? (
+                                {product?.images && product.images.length > 0 ? (
                                   <ProductCarousel
                                     images={product.images}
                                     onImageClick={(image) => setSelectedImage(image)}
