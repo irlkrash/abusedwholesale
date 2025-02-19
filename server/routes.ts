@@ -139,6 +139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Fetching carts with limit ${limit}...`);
 
       const carts = await storage.getCarts(limit);
+      console.log('Raw carts data:', JSON.stringify(carts, null, 2));
 
       if (!Array.isArray(carts)) {
         console.error('Invalid cart data format:', carts);
@@ -148,23 +149,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Validate cart items parsing
-      for (const cart of carts) {
-        if (typeof cart.items === 'string') {
-          try {
-            cart.items = JSON.parse(cart.items);
-          } catch (e) {
-            console.error(`Failed to parse items for cart ${cart.id}:`, e);
-            return res.status(500).json({
-              message: "Cart data corruption",
-              error: `Invalid items format in cart ${cart.id}`
-            });
-          }
-        }
-      }
+      // Parse cart items consistently
+      const parsedCarts = carts.map(cart => ({
+        ...cart,
+        items: typeof cart.items === 'string' ? JSON.parse(cart.items) : cart.items
+      }));
 
-      console.log(`Successfully retrieved ${carts.length} carts`);
-      res.json(carts);
+      console.log(`Successfully processed ${parsedCarts.length} carts`);
+      res.json(parsedCarts);
     } catch (error) {
       console.error('Error fetching carts:', error);
       res.status(500).json({ 
