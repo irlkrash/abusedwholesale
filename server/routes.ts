@@ -137,6 +137,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('Fetching carts...');
       const carts = await storage.getCarts();
+      if (!carts) {
+        return res.status(404).json({ message: "No carts found" });
+      }
       
       // Handle null/undefined case
       if (!carts) {

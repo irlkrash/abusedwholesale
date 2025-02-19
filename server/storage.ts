@@ -241,8 +241,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCarts(): Promise<Cart[]> {
+    const client = await pool.connect();
     try {
-      await pool.connect();
       const result = await db.select()
         .from(cartsTable)
         .orderBy(desc(cartsTable.createdAt));
@@ -262,6 +262,8 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Database error in getCarts:', error);
       throw new Error(`Database error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      client.release();
     }
   }
 
