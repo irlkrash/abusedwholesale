@@ -246,36 +246,46 @@ export class DatabaseStorage implements IStorage {
         .orderBy(desc(cartsTable.createdAt))
         .limit(limit);
 
-      console.log(`Found ${result.length} carts`);
-
       return result.map(cart => {
         try {
-          // Safely parse cart items
-          let parsedItems = [];
+          let items = [];
+          // Handle string JSON
           if (typeof cart.items === 'string') {
             try {
-              parsedItems = JSON.parse(cart.items);
-            } catch (parseError) {
-              console.error(`Error parsing items for cart ${cart.id}:`, parseError);
-              parsedItems = [];
+              items = JSON.parse(cart.items);
+            } catch (e) {
+              console.error(`Failed to parse items for cart ${cart.id}:`, e);
+              items = [];
             }
-          } else if (Array.isArray(cart.items)) {
-            parsedItems = cart.items;
+          }
+          // Handle direct JSON data
+          else if (cart.items && typeof cart.items === 'object') {
+            items = Array.isArray(cart.items) ? cart.items : [];
           }
 
           return {
-            ...cart,
-            items: parsedItems
+            id: cart.id,
+            customerName: cart.customerName,
+            customerEmail: cart.customerEmail,
+            items: items,
+            createdAt: cart.createdAt,
+            updatedAt: cart.updatedAt
           };
         } catch (err) {
           console.error(`Error processing cart ${cart.id}:`, err);
-          return { ...cart, items: [] };
+          return {
+            id: cart.id,
+            customerName: cart.customerName,
+            customerEmail: cart.customerEmail,
+            items: [],
+            createdAt: cart.createdAt,
+            updatedAt: cart.updatedAt
+          };
         }
       });
     } catch (error) {
       console.error('Error in getCarts:', error);
-      // Return empty array instead of throwing to prevent app crashes
-      return [];
+      return []; // Return empty array instead of throwing
     }
   }
 
@@ -303,13 +313,15 @@ export class DatabaseStorage implements IStorage {
 
   async createCart(insertCart: InsertCart): Promise<Cart> {
     try {
-      console.log('Creating new cart:', insertCart);
       const now = new Date();
+
+      // Ensure items is a valid array before storing
+      const items = Array.isArray(insertCart.items) ? insertCart.items : [];
 
       const cartData = {
         customerName: insertCart.customerName,
         customerEmail: insertCart.customerEmail,
-        items: JSON.stringify(Array.isArray(insertCart.items) ? insertCart.items : []),
+        items: JSON.stringify(items), // Always stringify before storing
         createdAt: now,
         updatedAt: now,
       };
@@ -319,31 +331,25 @@ export class DatabaseStorage implements IStorage {
         .values(cartData)
         .returning();
 
-      if (!cart) {
-        throw new Error('Failed to create cart');
-      }
-
-      // Parse items back to object for response
-      const items = typeof cart.items === 'string' ? JSON.parse(cart.items) : [];
-
+      // Return the cart with parsed items
       return {
         ...cart,
-        items
+        items: items // Use the original array we verified above
       };
     } catch (error) {
       console.error('Error in createCart:', error);
-      throw error;
+      throw new Error('Failed to create cart');
     }
   }
 
   async updateCart(id: number, updates: Partial<Cart>): Promise<Cart> {
     try {
-      // Ensure items is properly stringified if it exists in updates
-      const updateData = {
-        ...updates,
-        items: updates.items ? (Array.isArray(updates.items) ? JSON.stringify(updates.items) : updates.items) : undefined,
-        updatedAt: new Date()
-      };
+      const updateData: any = { ...updates, updatedAt: new Date() };
+
+      // Handle items update if present
+      if (updates.items !== undefined) {
+        updateData.items = JSON.stringify(Array.isArray(updates.items) ? updates.items : []);
+      }
 
       const [cart] = await db
         .update(cartsTable)
@@ -351,16 +357,25 @@ export class DatabaseStorage implements IStorage {
         .where(eq(cartsTable.id, id))
         .returning();
 
-      if (!cart) throw new Error("Cart not found");
+      if (!cart) {
+        throw new Error('Cart not found');
+      }
 
-      // Return the cart with properly parsed items
+      // Parse items for response
+      let items = [];
+      try {
+        items = typeof cart.items === 'string' ? JSON.parse(cart.items) : (Array.isArray(cart.items) ? cart.items : []);
+      } catch (e) {
+        console.error(`Error parsing items for cart ${id}:`, e);
+      }
+
       return {
         ...cart,
-        items: Array.isArray(cart.items) ? cart.items : JSON.parse(cart.items as string)
+        items
       };
     } catch (error) {
-      console.error('Database error in updateCart:', error);
-      throw error;
+      console.error('Error in updateCart:', error);
+      throw new Error('Failed to update cart');
     }
   }
 

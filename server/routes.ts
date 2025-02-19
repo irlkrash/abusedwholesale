@@ -137,10 +137,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
       console.log(`Fetching carts with limit ${limit}...`);
-      
+
       const carts = await storage.getCarts(limit);
       console.log('Raw carts response:', carts);
-      
+
       if (!carts) {
         console.log('No carts found, returning empty array');
         return res.json([]);
