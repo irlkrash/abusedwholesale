@@ -251,50 +251,52 @@ const AdminCarts = () => {
                     <ScrollArea className="h-[300px]">
                       <div className="grid gap-4">
                         {cartItems.map((item, index) => {
-                        const { data: product } = useQuery({
-                          queryKey: [`/api/products/${item.productId}`],
-                          queryFn: async () => {
-                            const response = await fetch(`/api/products/${item.productId}?admin=true`);
-                            if (!response.ok) throw new Error('Failed to fetch product');
-                            return response.json();
-                          }
-                        });
-                        return (
-                              <div
-                                key={index}
-                                className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors"
-                              >
-                                <div className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted">
-                                  {product?.images?.length > 0 ? (
-                                    <ProductCarousel
-                                      images={product.images}
-                                      onImageClick={(image) => setSelectedImage(image)}
-                                      priority={index < 2}
-                                      loading="lazy"
-                                    />
-                                  ) : (
-                                    <div className="flex items-center justify-center w-full h-full bg-muted">
-                                      <span className="text-xs text-muted-foreground">No image</span>
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="flex-1">
-                                  <p className="font-medium">{item.name}</p>
-                                  <p className="text-sm text-muted-foreground">
-                                    Product ID: {item.productId}
-                                  </p>
-                                  {product && (
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                      Status: {product.isAvailable ? 'Available' : 'Unavailable'}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          } catch (error) {
+                          const { data: product, error } = useQuery({
+                            queryKey: [`/api/products/${item.productId}`],
+                            queryFn: async () => {
+                              const response = await fetch(`/api/products/${item.productId}?admin=true`);
+                              if (!response.ok) throw new Error('Failed to fetch product');
+                              return response.json();
+                            }
+                          });
+
+                          if (error) {
                             console.error('Error fetching product:', error);
                             return <p key={index}>Error loading product {item.productId}</p>;
                           }
+
+                          return (
+                            <div
+                              key={index}
+                              className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors"
+                            >
+                              <div className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted">
+                                {product?.images?.length > 0 ? (
+                                  <ProductCarousel
+                                    images={product.images}
+                                    onImageClick={(image) => setSelectedImage(image)}
+                                    priority={index < 2}
+                                    loading="lazy"
+                                  />
+                                ) : (
+                                  <div className="flex items-center justify-center w-full h-full bg-muted">
+                                    <span className="text-xs text-muted-foreground">No image</span>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1">
+                                <p className="font-medium">{item.name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Product ID: {item.productId}
+                                </p>
+                                {product && (
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    Status: {product.isAvailable ? 'Available' : 'Unavailable'}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          );
                         })}
                       </div>
                     </ScrollArea>
