@@ -14,7 +14,12 @@ if (!process.env.DATABASE_URL) {
 console.log('Initializing database connection...');
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  ssl: process.env.NODE_ENV === 'production' 
+    ? { 
+        rejectUnauthorized: false,
+        sslmode: 'require'
+      } 
+    : false,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,

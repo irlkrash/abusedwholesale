@@ -141,13 +141,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!carts?.length) {
         return res.json([]);
       }
-      
+
       // Handle null/undefined case
       if (!carts) {
         console.log('No carts found, returning empty array');
         return res.json([]);
       }
-      
+
       // Ensure we always return an array
       if (!Array.isArray(carts)) {
         console.log('Converting single cart to array');
@@ -158,7 +158,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedCarts = carts.map(cart => {
         try {
           let parsedItems = cart.items;
-          
+
           // Handle string-encoded items
           if (typeof cart.items === 'string') {
             try {
@@ -191,10 +191,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(validatedCarts);
     } catch (error) {
       console.error('Error fetching carts:', error);
+      console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
       res.status(500).json({ 
         message: "Failed to fetch carts",
-        details: error instanceof Error ? error.message : "Unknown error occurred",
-        timestamp: new Date().toISOString()
+        error: error instanceof Error ? error.message : "Unknown error occurred",
+        stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : null) : undefined
       });
     }
   });
@@ -265,7 +266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   console.log('Creating HTTP server...');
   const httpServer = createServer(app);
-  
+
   // Handle server errors
   httpServer.on('error', (error) => {
     console.error('Server error:', error);
