@@ -254,15 +254,26 @@ export class DatabaseStorage implements IStorage {
       return result.map(cart => {
         try {
           // Parse items from JSONB
-          const items = typeof cart.items === 'string' 
+          const items = typeof cart.items === 'string'
             ? JSON.parse(cart.items)
             : (Array.isArray(cart.items) ? cart.items : []);
+
+          // Ensure all required product fields are present
+          const sanitizedItems = items.map((item: any) => ({
+            productId: item.productId,
+            name: item.name,
+            description: item.description,
+            images: Array.isArray(item.images) ? item.images : [],
+            fullImages: Array.isArray(item.fullImages) ? item.fullImages : [],
+            isAvailable: !!item.isAvailable,
+            createdAt: item.createdAt || new Date().toISOString()
+          }));
 
           return {
             id: cart.id,
             customerName: cart.customerName,
             customerEmail: cart.customerEmail,
-            items,
+            items: sanitizedItems,
             createdAt: cart.createdAt,
             updatedAt: cart.updatedAt
           };
@@ -301,14 +312,24 @@ export class DatabaseStorage implements IStorage {
 
       if (!cart) return undefined;
 
-      // Parse items from JSONB
+      // Parse items from JSONB and ensure all required fields
       const items = typeof cart.items === 'string'
         ? JSON.parse(cart.items)
         : (Array.isArray(cart.items) ? cart.items : []);
 
+      const sanitizedItems = items.map((item: any) => ({
+        productId: item.productId,
+        name: item.name,
+        description: item.description,
+        images: Array.isArray(item.images) ? item.images : [],
+        fullImages: Array.isArray(item.fullImages) ? item.fullImages : [],
+        isAvailable: !!item.isAvailable,
+        createdAt: item.createdAt || new Date().toISOString()
+      }));
+
       return {
         ...cart,
-        items
+        items: sanitizedItems
       };
     } catch (error) {
       await client.query('ROLLBACK');
@@ -430,6 +451,53 @@ export class DatabaseStorage implements IStorage {
       .where(eq(productCategories.productId, productId));
 
     return result.map(r => r.category);
+  }
+  async updateCart(id: number, updates: Partial<Cart>): Promise<Cart> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // If items are being updated, ensure proper formatting
+      let updatedItems;
+      if (updates.items) {
+        updatedItems = updates.items.map(item => ({
+          productId: item.productId,
+          name: item.name,
+          description: item.description,
+          images: Array.isArray(item.images) ? item.images : [],
+          fullImages: Array.isArray(item.fullImages) ? item.fullImages : [],
+          isAvailable: !!item.isAvailable,
+          createdAt: item.createdAt || new Date().toISOString()
+        }));
+      }
+
+      const [cart] = await db
+        .update(cartsTable)
+        .set({
+          ...updates,
+          items: updatedItems ? JSON.stringify(updatedItems) : undefined,
+          updatedAt: new Date()
+        })
+        .where(eq(cartsTable.id, id))
+        .returning();
+
+      await client.query('COMMIT');
+
+      if (!cart) {
+        throw new Error('Cart not found');
+      }
+
+      return {
+        ...cart,
+        items: typeof cart.items === 'string' ? JSON.parse(cart.items) : cart.items
+      };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error(`Database error in updateCart(${id}):`, error);
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 }
 

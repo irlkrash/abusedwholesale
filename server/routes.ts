@@ -141,7 +141,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const carts = await storage.getCarts(limit);
       console.log(`Successfully retrieved ${carts.length} carts`);
 
-      res.json(carts);
+      res.json({
+        data: carts,
+        count: carts.length
+      });
     } catch (error) {
       console.error('Error fetching carts:', error);
       res.status(500).json({ 
@@ -177,8 +180,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(cartId)) {
         return res.status(400).json({ message: "Invalid cart ID" });
       }
+
+      const cart = await storage.getCart(cartId);
+      if (!cart) {
+        return res.status(404).json({ message: "Cart not found" });
+      }
+
       await storage.deleteCart(cartId);
-      res.sendStatus(200);
+      res.json({ message: "Cart deleted successfully" });
     } catch (error) {
       console.error('Error deleting cart:', error);
       res.status(500).json({ 
@@ -200,14 +209,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Cart not found" });
       }
 
+      console.log(`Making items unavailable for cart ${cartId}`);
       const cartItems = cart.items as { productId: number }[];
+
+      // Update products in parallel
       const updates = await Promise.all(
-        cartItems.map(item =>
-          storage.updateProduct(item.productId, { isAvailable: false })
-        )
+        cartItems.map(async item => {
+          try {
+            return await storage.updateProduct(item.productId, { isAvailable: false });
+          } catch (error) {
+            console.error(`Failed to update product ${item.productId}:`, error);
+            return null;
+          }
+        })
       );
 
-      res.json(updates);
+      const successfulUpdates = updates.filter(update => update !== null);
+      const failedUpdates = updates.length - successfulUpdates.length;
+
+      res.json({
+        message: `Successfully updated ${successfulUpdates.length} products${failedUpdates > 0 ? `, failed to update ${failedUpdates} products` : ''}`,
+        updatedProducts: successfulUpdates
+      });
     } catch (error) {
       console.error('Error updating cart items:', error);
       res.status(500).json({ 

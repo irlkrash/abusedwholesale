@@ -67,7 +67,7 @@ app.use((req, res, next) => {
       if (stack) console.error('Stack:', stack);
 
       if (!res.headersSent) {
-        res.status(status).json({ 
+        res.status(status).json({
           message,
           ...(stack && { stack })
         });
@@ -133,11 +133,13 @@ app.use((req, res, next) => {
         console.log('Starting server on port:', initialPort);
 
         await new Promise<void>((resolve, reject) => {
-          server.listen(initialPort, '0.0.0.0', () => resolve());
+          server.listen(initialPort, '0.0.0.0', () => {
+            console.log(`Server started successfully on port ${initialPort}`);
+            resolve();
+          });
           server.on('error', reject);
         });
 
-        console.log(`Server started successfully on port ${initialPort}`);
       } catch (error: any) {
         console.error('Server start error:', error);
 
@@ -152,7 +154,8 @@ app.use((req, res, next) => {
       }
     };
 
-    const port = parseInt(process.env.PORT || '3000');
+    // Use port 8080 as default instead of 3000
+    const port = parseInt(process.env.PORT || '8080');
     await startServer(port);
 
   } catch (error) {
