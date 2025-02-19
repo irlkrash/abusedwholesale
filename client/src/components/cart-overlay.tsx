@@ -18,7 +18,7 @@ import { apiRequest } from "@/lib/queryClient";
 interface CartOverlayProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  items: Product[];
+  items: CartItem[];
   onRemoveItem: (productId: number) => void;
   onClearCart: () => void;
 }
@@ -36,13 +36,24 @@ export function CartOverlay({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmitCart = async () => {
+    if (!customerName || !customerEmail || items.length === 0) {
+      toast({
+        title: "Invalid submission",
+        description: "Please fill in all required fields and add items to cart",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       const cartItems = items.map(item => ({
-        productId: item.productId || item.id,
+        productId: item.productId,
         name: item.name,
         description: item.description,
-        images: item.images
+        images: item.images,
+        isAvailable: item.isAvailable,
+        createdAt: item.createdAt
       }));
 
       const response = await apiRequest("POST", "/api/carts", {
@@ -51,6 +62,10 @@ export function CartOverlay({
         items: cartItems,
       });
 
+      if (!response.ok) {
+        throw new Error('Failed to submit cart');
+      }
+
       toast({
         title: "Cart submitted successfully!",
         description: "We'll review your cart items and contact you soon.",
@@ -58,7 +73,10 @@ export function CartOverlay({
 
       onClearCart();
       onOpenChange(false);
+      setCustomerName("");
+      setCustomerEmail("");
     } catch (error) {
+      console.error('Cart submission error:', error);
       toast({
         title: "Failed to submit cart",
         description: "Please try again later.",
@@ -82,7 +100,7 @@ export function CartOverlay({
         <ScrollArea className="h-[50vh] my-4">
           {items.map((item) => (
             <div
-              key={item.id}
+              key={item.productId}
               className="flex items-center justify-between py-4 border-b"
             >
               <div className="flex items-center gap-4">
@@ -93,12 +111,13 @@ export function CartOverlay({
                 />
                 <div>
                   <h4 className="font-medium">{item.name}</h4>
+                  <p className="text-sm text-muted-foreground">{item.description}</p>
                 </div>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => onRemoveItem(item.id)}
+                onClick={() => onRemoveItem(item.productId)}
               >
                 Remove
               </Button>
@@ -111,12 +130,14 @@ export function CartOverlay({
             placeholder="Your Name"
             value={customerName}
             onChange={(e) => setCustomerName(e.target.value)}
+            required
           />
           <Input
             type="email"
             placeholder="Your Email"
             value={customerEmail}
             onChange={(e) => setCustomerEmail(e.target.value)}
+            required
           />
         </div>
 
