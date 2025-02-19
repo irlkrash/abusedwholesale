@@ -38,19 +38,32 @@ const AdminCarts = () => {
   const { data: carts = [], isLoading: cartsLoading, error: cartsError } = useQuery<Cart[]>({
     queryKey: ["/api/carts"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/carts");
-      if (!response.ok) {
-        const error = await response.text();
-        console.error('Cart fetch error:', error);
-        throw new Error(error || 'Failed to fetch carts');
-      }
-      const data = await response.json();
-      console.log('Cart data received:', JSON.stringify(data, null, 2));
-      if (!Array.isArray(data)) {
-        console.error('Invalid cart data format:', data);
+      try {
+        const response = await apiRequest("GET", "/api/carts");
+        if (!response.ok) {
+          const error = await response.text();
+          console.error('Cart fetch error:', error);
+          throw new Error(error || 'Failed to fetch carts');
+        }
+        const data = await response.json();
+        console.log('Cart data received:', JSON.stringify(data, null, 2));
+        
+        // Ensure data is properly formatted
+        if (!Array.isArray(data)) {
+          console.error('Invalid cart data format:', data);
+          return [];
+        }
+        
+        // Validate and parse cart items
+        return data.map(cart => ({
+          ...cart,
+          items: Array.isArray(cart.items) ? cart.items : 
+                 (typeof cart.items === 'string' ? JSON.parse(cart.items) : [])
+        }));
+      } catch (err) {
+        console.error('Error fetching carts:', err);
         return [];
       }
-      return data;
     },
     refetchInterval: 30000,
     retry: 3,

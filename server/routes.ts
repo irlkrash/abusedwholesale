@@ -139,28 +139,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Fetching carts with limit ${limit}...`);
 
       const carts = await storage.getCarts(limit);
-      console.log('Raw carts data:', JSON.stringify(carts, null, 2));
-
+      
       if (!Array.isArray(carts)) {
-        console.error('Invalid cart data format:', carts);
-        return res.status(500).json({ 
-          message: "Invalid cart data format",
-          error: "Expected array of carts"
-        });
+        throw new Error('Invalid cart data format from storage');
       }
 
-      // Parse cart items with error handling for each cart
       const parsedCarts = carts.map(cart => {
         try {
-          let parsedItems = [];
-          if (typeof cart.items === 'string') {
-            parsedItems = JSON.parse(cart.items);
-          } else if (Array.isArray(cart.items)) {
-            parsedItems = cart.items;
-          }
+          const items = typeof cart.items === 'string' ? 
+            JSON.parse(cart.items) : 
+            (Array.isArray(cart.items) ? cart.items : []);
+            
           return {
-            ...cart,
-            items: parsedItems
+            id: cart.id,
+            customerName: cart.customerName || '',
+            customerEmail: cart.customerEmail || '',
+            items,
+            createdAt: cart.createdAt,
+            updatedAt: cart.updatedAt
           };
         } catch (error) {
           console.error(`Error parsing cart ${cart.id}:`, error);
@@ -171,7 +167,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
-      console.log(`Successfully processed ${parsedCarts.length} carts:`, JSON.stringify(parsedCarts, null, 2));
       res.json(parsedCarts);
     } catch (error) {
       console.error('Error fetching carts:', error);
