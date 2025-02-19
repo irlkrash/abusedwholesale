@@ -139,58 +139,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Fetching carts with limit ${limit}...`);
 
       const carts = await storage.getCarts(limit);
-      console.log('Raw carts response:', carts);
 
-      if (!carts) {
-        console.log('No carts found, returning empty array');
+      // Always return an array, even if empty
+      if (!carts || !Array.isArray(carts)) {
+        console.log('No valid carts found, returning empty array');
         return res.json([]);
       }
 
-      if (!Array.isArray(carts)) {
-        console.error('Invalid carts response format:', carts);
-        return res.status(500).json({ 
-          message: "Invalid response format from storage",
-          error: "Expected array of carts"
-        });
-      }
-
-      const sanitizedCarts = carts.map(cart => {
-        try {
-          let items = cart.items;
-          if (typeof items === 'string') {
-            try {
-              items = JSON.parse(items);
-            } catch (e) {
-              console.warn(`Failed to parse items for cart ${cart.id}:`, e);
-              items = [];
-            }
-          } else if (!Array.isArray(items)) {
-            items = [];
-          }
-
-          return {
-            id: cart.id,
-            customerName: cart.customerName || '',
-            customerEmail: cart.customerEmail || '',
-            createdAt: cart.createdAt,
-            items: items
-          };
-        } catch (e) {
-          console.error(`Error processing cart ${cart.id}:`, e);
-          return {
-            id: cart.id,
-            customerName: '',
-            customerEmail: '',
-            createdAt: cart.createdAt || new Date(),
-            items: []
-          };
-        }
-      });
-
-      console.log(`Successfully processed ${sanitizedCarts.length} carts`);
-      res.json(sanitizedCarts);
+      console.log(`Successfully retrieved ${carts.length} carts`);
+      res.json(carts);
     } catch (error) {
       console.error('Error fetching carts:', error);
+      // Send a more specific error message
       res.status(500).json({ 
         message: "Failed to fetch carts",
         error: error instanceof Error ? error.message : "Unknown error occurred"
@@ -200,12 +160,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/carts", async (req, res) => {
     try {
+      console.log('Creating new cart with data:', req.body);
       const parsed = insertCartSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json(parsed.error);
       }
 
       const cart = await storage.createCart(parsed.data);
+      console.log('Cart created successfully:', cart.id);
       res.status(201).json(cart);
     } catch (error) {
       console.error('Error creating cart:', error);

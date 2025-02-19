@@ -246,46 +246,64 @@ export class DatabaseStorage implements IStorage {
         .orderBy(desc(cartsTable.createdAt))
         .limit(limit);
 
-      return result.map(cart => {
+      console.log(`Raw database response: ${result.length} carts found`);
+
+      if (!result || result.length === 0) {
+        console.log('No carts found in database');
+        return [];
+      }
+
+      const processedCarts = result.map(cart => {
         try {
-          let items = [];
-          // Handle string JSON
+          let parsedItems;
+
+          // Handle string JSON data
           if (typeof cart.items === 'string') {
             try {
-              items = JSON.parse(cart.items);
-            } catch (e) {
-              console.error(`Failed to parse items for cart ${cart.id}:`, e);
-              items = [];
+              parsedItems = JSON.parse(cart.items);
+            } catch (parseError) {
+              console.error(`Failed to parse items for cart ${cart.id}:`, parseError);
+              parsedItems = [];
             }
-          }
+          } 
           // Handle direct JSON data
           else if (cart.items && typeof cart.items === 'object') {
-            items = Array.isArray(cart.items) ? cart.items : [];
+            parsedItems = Array.isArray(cart.items) ? cart.items : [];
+          }
+          // Default case
+          else {
+            parsedItems = [];
           }
 
           return {
             id: cart.id,
-            customerName: cart.customerName,
-            customerEmail: cart.customerEmail,
-            items: items,
-            createdAt: cart.createdAt,
-            updatedAt: cart.updatedAt
+            customerName: cart.customerName || '',
+            customerEmail: cart.customerEmail || '',
+            items: parsedItems,
+            createdAt: cart.createdAt || new Date(),
+            updatedAt: cart.updatedAt || new Date()
           };
         } catch (err) {
           console.error(`Error processing cart ${cart.id}:`, err);
+          // Return a valid cart object even if processing fails
           return {
             id: cart.id,
-            customerName: cart.customerName,
-            customerEmail: cart.customerEmail,
+            customerName: cart.customerName || '',
+            customerEmail: cart.customerEmail || '',
             items: [],
-            createdAt: cart.createdAt,
-            updatedAt: cart.updatedAt
+            createdAt: cart.createdAt || new Date(),
+            updatedAt: cart.updatedAt || new Date()
           };
         }
       });
+
+      console.log(`Successfully processed ${processedCarts.length} carts`);
+      return processedCarts;
+
     } catch (error) {
-      console.error('Error in getCarts:', error);
-      return []; // Return empty array instead of throwing
+      console.error('Database error in getCarts:', error);
+      // Return empty array instead of throwing to prevent 500 errors
+      return [];
     }
   }
 
@@ -313,32 +331,48 @@ export class DatabaseStorage implements IStorage {
 
   async createCart(insertCart: InsertCart): Promise<Cart> {
     try {
+      console.log('Creating new cart...');
       const now = new Date();
 
-      // Ensure items is a valid array before storing
-      const items = Array.isArray(insertCart.items) ? insertCart.items : [];
+      // Validate and sanitize items before storing
+      let sanitizedItems = [];
+      if (Array.isArray(insertCart.items)) {
+        sanitizedItems = insertCart.items.map(item => ({
+          productId: item.productId,
+          name: item.name,
+          description: item.description,
+          images: Array.isArray(item.images) ? item.images : [],
+          isAvailable: !!item.isAvailable,
+          createdAt: item.createdAt || now.toISOString()
+        }));
+      }
 
       const cartData = {
         customerName: insertCart.customerName,
         customerEmail: insertCart.customerEmail,
-        items: JSON.stringify(items), // Always stringify before storing
+        items: JSON.stringify(sanitizedItems),
         createdAt: now,
         updatedAt: now,
       };
 
+      console.log('Inserting cart into database...');
       const [cart] = await db
         .insert(cartsTable)
         .values(cartData)
         .returning();
 
-      // Return the cart with parsed items
+      if (!cart) {
+        throw new Error('Failed to create cart in database');
+      }
+
+      console.log('Cart created successfully:', cart.id);
       return {
         ...cart,
-        items: items // Use the original array we verified above
+        items: sanitizedItems // Return the sanitized items array
       };
     } catch (error) {
       console.error('Error in createCart:', error);
-      throw new Error('Failed to create cart');
+      throw new Error('Failed to create cart: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   }
 

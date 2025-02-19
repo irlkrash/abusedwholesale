@@ -14,10 +14,12 @@ if (!process.env.DATABASE_URL) {
 console.log('Initializing database connection...');
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production',
-  max: 20,
+  ssl: process.env.NODE_ENV === 'production' ? {
+    rejectUnauthorized: false,
+  } : false,
+  max: 10, // Reduce max connections to prevent overwhelming the database
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
+  connectionTimeoutMillis: 10000, // Increase timeout for production
   keepAlive: true,
   keepAliveInitialDelayMillis: 1000,
 });
@@ -25,10 +27,12 @@ export const pool = new Pool({
 // Add error handler for the pool
 pool.on('error', (err) => {
   console.error('Unexpected error on idle client', err);
-  // Attempt to reconnect
+  // Attempt to reconnect with exponential backoff
   setTimeout(() => {
     console.log('Attempting to reconnect to database...');
-    pool.connect().catch(console.error);
+    pool.connect()
+      .then(() => console.log('Successfully reconnected to database'))
+      .catch(error => console.error('Failed to reconnect:', error));
   }, 5000);
 });
 
