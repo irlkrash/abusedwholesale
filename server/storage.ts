@@ -52,9 +52,9 @@ export class DatabaseStorage implements IStorage {
   async getProductCount(): Promise<number> {
     try {
       const [result] = await db
-        .select({ count: sql<number>`count(*)` })
+        .select({ count: db.sql<number>`count(*)` })
         .from(productsTable);
-      return result?.count || 0;
+      return Number(result?.count) || 0;
     } catch (error) {
       console.error('Database error in getProductCount:', error);
       throw error;
