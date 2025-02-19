@@ -135,10 +135,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Cart routes
   app.get("/api/carts", requireAdmin, async (req, res) => {
     try {
-      console.log('Fetching carts...');
-      const carts = await storage.getCarts();
-      if (!carts) {
-        return res.status(404).json({ message: "No carts found" });
+      const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+      console.log(`Fetching carts with limit ${limit}...`);
+      const carts = await storage.getCarts(limit);
+      if (!carts?.length) {
+        return res.json([]);
       }
       
       // Handle null/undefined case

@@ -240,30 +240,22 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getCarts(): Promise<Cart[]> {
-    const client = await pool.connect();
+  async getCarts(limit: number = 50): Promise<Cart[]> {
     try {
+      console.log(`Fetching last ${limit} carts...`);
       const result = await db.select()
         .from(cartsTable)
-        .orderBy(desc(cartsTable.createdAt));
+        .orderBy(desc(cartsTable.createdAt))
+        .limit(limit);
 
-      return result.map(cart => {
-        try {
-          return {
-            ...cart,
-            items: Array.isArray(cart.items) ? cart.items : 
-                   (typeof cart.items === 'string' ? JSON.parse(cart.items) : [])
-          };
-        } catch (parseError) {
-          console.error(`Error parsing cart ${cart.id} items:`, parseError);
-          return { ...cart, items: [] };
-        }
-      });
+      return result.map(cart => ({
+        ...cart,
+        items: Array.isArray(cart.items) ? cart.items : 
+               (typeof cart.items === 'string' ? JSON.parse(cart.items) : [])
+      }));
     } catch (error) {
       console.error('Database error in getCarts:', error);
       throw new Error(`Database error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      client.release();
     }
   }
 

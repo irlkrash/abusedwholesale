@@ -46,7 +46,11 @@ export const carts = pgTable("carts", {
   items: jsonb("items").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  customerEmailIdx: index("customer_email_idx").on(table.customerEmail),
+  createdAtIdx: index("carts_created_at_idx").on(table.createdAt),
+  itemsGinIdx: index("items_gin_idx").on(table.items).using('gin')
+}));
 
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
