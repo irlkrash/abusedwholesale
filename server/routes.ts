@@ -136,9 +136,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/carts", requireAdmin, async (req, res) => {
     try {
       if (!req.session || !req.user) {
+        console.error('No session or user:', { session: !!req.session, user: !!req.user });
         return res.status(401).json({ message: "Not authenticated" });
       }
       
+      if (!req.user.isAdmin) {
+        console.error('User not admin:', req.user);
+        return res.status(403).json({ message: "Admin privileges required" });
+      }
+
       console.log('GET /api/carts - Auth check passed, fetching carts...');
       console.log('User info:', req.user);
       console.log('Session:', req.session);
