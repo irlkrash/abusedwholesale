@@ -4,7 +4,7 @@ const db_client = new Database();
 import { users, products as productsTable, carts as cartsTable } from "@shared/schema";
 import session from "express-session";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, lte } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 
 const PostgresSessionStore = connectPg(session);
