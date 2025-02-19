@@ -82,10 +82,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const products = await storage.getProducts(offset, limit);
       console.log(`Found ${products.length} products`);
 
+      // Always return the same data structure
       res.json({
-        data: products,
-        nextPage: products.length === limit ? page + 1 : undefined,
-        lastPage: products.length < limit
+        data: products || [],
+        nextPage: products && products.length === limit ? page + 1 : undefined,
+        lastPage: !products || products.length < limit
       });
     } catch (error) {
       console.error('Error fetching products:', error);

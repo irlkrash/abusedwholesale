@@ -103,9 +103,9 @@ export default function AdminDashboard() {
         }
         const products = await response.json();
         return {
-          data: Array.isArray(products) ? products : [],
-          nextPage: Array.isArray(products) && products.length === 12 ? pageParam + 1 : undefined,
-          lastPage: Array.isArray(products) && products.length < 12
+          data: Array.isArray(products.data) ? products.data : [],
+          nextPage: products.data && products.data.length === 12 ? pageParam + 1 : undefined,
+          lastPage: !products.data || products.data.length < 12
         };
       } catch (err) {
         console.error("Failed to fetch products:", err);
@@ -113,7 +113,7 @@ export default function AdminDashboard() {
       }
     },
     initialPageParam: 1,
-    getNextPageParam: (lastPage) => lastPage.lastPage ? undefined : lastPage.nextPage,
+    getNextPageParam: (lastPage) => lastPage.nextPage,
   });
 
   useEffect(() => {

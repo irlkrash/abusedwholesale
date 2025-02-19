@@ -61,7 +61,7 @@ export default function HomePage() {
     getNextPageParam: (lastPage) => lastPage.nextPage,
   });
 
-  // Safely extract products with null checks
+  // Safely extract products with null checks and ensure they are flattened correctly
   const allProducts = data?.pages?.flatMap(page => page.data ?? []) ?? [];
 
   const handleAddToCart = (product: Product) => {
@@ -74,14 +74,13 @@ export default function HomePage() {
       return;
     }
 
-    // Include all product data in cart item, using createdAt directly as it's already a string
     const cartItem: CartItem = {
       productId: product.id,
       name: product.name,
       description: product.description,
       images: product.images,
       isAvailable: product.isAvailable,
-      createdAt: product.createdAt // createdAt is already a string from the database
+      createdAt: product.createdAt
     };
 
     setCartItems(prev => [...prev, cartItem]);
@@ -90,32 +89,6 @@ export default function HomePage() {
       description: "Item has been added to your cart.",
     });
   };
-
-  const NavMenu = () => (
-    <>
-      {user?.isAdmin && (
-        <Link href="/admin">
-          <Button variant="outline">Admin Dashboard</Button>
-        </Link>
-      )}
-      {!user && (
-        <Link href="/auth">
-          <Button variant="outline" className="flex items-center gap-2">
-            <LogIn className="h-4 w-4" />
-            Login
-          </Button>
-        </Link>
-      )}
-      <Button
-        variant="outline"
-        className="flex items-center gap-2"
-        onClick={() => setIsCartOpen(true)}
-      >
-        <ShoppingCart className="h-4 w-4" />
-        Cart ({cartItems.length})
-      </Button>
-    </>
-  );
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -142,6 +115,32 @@ export default function HomePage() {
       observer.disconnect();
     };
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const NavMenu = () => (
+    <>
+      {user?.isAdmin && (
+        <Link href="/admin">
+          <Button variant="outline">Admin Dashboard</Button>
+        </Link>
+      )}
+      {!user && (
+        <Link href="/auth">
+          <Button variant="outline" className="flex items-center gap-2">
+            <LogIn className="h-4 w-4" />
+            Login
+          </Button>
+        </Link>
+      )}
+      <Button
+        variant="outline"
+        className="flex items-center gap-2"
+        onClick={() => setIsCartOpen(true)}
+      >
+        <ShoppingCart className="h-4 w-4" />
+        Cart ({cartItems.length})
+      </Button>
+    </>
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -217,7 +216,7 @@ export default function HomePage() {
               {allProducts.map((product, index) => (
                 product && (
                   <ProductCard
-                    key={product.id}
+                    key={`${product.id}-${index}`}
                     product={product}
                     onAddToCart={() => handleAddToCart(product)}
                     priority={index < 8}
@@ -226,10 +225,7 @@ export default function HomePage() {
               ))}
             </div>
 
-            <div 
-              ref={loadMoreRef} 
-              className="h-20 flex items-center justify-center mt-8"
-            >
+            <div ref={loadMoreRef} className="h-20 flex items-center justify-center mt-8">
               {isFetchingNextPage && (
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
               )}
