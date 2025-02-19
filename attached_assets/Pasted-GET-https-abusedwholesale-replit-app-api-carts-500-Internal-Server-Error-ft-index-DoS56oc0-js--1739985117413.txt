@@ -1,0 +1,207 @@
+GET https://abusedwholesale.replit.app/api/carts 500 (Internal Server Error)
+ft @ index-DoS56oc0.js:48
+queryFn @ index-DoS56oc0.js:240
+i @ index-DoS56oc0.js:48
+x @ index-DoS56oc0.js:48
+start @ index-DoS56oc0.js:48
+fetch @ index-DoS56oc0.js:48
+Wo @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+setInterval
+Vf @ index-DoS56oc0.js:48
+$f @ index-DoS56oc0.js:48
+onQueryUpdate @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+batch @ index-DoS56oc0.js:48
+or @ index-DoS56oc0.js:48
+a @ index-DoS56oc0.js:48
+h @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+Promise.catch
+x @ index-DoS56oc0.js:48
+start @ index-DoS56oc0.js:48
+fetch @ index-DoS56oc0.js:48
+Wo @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+setInterval
+Vf @ index-DoS56oc0.js:48
+$f @ index-DoS56oc0.js:48
+onQueryUpdate @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+batch @ index-DoS56oc0.js:48
+or @ index-DoS56oc0.js:48
+a @ index-DoS56oc0.js:48
+h @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+Promise.catch
+x @ index-DoS56oc0.js:48
+start @ index-DoS56oc0.js:48
+fetch @ index-DoS56oc0.js:48
+Wo @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+setInterval
+Vf @ index-DoS56oc0.js:48
+$f @ index-DoS56oc0.js:48
+onQueryUpdate @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+batch @ index-DoS56oc0.js:48
+or @ index-DoS56oc0.js:48
+a @ index-DoS56oc0.js:48
+h @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+Promise.catch
+x @ index-DoS56oc0.js:48
+start @ index-DoS56oc0.js:48
+fetch @ index-DoS56oc0.js:48
+Wo @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48Understand this error
+index-DoS56oc0.js:240 Error fetching carts: Error: 500: 
+    at N1 (index-DoS56oc0.js:48:44044)
+    at async ft (index-DoS56oc0.js:48:44276)
+    at async queryFn (index-DoS56oc0.js:240:37933)
+queryFn @ index-DoS56oc0.js:240
+await in queryFn
+i @ index-DoS56oc0.js:48
+x @ index-DoS56oc0.js:48
+start @ index-DoS56oc0.js:48
+fetch @ index-DoS56oc0.js:48
+Wo @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+setInterval
+Vf @ index-DoS56oc0.js:48
+$f @ index-DoS56oc0.js:48
+onQueryUpdate @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+batch @ index-DoS56oc0.js:48
+or @ index-DoS56oc0.js:48
+a @ index-DoS56oc0.js:48
+h @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+Promise.catch
+x @ index-DoS56oc0.js:48
+start @ index-DoS56oc0.js:48
+fetch @ index-DoS56oc0.js:48
+Wo @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+setInterval
+Vf @ index-DoS56oc0.js:48
+$f @ index-DoS56oc0.js:48
+onQueryUpdate @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+batch @ index-DoS56oc0.js:48
+or @ index-DoS56oc0.js:48
+a @ index-DoS56oc0.js:48
+h @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+Promise.catch
+x @ index-DoS56oc0.js:48
+start @ index-DoS56oc0.js:48
+fetch @ index-DoS56oc0.js:48
+Wo @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+setInterval
+Vf @ index-DoS56oc0.js:48
+$f @ index-DoS56oc0.js:48
+onQueryUpdate @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+batch @ index-DoS56oc0.js:48
+or @ index-DoS56oc0.js:48
+a @ index-DoS56oc0.js:48
+h @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+Promise.catch
+x @ index-DoS56oc0.js:48
+start @ index-DoS56oc0.js:48
+fetch @ index-DoS56oc0.js:48
+Wo @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48Understand this error
+index-DoS56oc0.js:48 
+        
+        
+       GET https://abusedwholesale.replit.app/api/carts 500 (Internal Server Error)
+ft @ index-DoS56oc0.js:48
+queryFn @ index-DoS56oc0.js:240
+i @ index-DoS56oc0.js:48
+x @ index-DoS56oc0.js:48
+start @ index-DoS56oc0.js:48
+fetch @ index-DoS56oc0.js:48
+Wo @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+setInterval
+Vf @ index-DoS56oc0.js:48
+$f @ index-DoS56oc0.js:48
+onQueryUpdate @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+batch @ index-DoS56oc0.js:48
+or @ index-DoS56oc0.js:48
+a @ index-DoS56oc0.js:48
+h @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+Promise.catch
+x @ index-DoS56oc0.js:48
+start @ index-DoS56oc0.js:48
+fetch @ index-DoS56oc0.js:48
+Wo @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+setInterval
+Vf @ index-DoS56oc0.js:48
+$f @ index-DoS56oc0.js:48
+onQueryUpdate @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+batch @ index-DoS56oc0.js:48
+or @ index-DoS56oc0.js:48
+a @ index-DoS56oc0.js:48
+h @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+Promise.catch
+x @ index-DoS56oc0.js:48
+start @ index-DoS56oc0.js:48
+fetch @ index-DoS56oc0.js:48
+Wo @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+setInterval
+Vf @ index-DoS56oc0.js:48
+$f @ index-DoS56oc0.js:48
+onQueryUpdate @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+batch @ index-DoS56oc0.js:48
+or @ index-DoS56oc0.js:48
+a @ index-DoS56oc0.js:48
+h @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+Promise.catch
+x @ index-DoS56oc0.js:48
+start @ index-DoS56oc0.js:48
+fetch @ index-DoS56oc0.js:48
+Wo @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+setInterval
+Vf @ index-DoS56oc0.js:48
+$f @ index-DoS56oc0.js:48
+onQueryUpdate @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+batch @ index-DoS56oc0.js:48
+or @ index-DoS56oc0.js:48
+a @ index-DoS56oc0.js:48
+h @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48
+Promise.catch
+x @ index-DoS56oc0.js:48
+start @ index-DoS56oc0.js:48
+fetch @ index-DoS56oc0.js:48
+Wo @ index-DoS56oc0.js:48
+(anonymous) @ index-DoS56oc0.js:48Understand this error
+index-DoS56oc0.js:240 Error fetching carts: Error: 500: 
+    at N1 (index-DoS56oc0.js:48:44044)
+    at async ft (index-DoS56oc0.js:48:44276)
+    at async queryFn (index-DoS56oc0.js:240:37933)
