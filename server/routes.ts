@@ -135,32 +135,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Cart routes
   app.get("/api/carts", requireAdmin, async (req, res) => {
     try {
-      if (!req.session || !req.user) {
-        console.error('No session or user:', { session: !!req.session, user: !!req.user });
-        return res.status(401).json({ message: "Not authenticated" });
+      const carts = await storage.getCarts();
+      
+      // Handle null/undefined case
+      if (!carts) {
+        console.error('No carts returned from storage');
+        return res.json([]);
       }
       
-      if (!req.user.isAdmin) {
-        console.error('User not admin:', req.user);
-        return res.status(403).json({ message: "Admin privileges required" });
-      }
-
-      console.log('GET /api/carts - Auth check passed, fetching carts...');
-      console.log('User info:', req.user);
-      console.log('Session:', req.session);
-
-      const carts = await storage.getCarts();
-      console.log('Carts fetched from storage:', carts);
-
+      // Ensure we always return an array
       if (!Array.isArray(carts)) {
         console.error('Invalid carts data format:', carts);
-        return res.status(500).json({ 
-          message: "Invalid cart data format",
-          error: "Expected array of carts" 
-        });
+        return res.json([]);
       }
 
-      res.json(carts);
+      // Validate each cart's items
+      const validatedCarts = carts.map(cart => ({
+        ...cart,
+        items: Array.isArray(cart.items) ? cart.items : 
+               (typeof cart.items === 'string' ? JSON.parse(cart.items) : [])
+      }));
+
+      res.json(validatedCarts);
     } catch (error) {
       console.error('Error fetching carts:', error);
       res.status(500).json({ 
