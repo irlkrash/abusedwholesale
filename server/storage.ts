@@ -47,34 +47,21 @@ export class DatabaseStorage implements IStorage {
 
   async getProducts(pageOffset = 0, pageLimit = 12): Promise<Product[]> {
     try {
-      const offset = Math.max(0, pageOffset);
-      const limit = pageLimit === null ? undefined : Math.max(1, Math.min(100, pageLimit));
-      
-      console.log(`Fetching products with offset: ${offset}, limit: ${limit}`);
+      console.log(`Fetching products with offset: ${pageOffset}, limit: ${pageLimit}`);
 
-      const query = db
+      const limit = Math.max(1, Math.min(100, pageLimit)); // Ensure limit is between 1 and 100
+
+      // Basic query without cursor
+      let query = db
         .select()
         .from(productsTable)
         .orderBy(desc(productsTable.createdAt))
-        .limit(limit || 100);
-
-      // Use cursor-based pagination for better performance
-      if (offset > 0) {
-        const cursor = await db
-          .select({ createdAt: productsTable.createdAt })
-          .from(productsTable)
-          .orderBy(desc(productsTable.createdAt))
-          .limit(1)
-          .offset(offset - 1);
-
-        if (cursor.length > 0) {
-          query.where(lte(productsTable.createdAt, cursor[0].createdAt));
-        }
-      }
+        .offset(pageOffset)
+        .limit(limit);
 
       const products = await query;
-
       console.log(`Successfully retrieved ${products.length} products`);
+
       return products;
     } catch (error) {
       console.error('Error in getProducts:', error);

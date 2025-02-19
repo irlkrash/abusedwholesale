@@ -45,23 +45,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/products", async (req, res) => {
     try {
-      const adminView = req.query.admin === 'true';
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 12;
       const offset = (page - 1) * limit;
 
-      const products = await storage.getProducts(
-        adminView ? 0 : offset,
-        adminView ? null : limit,
-        adminView
-      );
+      const products = await storage.getProducts(offset, limit);
 
       if (!products || products.length === 0) {
         return res.status(200).json([]); // Return empty array instead of 404
       }
 
-      // Add cursor info in headers for client caching
-      res.setHeader('X-Pagination-Offset', offset.toString());
+      // Add pagination info in headers for client caching
+      res.setHeader('X-Pagination-Page', page.toString());
       res.setHeader('X-Pagination-Limit', limit.toString());
       res.json(products);
     } catch (error) {
