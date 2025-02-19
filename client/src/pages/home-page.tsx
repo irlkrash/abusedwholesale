@@ -47,19 +47,15 @@ export default function HomePage() {
           "GET",
           `/api/products?${queryParams.toString()}`
         );
-        const products = await response.json();
-        return {
-          data: Array.isArray(products) ? products : [],
-          nextPage: Array.isArray(products) && products.length === 12 ? pageParam + 1 : undefined,
-          lastPage: Array.isArray(products) && products.length < 12,
-        };
+        const data = await response.json();
+        return data;
       } catch (err) {
         console.error("Failed to fetch products:", err);
         throw err;
       }
     },
     initialPageParam: 1,
-    getNextPageParam: (lastPage) => lastPage.lastPage ? undefined : lastPage.nextPage,
+    getNextPageParam: (lastPage) => lastPage.nextPage,
   });
 
   useEffect(() => {

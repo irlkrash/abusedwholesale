@@ -51,14 +51,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const products = await storage.getProducts(offset, limit);
 
-      if (!products || products.length === 0) {
-        return res.status(200).json([]); // Return empty array instead of 404
+      if (!products) {
+        return res.status(200).json({
+          data: [],
+          nextPage: undefined,
+          lastPage: true
+        });
       }
 
       // Add pagination info in headers for client caching
       res.setHeader('X-Pagination-Page', page.toString());
       res.setHeader('X-Pagination-Limit', limit.toString());
-      res.json(products);
+      
+      res.json({
+        data: products,
+        nextPage: products.length === limit ? page + 1 : undefined,
+        lastPage: products.length < limit
+      });
     } catch (error) {
       console.error('Error fetching products:', error);
       res.status(500).json({ 
