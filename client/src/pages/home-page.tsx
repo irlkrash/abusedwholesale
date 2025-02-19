@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
-import { Product, CartItem } from "@shared/schema";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { Product, CartItem, Category } from "@shared/schema";
 import { ProductCard } from "@/components/product-card";
 import { CartOverlay } from "@/components/cart-overlay";
 import { Button } from "@/components/ui/button";
@@ -17,13 +17,26 @@ import {
 } from "@/components/ui/sheet";
 import { Card, CardContent } from "@/components/ui/card";
 import { apiRequest } from "@/lib/queryClient";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function HomePage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState<Set<number>>(new Set());
   const { user } = useAuth();
   const { toast } = useToast();
   const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  // Fetch categories
+  const { data: categories = [] } = useQuery<Category[]>({
+    queryKey: ["/api/categories"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/categories");
+      if (!response.ok) throw new Error("Failed to fetch categories");
+      return response.json();
+    },
+  });
 
   const {
     data,
@@ -34,7 +47,7 @@ export default function HomePage() {
     isError,
     error
   } = useInfiniteQuery({
-    queryKey: ["/api/products"],
+    queryKey: ["/api/products", Array.from(selectedCategories)],
     queryFn: async ({ pageParam = 1 }) => {
       try {
         const queryParams = new URLSearchParams({
@@ -42,6 +55,10 @@ export default function HomePage() {
           limit: '12',
           sort: 'createdAt:desc'
         });
+
+        if (selectedCategories.size > 0) {
+          queryParams.append('categories', Array.from(selectedCategories).join(','));
+        }
 
         const response = await apiRequest(
           "GET",
@@ -64,6 +81,18 @@ export default function HomePage() {
   // Safely extract products with null checks and ensure they are flattened correctly
   const allProducts = data?.pages?.flatMap(page => page.data ?? []) ?? [];
 
+  const toggleCategory = (categoryId: number) => {
+    setSelectedCategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(categoryId)) {
+        newSet.delete(categoryId);
+      } else {
+        newSet.add(categoryId);
+      }
+      return newSet;
+    });
+  };
+
   const handleAddToCart = (product: Product) => {
     if (cartItems.some(item => item.productId === product.id)) {
       toast({
@@ -80,7 +109,7 @@ export default function HomePage() {
       description: product.description,
       images: product.images,
       isAvailable: product.isAvailable,
-      createdAt: product.createdAt
+      createdAt: new Date().toISOString() 
     };
 
     setCartItems(prev => [...prev, cartItem]);
@@ -189,6 +218,28 @@ export default function HomePage() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        {/* Categories Section */}
+        {categories.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold mb-4">Categories</h2>
+            <ScrollArea className="w-full whitespace-nowrap">
+              <div className="flex gap-2 pb-4">
+                {categories.map((category) => (
+                  <Badge
+                    key={category.id}
+                    variant={selectedCategories.has(category.id) ? "default" : "secondary"}
+                    className="cursor-pointer"
+                    onClick={() => toggleCategory(category.id)}
+                  >
+                    {category.name}
+                  </Badge>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+        )}
+
+        {/* Products Grid */}
         {isLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, index) => (

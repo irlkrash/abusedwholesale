@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
-import { Product } from "@shared/schema";
+import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
+import { Product, Category } from "@shared/schema";
 import { ProductForm } from "@/components/admin/product-form";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -58,6 +58,15 @@ import {
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {Checkbox} from "@/components/ui/checkbox";
+
 
 interface ProductsResponse {
   data: Product[];
@@ -75,6 +84,8 @@ export default function AdminDashboard() {
   const [bulkEditMode, setBulkEditMode] = useState(false);
   const [bulkEditValue, setBulkEditValue] = useState({ name: "", description: "" });
   const [hideDetails, setHideDetails] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+  const [newCategoryName, setNewCategoryName] = useState("");
 
   const {
     data,
@@ -279,6 +290,70 @@ export default function AdminDashboard() {
     },
   });
 
+  const { data: categories = [], refetch: refetchCategories } = useQuery<Category[]>({
+    queryKey: ["/api/categories"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/categories");
+      if (!response.ok) throw new Error("Failed to fetch categories");
+      return response.json();
+    },
+  });
+
+  const createCategoryMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const res = await apiRequest("POST", "/api/categories", { name });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      toast({
+        title: "Category created",
+        description: "New category has been added.",
+      });
+      setNewCategoryName("");
+      refetchCategories();
+    },
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/categories/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      toast({
+        title: "Category deleted",
+        description: "The category has been removed.",
+      });
+      refetchCategories();
+    },
+  });
+
+  const updateProductCategoriesMutation = useMutation({
+    mutationFn: async ({ productIds, categoryIds }: { productIds: number[]; categoryIds: number[] }) => {
+      const results = await Promise.all(
+        productIds.map(id =>
+          apiRequest("PATCH", `/api/products/${id}`, { categories: categoryIds })
+            .then(res => res.json())
+            .catch(error => ({ error, id }))
+        )
+      );
+      const errors = results.filter(r => 'error' in r);
+      if (errors.length > 0) {
+        throw new Error(`Failed to update categories for ${errors.length} products`);
+      }
+      return results;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      toast({
+        title: "Categories updated",
+        description: "Product categories have been updated successfully.",
+      });
+      clearSelection();
+    },
+  });
+
   const NavLinks = () => (
     <>
       <Link href="/">
@@ -302,6 +377,102 @@ export default function AdminDashboard() {
         Logout
       </Button>
     </>
+  );
+
+  const BulkCategoryActions = () => (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline">
+          Update Categories
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Update Categories</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label>Select Categories</Label>
+            <ScrollArea className="h-[200px] w-full rounded-md border p-4">
+              <div className="space-y-2">
+                {categories.map((category) => (
+                  <div key={category.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      checked={selectedCategories.includes(category.id)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedCategories(prev => [...prev, category.id]);
+                        } else {
+                          setSelectedCategories(prev =>
+                            prev.filter(id => id !== category.id)
+                          );
+                        }
+                      }}
+                    />
+                    <Label>{category.name}</Label>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            onClick={() =>
+              updateProductCategoriesMutation.mutate({
+                productIds: Array.from(selectedProducts),
+                categoryIds: selectedCategories,
+              })
+            }
+          >
+            Update Categories
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
+  const CategoryManagement = () => (
+    <div className="space-y-4 mb-8">
+      <h3 className="text-lg font-medium">Category Management</h3>
+      <div className="flex items-end gap-4">
+        <div className="space-y-2 flex-1">
+          <Label>New Category Name</Label>
+          <Input
+            value={newCategoryName}
+            onChange={(e) => setNewCategoryName(e.target.value)}
+            placeholder="Enter category name..."
+          />
+        </div>
+        <Button
+          onClick={() => createCategoryMutation.mutate(newCategoryName)}
+          disabled={!newCategoryName.trim()}
+        >
+          Add Category
+        </Button>
+      </div>
+      <ScrollArea className="w-full">
+        <div className="flex flex-wrap gap-2">
+          {categories.map((category) => (
+            <Badge
+              key={category.id}
+              variant="secondary"
+              className="text-sm py-1 px-2"
+            >
+              {category.name}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-4 w-4 p-0 ml-2"
+                onClick={() => deleteCategoryMutation.mutate(category.id)}
+              >
+                ×
+              </Button>
+            </Badge>
+          ))}
+        </div>
+      </ScrollArea>
+    </div>
   );
 
   return (
@@ -487,6 +658,7 @@ export default function AdminDashboard() {
                 >
                   {hideDetails ? "Show Details" : "Hide Details"}
                 </Button>
+                <BulkCategoryActions/>
               </>
             )}
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -508,6 +680,8 @@ export default function AdminDashboard() {
             </Dialog>
           </div>
         </div>
+
+        <CategoryManagement />
 
         <div className="space-y-8">
           <div className="space-y-4">

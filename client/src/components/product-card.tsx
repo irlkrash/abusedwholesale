@@ -30,7 +30,7 @@ export function ProductCard({ product, onAddToCart, priority = false }: ProductC
             loading="lazy"
           />
         </div>
-        {product.categories?.length > 0 && (
+        {product.categories && product.categories.length > 0 && (
           <div className="p-4">
             <div className="flex flex-wrap gap-1">
               {product.categories.map((category) => (
