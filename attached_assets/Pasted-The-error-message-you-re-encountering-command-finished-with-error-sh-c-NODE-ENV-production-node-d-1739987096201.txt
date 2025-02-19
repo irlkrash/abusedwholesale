@@ -1,0 +1,22 @@
+The error message you're encountering, command finished with error [sh -c NODE_ENV=production node dist/index.js]: signal: terminated, suggests that your application is crashing when trying to start in production mode. Here are some potential reasons and solutions:
+
+Error in Code: There might be an uncaught error in your application code. You should add additional logging in your dist/index.js file near the entry point to catch any errors that might occur on startup.
+
+Database Connection Issues: Ensure that your database URL is correct and properly set in the environment variables. If the connection fails during the app initialization, it could terminate the process.
+
+Verify SSL Configuration: Check your SSL configuration for the database connection in db.ts:
+
+ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+Make sure this configuration works as intended for your production environment. Sometimes, incorrect SSL settings can cause connection preparation to fail.
+
+Port Binding: Ensure that your server is binding to 0.0.0.0 instead of localhost. This is necessary for it to be accessible externally. Check your server start configuration in index.ts to ensure that it looks something like this:
+
+app.listen(port, '0.0.0.0', () => {
+    console.log(`Server is running on http://0.0.0.0:${port}`);
+});
+Debugging: Consider using the debugger to step through the application startup to identify where it might be failing. You can add breakpoints in your dist/index.js to inspect the initialization flow.
+
+Logging: Enhance your logging in your application to better capture errors. At various points of state initialization, add console.log statements to log the current state and values being used:
+
+console.log('Starting server...');
+After applying these improvements, redeploy your application and monitor the logs for any further errors or information that could indicate what's going wrong. If the issue persists, please check the logs for any stack traces that could provide more insight into the specific issue.
