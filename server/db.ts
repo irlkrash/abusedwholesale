@@ -20,16 +20,33 @@ export const pool = new Pool({
         sslmode: 'require'
       } 
     : false,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
+  max: 10,
+  idleTimeoutMillis: 60000,
+  connectionTimeoutMillis: 5000,
   keepAlive: true,
-  keepAliveInitialDelayMillis: 10000,
-  connectionRetryLimit: 3
+  keepAliveInitialDelayMillis: 5000,
+  connectionRetryLimit: 5
 });
 
 // Add error handler for the pool
 pool.on('error', (err) => {
   console.error('Unexpected error on idle client', err);
+  // Attempt to reconnect
+  setTimeout(() => {
+    console.log('Attempting to reconnect to database...');
+    pool.connect().catch(console.error);
+  }, 5000);
+});
+
+// Handle process termination
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received, closing pool...');
+  try {
+    await pool.end();
+    console.log('Pool closed successfully');
+  } catch (err) {
+    console.error('Error closing pool:', err);
+  }
+  process.exit(0);
 });
 export const db = drizzle({ client: pool, schema });
