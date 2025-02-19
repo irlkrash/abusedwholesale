@@ -242,17 +242,15 @@ export class DatabaseStorage implements IStorage {
 
   async getCarts(): Promise<Cart[]> {
     try {
-      console.log('Fetching all carts from database');
       const carts = await db
         .select()
         .from(cartsTable)
         .orderBy(desc(cartsTable.createdAt));
 
-      console.log(`Retrieved ${carts.length} carts from database:`, carts);
-      return carts || [];
+      return carts;
     } catch (error) {
       console.error('Database error in getCarts:', error);
-      return []; // Return empty array instead of throwing
+      throw error; // Let the route handler handle the error
     }
   }
 
