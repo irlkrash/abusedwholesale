@@ -238,69 +238,26 @@ export class DatabaseStorage implements IStorage {
 
   async getCarts(limit: number = 50): Promise<Cart[]> {
     try {
-      console.log(`Fetching last ${limit} carts...`);
       const result = await db.select().from(cartsTable)
         .orderBy(desc(cartsTable.createdAt))
         .limit(limit);
 
-      if (!Array.isArray(result)) {
-        console.log('Invalid database response');
-        return [];
-      }
-
-      console.log(`Raw database response: ${result.length} carts found`);
-
-      const processedCarts = result.map(cart => {
-        try {
-          let parsedItems = [];
-          
-          if (cart.items) {
-            try {
-              // Handle string JSON data
-              if (typeof cart.items === 'string') {
-                parsedItems = JSON.parse(cart.items);
-              } 
-              // Handle direct JSON data
-              else if (Array.isArray(cart.items)) {
-                parsedItems = cart.items;
-              }
-              else if (typeof cart.items === 'object') {
-                parsedItems = [cart.items];
-              }
-            } catch (parseError) {
-              console.error(`Failed to parse items for cart ${cart.id}:`, parseError);
-            }
-          }
-
-          return {
-            id: cart.id,
-            customerName: cart.customerName || '',
-            customerEmail: cart.customerEmail || '',
-            items: parsedItems,
-            createdAt: cart.createdAt || new Date(),
-            updatedAt: cart.updatedAt || new Date()
-          };
-        } catch (err) {
-          console.error(`Error processing cart ${cart.id}:`, err);
-          // Return a valid cart object even if processing fails
-          return {
-            id: cart.id,
-            customerName: cart.customerName || '',
-            customerEmail: cart.customerEmail || '',
-            items: [],
-            createdAt: cart.createdAt || new Date(),
-            updatedAt: cart.updatedAt || new Date()
-          };
-        }
-      });
-
-      console.log(`Successfully processed ${processedCarts.length} carts`);
-      return processedCarts;
-
+      return result.map(cart => ({
+        id: cart.id,
+        customerName: cart.customerName || '',
+        customerEmail: cart.customerEmail || '',
+        items: typeof cart.items === 'string' ? 
+          JSON.parse(cart.items) : 
+          Array.isArray(cart.items) ? 
+            cart.items : 
+            typeof cart.items === 'object' ? 
+              [cart.items] : [],
+        createdAt: cart.createdAt || new Date(),
+        updatedAt: cart.updatedAt || new Date()
+      }));
     } catch (error) {
       console.error('Database error in getCarts:', error);
-      // Return empty array instead of throwing to prevent 500 errors
-      return [];
+      throw error;
     }
   }
 

@@ -38,21 +38,18 @@ const AdminCarts = () => {
   const { data: carts = [], isLoading: cartsLoading, error: cartsError } = useQuery<Cart[]>({
     queryKey: ["/api/carts"],
     queryFn: async () => {
-      try {
-        const response = await apiRequest("GET", "/api/carts");
-        if (!response.ok) {
-          const error = await response.text();
-          throw new Error(error || 'Failed to fetch carts');
-        }
-        const data = await response.json();
-        return Array.isArray(data) ? data : [];
-      } catch (error) {
-        console.error('Error fetching carts:', error);
-        throw error;
+      const response = await apiRequest("GET", "/api/carts");
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || 'Failed to fetch carts');
       }
+      return response.json();
     },
     refetchInterval: 30000,
-    retry: 1
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
+    cacheTime: 1000 * 60 * 30 // Keep data in cache for 30 minutes
   });
 
   const sortedCarts = [...(Array.isArray(carts) ? carts : [])].sort(
