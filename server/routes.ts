@@ -45,23 +45,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/products", async (req, res) => {
     try {
-      const adminView = req.query.admin === 'true'; //Added check for admin query parameter
-      console.log(`Fetching products: adminView=${adminView}, page=${req.query.page || 1}, limit=${req.query.limit || 12}`);
-      const page = adminView ? undefined : parseInt(req.query.page as string) || 1;
-      const limit = adminView ? undefined : parseInt(req.query.limit as string) || 12;
-      const offset = page ? (page - 1) * limit : 0; //Updated offset calculation
+      const adminView = req.query.admin === 'true';
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 12;
+      const offset = (page - 1) * limit;
 
-      const products = await storage.getProducts(offset, limit, adminView); //Pass limit only if not adminView
+      const products = await storage.getProducts(
+        adminView ? 0 : offset,
+        adminView ? undefined : limit,
+        adminView
+      );
 
       if (!products) {
-        console.error('No products returned from database');
-        return res.status(500).json({ 
-          message: "Failed to fetch products",
-          error: "Database returned no results" 
+        return res.status(404).json({ 
+          message: "No products found"
         });
       }
 
-      console.log(`Retrieved ${products.length} products from database`);
       res.json(products);
     } catch (error) {
       console.error('Error fetching products:', error);
