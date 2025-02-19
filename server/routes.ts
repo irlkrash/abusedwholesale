@@ -29,12 +29,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Products routes with pagination - Make GET public, but keep POST/PATCH/DELETE protected
   app.get("/api/images/:key", async (req, res) => {
     try {
-      const image = await storage.getProductImage(req.params.key);
-      if (!image) {
+      const imageData = await storage.getProductImage(req.params.key);
+      if (!imageData) {
         return res.status(404).send('Image not found');
       }
-      res.setHeader('Content-Type', 'image/jpeg');
-      res.send(image);
+      res.send(imageData);
     } catch (error) {
       console.error('Error serving image:', error);
       res.status(500).json({ 

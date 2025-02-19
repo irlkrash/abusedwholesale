@@ -1,7 +1,7 @@
 import { InsertUser, User, Product, Cart, InsertProduct, InsertCart } from "@shared/schema";
 
-import { Client as ObjectStorageClient } from '@replit/node-object-storage';
-const storageClient = new ObjectStorageClient();
+import { Client } from '@replit/database';
+const db_client = new Client();
 
 import { users, products as productsTable, carts as cartsTable } from "@shared/schema";
 import session from "express-session";
@@ -94,10 +94,8 @@ export class DatabaseStorage implements IStorage {
     try {
       const imageUrls = await Promise.all(
         insertProduct.images.map(async (imageData, index) => {
-          const base64Data = imageData.split(',')[1];
-          const buffer = Buffer.from(base64Data, 'base64');
-          const key = `products/${Date.now()}-${index}.jpg`;
-          await storageClient.put(key, buffer);
+          const key = `product_image_${Date.now()}_${index}`;
+          await db_client.set(key, imageData);
           return key;
         })
       );
@@ -118,9 +116,9 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getProductImage(key: string): Promise<Buffer | null> {
+  async getProductImage(key: string): Promise<string | null> {
     try {
-      return await storageClient.get(key);
+      return await db_client.get(key);
     } catch (error) {
       console.error('Storage error in getProductImage:', error);
       return null;
