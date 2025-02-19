@@ -248,14 +248,24 @@ export class DatabaseStorage implements IStorage {
         .orderBy(desc(cartsTable.createdAt))
         .limit(limit);
 
-      return result.map(cart => ({
-        ...cart,
-        items: Array.isArray(cart.items) ? cart.items : 
-               (typeof cart.items === 'string' ? JSON.parse(cart.items) : [])
-      }));
+      return result.map(cart => {
+        try {
+          const items = typeof cart.items === 'string' ? 
+            JSON.parse(cart.items) : 
+            (Array.isArray(cart.items) ? cart.items : []);
+          
+          return {
+            ...cart,
+            items: Array.isArray(items) ? items.slice(0, 100) : [] // Limit items array size
+          };
+        } catch (err) {
+          console.error(`Error parsing cart ${cart.id} items:`, err);
+          return { ...cart, items: [] };
+        }
+      });
     } catch (error) {
       console.error('Database error in getCarts:', error);
-      throw new Error(`Database error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return []; // Return empty array instead of throwing
     }
   }
 
