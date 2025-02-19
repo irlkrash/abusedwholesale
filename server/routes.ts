@@ -139,18 +139,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Fetching carts with limit ${limit}...`);
 
       const carts = await storage.getCarts(limit);
-
-      // Always return an array, even if empty
-      if (!carts || !Array.isArray(carts)) {
-        console.log('No valid carts found, returning empty array');
-        return res.json([]);
+      
+      if (!Array.isArray(carts)) {
+        return res.status(500).json({ 
+          message: "Invalid cart data format",
+          error: "Expected array of carts"
+        });
       }
 
       console.log(`Successfully retrieved ${carts.length} carts`);
       res.json(carts);
     } catch (error) {
       console.error('Error fetching carts:', error);
-      // Send a more specific error message
       res.status(500).json({ 
         message: "Failed to fetch carts",
         error: error instanceof Error ? error.message : "Unknown error occurred"

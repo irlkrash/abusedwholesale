@@ -239,38 +239,37 @@ export class DatabaseStorage implements IStorage {
   async getCarts(limit: number = 50): Promise<Cart[]> {
     try {
       console.log(`Fetching last ${limit} carts...`);
-      const result = await db.select()
-        .from(cartsTable)
+      const result = await db.select().from(cartsTable)
         .orderBy(desc(cartsTable.createdAt))
         .limit(limit);
 
-      console.log(`Raw database response: ${result.length} carts found`);
-
-      if (!result || result.length === 0) {
-        console.log('No carts found in database');
+      if (!Array.isArray(result)) {
+        console.log('Invalid database response');
         return [];
       }
 
+      console.log(`Raw database response: ${result.length} carts found`);
+
       const processedCarts = result.map(cart => {
         try {
-          let parsedItems;
-
-          // Handle string JSON data
-          if (typeof cart.items === 'string') {
+          let parsedItems = [];
+          
+          if (cart.items) {
             try {
-              parsedItems = JSON.parse(cart.items);
+              // Handle string JSON data
+              if (typeof cart.items === 'string') {
+                parsedItems = JSON.parse(cart.items);
+              } 
+              // Handle direct JSON data
+              else if (Array.isArray(cart.items)) {
+                parsedItems = cart.items;
+              }
+              else if (typeof cart.items === 'object') {
+                parsedItems = [cart.items];
+              }
             } catch (parseError) {
               console.error(`Failed to parse items for cart ${cart.id}:`, parseError);
-              parsedItems = [];
             }
-          } 
-          // Handle direct JSON data
-          else if (cart.items && typeof cart.items === 'object') {
-            parsedItems = Array.isArray(cart.items) ? cart.items : [];
-          }
-          // Default case
-          else {
-            parsedItems = [];
           }
 
           return {
