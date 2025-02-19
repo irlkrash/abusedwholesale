@@ -41,22 +41,17 @@ const AdminCarts = () => {
       const response = await apiRequest("GET", "/api/products");
       if (!response.ok) throw new Error('Failed to fetch products');
       const data = await response.json();
-      return data;
-    },
-    refetchInterval: 1000,
-    staleTime: 0,
-    cacheTime: 0,
+      console.log('Products loaded:', data);
+      return Array.isArray(data) ? data : [];
+    }
   });
 
-  useEffect(() => {
-    if (products.length > 0) {
-      console.log('Products loaded:', products.length);
-    }
-  }, [products]);
-
   const productsMap = useMemo(() => {
-    if (!Array.isArray(products)) return new Map();
-    const map = new Map(products.map(product => [product.id, product]));
+    const map = new Map<number, Product>();
+    products.forEach(product => {
+      map.set(product.id, product);
+      console.log('Product mapped:', product.id, product.images);
+    });
     return map;
   }, [products]);
 
@@ -66,10 +61,10 @@ const AdminCarts = () => {
       const response = await apiRequest("GET", "/api/carts");
       if (!response.ok) throw new Error('Failed to fetch carts');
       const data = await response.json();
+      console.log('Carts loaded:', data);
       return Array.isArray(data) ? data : [];
     },
-    staleTime: 1000,
-    refetchInterval: 5000,
+    refetchInterval: 5000
   });
 
   const sortedCarts = useMemo(() =>
@@ -263,12 +258,7 @@ const AdminCarts = () => {
                       <div className="grid gap-4">
                         {cartItems.map((item, index) => {
                           const product = productsMap.get(item.productId);
-                          const images = (() => {
-                            if (!product || !Array.isArray(product.images)) {
-                              return item.image ? [item.image] : [];
-                            }
-                            return product.images;
-                          })();
+                          console.log('Rendering cart item:', item.productId, 'Product:', product);
 
                           return (
                             <div
@@ -276,9 +266,9 @@ const AdminCarts = () => {
                               className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors"
                             >
                               <div className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted">
-                                {images.length > 0 ? (
+                                {product?.images?.length > 0 ? (
                                   <ProductCarousel
-                                    images={images}
+                                    images={product.images}
                                     onImageClick={(image) => setSelectedImage(image)}
                                     priority={index < 2}
                                   />
