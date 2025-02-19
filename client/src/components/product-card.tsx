@@ -31,8 +31,7 @@ export function ProductCard({ product, onAddToCart, priority = false }: ProductC
           />
         </div>
         <div className="p-4">
-          <h3 className="text-lg font-semibold">{product.name}</h3>
-          <p className="text-sm text-muted-foreground mt-2">{product.description}</p>
+          <p className="text-sm text-muted-foreground">{product.description}</p>
           {product.categories?.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {product.categories.map((category) => (
