@@ -99,7 +99,15 @@ export default function HomePage() {
       });
       return;
     }
-    setCartItems(prev => [...prev, product]);
+    
+    const cartItem = {
+      productId: product.id,
+      name: product.name,
+      description: product.description,
+      images: product.images,
+    };
+    
+    setCartItems(prev => [...prev, cartItem]);
     toast({
       title: "Added to cart",
       description: "Item has been added to your cart.",

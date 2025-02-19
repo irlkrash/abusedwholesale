@@ -259,15 +259,16 @@ const AdminCarts = () => {
                       <div className="grid gap-4">
                         {cartItems.map((item, index) => {
                           const product = productsMap.get(item.productId);
+                          const images = item.images || product?.images || [];
                           return (
                             <div
                               key={index}
                               className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors"
                             >
                               <div className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted">
-                                {product?.images && product.images.length > 0 ? (
+                                {images.length > 0 ? (
                                   <ProductCarousel
-                                    images={product.images}
+                                    images={images}
                                     onImageClick={(image) => setSelectedImage(image)}
                                     priority={index < 2}
                                     loading="lazy"
@@ -286,6 +287,11 @@ const AdminCarts = () => {
                                 {product && (
                                   <p className="text-sm text-muted-foreground mt-1">
                                     Status: {product.isAvailable ? 'Available' : 'Unavailable'}
+                                  </p>
+                                )}
+                                {item.description && (
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    {item.description}
                                   </p>
                                 )}
                               </div>
