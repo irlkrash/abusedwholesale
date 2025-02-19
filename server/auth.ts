@@ -35,9 +35,13 @@ export function setupAuth(app: Express) {
   }
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
+    resave: true, // Modified as per the change request
+    saveUninitialized: true, // Modified as per the change request
     store: storage.sessionStore,
+    cookie: {
+      secure: false,
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
   };
 
   app.set("trust proxy", 1);

@@ -135,8 +135,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Cart routes
   app.get("/api/carts", requireAdmin, async (req, res) => {
     try {
+      if (!req.session || !req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
       console.log('GET /api/carts - Auth check passed, fetching carts...');
       console.log('User info:', req.user);
+      console.log('Session:', req.session);
 
       const carts = await storage.getCarts();
       console.log('Carts fetched from storage:', carts);
