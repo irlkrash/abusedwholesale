@@ -74,11 +74,9 @@ export class DatabaseStorage implements IStorage {
         .orderBy(desc(productsTable.createdAt));
 
       if (!noLimit) {
-        // Add cursor-based pagination using ID
         const products = await query
           .limit(pageLimit)
-          .offset(pageOffset)
-          .prepare(); // Prepare the query for better performance
+          .offset(pageOffset);
 
         if (!products) {
           throw new Error('Failed to fetch products from database');
