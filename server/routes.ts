@@ -135,33 +135,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Cart routes
   app.get("/api/carts", requireAdmin, async (req, res) => {
     try {
+      console.log('Fetching carts...');
       const carts = await storage.getCarts();
       
       // Handle null/undefined case
       if (!carts) {
-        console.error('No carts returned from storage');
+        console.log('No carts found, returning empty array');
         return res.json([]);
       }
       
       // Ensure we always return an array
       if (!Array.isArray(carts)) {
-        console.error('Invalid carts data format:', carts);
-        return res.json([]);
+        console.log('Converting single cart to array');
+        return res.json([carts].filter(Boolean));
       }
 
-      // Validate each cart's items
-      const validatedCarts = carts.map(cart => ({
-        ...cart,
-        items: Array.isArray(cart.items) ? cart.items : 
-               (typeof cart.items === 'string' ? JSON.parse(cart.items) : [])
-      }));
+      // Validate each cart's items with robust error handling
+      const validatedCarts = carts.map(cart => {
+        try {
+          let parsedItems = cart.items;
+          
+          // Handle string-encoded items
+          if (typeof cart.items === 'string') {
+            try {
+              parsedItems = JSON.parse(cart.items);
+            } catch (e) {
+              console.error(`Failed to parse cart ${cart.id} items:`, e);
+              parsedItems = [];
+            }
+          }
 
+          // Ensure items is always an array
+          if (!Array.isArray(parsedItems)) {
+            parsedItems = [];
+          }
+
+          return {
+            ...cart,
+            items: parsedItems
+          };
+        } catch (e) {
+          console.error(`Error processing cart ${cart.id}:`, e);
+          return {
+            ...cart,
+            items: []
+          };
+        }
+      });
+
+      console.log(`Successfully processed ${validatedCarts.length} carts`);
       res.json(validatedCarts);
     } catch (error) {
       console.error('Error fetching carts:', error);
       res.status(500).json({ 
         message: "Failed to fetch carts",
-        error: error instanceof Error ? error.message : "Unknown error occurred"
+        details: error instanceof Error ? error.message : "Unknown error occurred",
+        timestamp: new Date().toISOString()
       });
     }
   });
