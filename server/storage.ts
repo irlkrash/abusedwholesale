@@ -94,17 +94,12 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  private imageCache: Map<string, { data: string, timestamp: number }> = new Map();
-  private readonly CACHE_DURATION = 1000 * 60 * 60; // 1 hour
-
   async createProduct(insertProduct: InsertProduct): Promise<Product> {
     try {
       const imageUrls = await Promise.all(
         insertProduct.images.map(async (imageData, index) => {
-          // Compress image before storing
-          const compressedData = imageData.replace(/^data:image\/\w+;base64,/, '');
           const key = `product_image_${Date.now()}_${index}`;
-          await db_client.set(key, compressedData);
+          await db_client.set(key, imageData);
           return key;
         })
       );
@@ -127,24 +122,7 @@ export class DatabaseStorage implements IStorage {
 
   async getProductImage(key: string): Promise<string | null> {
     try {
-      // Check cache first
-      const cached = this.imageCache.get(key);
-      const now = Date.now();
-      
-      if (cached && now - cached.timestamp < this.CACHE_DURATION) {
-        return cached.data;
-      }
-
-      const imageData = await db_client.get(key);
-      if (!imageData) return null;
-
-      // Add data:image prefix only when serving
-      const fullData = `data:image/jpeg;base64,${imageData}`;
-      
-      // Update cache
-      this.imageCache.set(key, { data: fullData, timestamp: now });
-      
-      return fullData;
+      return await db_client.get(key);
     } catch (error) {
       console.error('Storage error in getProductImage:', error);
       return null;

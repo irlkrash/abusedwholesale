@@ -47,9 +47,9 @@ export function ProductCarousel({
                 <img 
                   src={image} 
                   alt={`Product view ${index + 1}`}
-                  loading="lazy"
-                  width={300}
-                  height={300}
+                  loading={loadingProp || (index === 0 || priority ? "eager" : "lazy")}
+                  width={600}
+                  height={600}
                   className={cn(
                     "object-cover w-full h-full rounded-lg cursor-pointer transition-opacity duration-200",
                     !loadedImages.has(index) && "opacity-0",
@@ -58,7 +58,6 @@ export function ProductCarousel({
                   onClick={() => onImageClick?.(image)}
                   onLoad={() => handleImageLoad(index)}
                   decoding="async"
-                  fetchPriority={index === 0 ? "high" : "low"}
                 />
               </div>
             </AspectRatio>
