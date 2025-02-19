@@ -242,15 +242,19 @@ export class DatabaseStorage implements IStorage {
 
   async getCarts(): Promise<Cart[]> {
     try {
-      const carts = await db
+      const result = await db
         .select()
         .from(cartsTable)
         .orderBy(desc(cartsTable.createdAt));
 
-      return carts;
+      // Ensure items are properly parsed JSON objects
+      return result.map(cart => ({
+        ...cart,
+        items: Array.isArray(cart.items) ? cart.items : JSON.parse(cart.items as string)
+      }));
     } catch (error) {
       console.error('Database error in getCarts:', error);
-      throw error; // Let the route handler handle the error
+      throw error;
     }
   }
 
@@ -260,7 +264,14 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(cartsTable)
         .where(eq(cartsTable.id, id));
-      return cart;
+
+      if (!cart) return undefined;
+
+      // Return the cart with properly parsed items
+      return {
+        ...cart,
+        items: Array.isArray(cart.items) ? cart.items : JSON.parse(cart.items as string)
+      };
     } catch (error) {
       console.error(`Database error in getCart(${id}):`, error);
       throw error;
@@ -271,23 +282,30 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Creating new cart:', insertCart);
       const now = new Date();
+
+      // Ensure items is properly stringified before storage
+      const cartData = {
+        customerName: insertCart.customerName,
+        customerEmail: insertCart.customerEmail,
+        items: Array.isArray(insertCart.items) ? JSON.stringify(insertCart.items) : insertCart.items,
+        createdAt: now,
+        updatedAt: now,
+      };
+
       const [cart] = await db
         .insert(cartsTable)
-        .values({
-          customerName: insertCart.customerName,
-          customerEmail: insertCart.customerEmail,
-          items: insertCart.items,
-          createdAt: now,
-          updatedAt: now,
-        })
+        .values(cartData)
         .returning();
 
       if (!cart) {
         throw new Error('Failed to create cart in database');
       }
 
-      console.log('Successfully created cart:', cart);
-      return cart;
+      // Return the cart with properly parsed items
+      return {
+        ...cart,
+        items: Array.isArray(cart.items) ? cart.items : JSON.parse(cart.items as string)
+      };
     } catch (error) {
       console.error('Database error in createCart:', error);
       throw error;
@@ -295,13 +313,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateCart(id: number, updates: Partial<Cart>): Promise<Cart> {
-    const [cart] = await db
-      .update(cartsTable)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(cartsTable.id, id))
-      .returning();
-    if (!cart) throw new Error("Cart not found");
-    return cart;
+    try {
+      // Ensure items is properly stringified if it exists in updates
+      const updateData = {
+        ...updates,
+        items: updates.items ? (Array.isArray(updates.items) ? JSON.stringify(updates.items) : updates.items) : undefined,
+        updatedAt: new Date()
+      };
+
+      const [cart] = await db
+        .update(cartsTable)
+        .set(updateData)
+        .where(eq(cartsTable.id, id))
+        .returning();
+
+      if (!cart) throw new Error("Cart not found");
+
+      // Return the cart with properly parsed items
+      return {
+        ...cart,
+        items: Array.isArray(cart.items) ? cart.items : JSON.parse(cart.items as string)
+      };
+    } catch (error) {
+      console.error('Database error in updateCart:', error);
+      throw error;
+    }
   }
 
   async deleteCart(id: number): Promise<void> {
