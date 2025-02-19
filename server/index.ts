@@ -97,7 +97,7 @@ app.use((req, res, next) => {
           }
         });
     };
-    
+
     startServer(port);
 
   } catch (error) {
