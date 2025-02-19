@@ -29,14 +29,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Products routes with pagination - Make GET public, but keep POST/PATCH/DELETE protected
   app.get("/api/products", async (req, res) => {
     try {
+      console.log(`Fetching products: page=${req.query.page || 1}, limit=${req.query.limit || 12}`);
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 12;
       const offset = (page - 1) * limit;
 
-      console.log(`Fetching products: page=${page}, limit=${limit}, offset=${offset}`);
-      
       const products = await storage.getProducts(offset, limit);
-      const totalCount = await storage.getProductCount();
 
       if (!products) {
         console.error('No products returned from database');
@@ -47,15 +45,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log(`Retrieved ${products.length} products from database`);
-      res.json({
-        products,
-        pagination: {
-          page,
-          limit,
-          total: totalCount,
-          pages: Math.ceil(totalCount / limit)
-        }
-      });
+      res.json(products);
     } catch (error) {
       console.error('Error fetching products:', error);
       res.status(500).json({ 

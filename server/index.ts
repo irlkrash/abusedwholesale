@@ -42,27 +42,28 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
-    const port = process.env.PORT || 5000;
-    const startServer = async (attemptPort: number): Promise<void> => {
-      try {
-        await new Promise((resolve, reject) => {
-          server.listen(attemptPort, "0.0.0.0", () => {
-            log(`Server started successfully on port ${attemptPort}`);
-            resolve(undefined);
-          }).on('error', reject);
-        });
-      } catch (error: any) {
-        if (error.code === 'EADDRINUSE') {
-          log(`Port ${attemptPort} in use, trying ${attemptPort + 1}...`);
-          await startServer(attemptPort + 1);
+    // Simplified port binding with a single retry
+    const port = 5000;
+    server.listen(port, "0.0.0.0")
+      .once('listening', () => {
+        log(`Server started successfully on port ${port}`);
+      })
+      .once('error', (err: any) => {
+        if (err.code === 'EADDRINUSE') {
+          log(`Port ${port} in use, trying ${port + 1}...`);
+          server.listen(port + 1, "0.0.0.0")
+            .once('listening', () => {
+              log(`Server started successfully on port ${port + 1}`);
+            })
+            .once('error', (err) => {
+              console.error('Failed to start server:', err);
+              process.exit(1);
+            });
         } else {
-          console.error('Failed to start server:', error);
+          console.error('Failed to start server:', err);
           process.exit(1);
         }
-      }
-    };
-
-    await startServer(port);
+      });
 
   } catch (error) {
     console.error('Failed to initialize application:', error);

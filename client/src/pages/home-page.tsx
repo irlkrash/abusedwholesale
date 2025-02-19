@@ -47,10 +47,12 @@ export default function HomePage() {
           "GET",
           `/api/products?${queryParams.toString()}`
         );
-        if (!response.ok) throw new Error('Failed to fetch products');
-        const data = await response.json();
-        console.log('Products loaded:', data?.products?.length);
-        return data?.products || [];
+        const products = await response.json();
+        return {
+          data: Array.isArray(products) ? products : [],
+          nextPage: Array.isArray(products) && products.length === 12 ? pageParam + 1 : undefined,
+          lastPage: Array.isArray(products) && products.length < 12,
+        };
       } catch (err) {
         console.error("Failed to fetch products:", err);
         throw err;
@@ -86,7 +88,7 @@ export default function HomePage() {
     };
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const allProducts = data?.pages?.flatMap(page => page) ?? [];
+  const allProducts = data?.pages?.flatMap(page => page.data) ?? [];
 
   const handleAddToCart = (product: Product) => {
     if (cartItems.some(item => item.id === product.id)) {
