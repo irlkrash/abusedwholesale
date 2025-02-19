@@ -207,10 +207,10 @@ export default function HomePage() {
               {error instanceof Error && <p>{error.message}</p>}
             </CardContent>
           </Card>
-        ) : allProducts.length > 0 ? (
+        ) : !isLoading && allProducts?.length > 0 ? (
           <>
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {allProducts && allProducts.map((product, index) => (
+              {allProducts.map((product, index) => (
                 <ProductCard
                   key={product.id}
                   product={product}
