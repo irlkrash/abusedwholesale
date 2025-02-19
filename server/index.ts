@@ -47,7 +47,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  console.log('Starting server initialization...');
   try {
+    console.log('Registering routes...');
     const server = await registerRoutes(app);
 
     // Enhanced error handling middleware

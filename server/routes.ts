@@ -262,6 +262,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  console.log('Creating HTTP server...');
   const httpServer = createServer(app);
+  
+  // Handle server errors
+  httpServer.on('error', (error) => {
+    console.error('Server error:', error);
+  });
+
   return httpServer;
 }
