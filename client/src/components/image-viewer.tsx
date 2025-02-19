@@ -73,7 +73,10 @@ export function ImageViewer({ src, alt, isOpen, onOpenChange }: ImageViewerProps
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[90vw] md:w-[70vw] lg:w-[50vw] h-[90vh] p-0">
+      <DialogContent 
+        className="w-[90vw] md:w-[70vw] lg:w-[50vw] h-[90vh] p-0"
+        aria-label="Image viewer"
+      >
         <DialogHeader className="sr-only">
           <DialogTitle>Image Viewer</DialogTitle>
         </DialogHeader>
