@@ -39,18 +39,15 @@ const AdminCarts = () => {
   const { data: products = [], isLoading: productsLoading, error: productsError } = useQuery<Product[]>({
     queryKey: ["/api/products"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/products", {
-        headers: { 'Cache-Control': 'no-cache' }
-      });
+      const response = await apiRequest("GET", "/api/products");
       if (!response.ok) throw new Error('Failed to fetch products');
       const data = await response.json();
-      return Array.isArray(data) ? data : [];
+      console.log('Fetched products:', data);
+      return data;
     },
+    refetchInterval: 1000,
     staleTime: 0,
     cacheTime: 0,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-    enabled: true
   });
 
   useEffect(() => {
