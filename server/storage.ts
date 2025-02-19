@@ -17,7 +17,7 @@ export interface IStorage {
   createUser(user: InsertUser & { isAdmin?: boolean }): Promise<User>;
   getProducts(offset?: number, limit?: number): Promise<Product[]>;
   getProduct(id: number): Promise<Product | undefined>;
-  createProduct(product: Product): Promise<Product>;
+  createProduct(product: Omit<Product, 'id'>): Promise<Product>;
   updateProduct(id: number, product: Partial<Product>): Promise<Product>;
   deleteProduct(id: number): Promise<void>;
   getCarts(): Promise<Cart[]>;
@@ -79,7 +79,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async createProduct(insertProduct: Product): Promise<Product> {
+  async createProduct(insertProduct: Omit<Product, 'id'>): Promise<Product> {
     try {
       console.log('Creating product with data:', insertProduct);
       const [product] = await db
@@ -90,7 +90,7 @@ export class DatabaseStorage implements IStorage {
           images: insertProduct.images || [],
           fullImages: insertProduct.fullImages || [],
           isAvailable: insertProduct.isAvailable ?? true,
-          createdAt: new Date(),
+          createdAt: new Date()
         })
         .returning();
 

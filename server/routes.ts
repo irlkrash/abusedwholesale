@@ -43,6 +43,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/products", requireAdmin, async (req, res) => {
+    try {
+      console.log('Creating new product with data:', req.body);
+      const parsed = insertProductSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json(parsed.error);
+      }
+
+      // Create the product with type safety
+      const newProduct = {
+        ...parsed.data,
+        createdAt: new Date(),
+        images: parsed.data.images || [],
+        fullImages: parsed.data.fullImages || [],
+        isAvailable: parsed.data.isAvailable ?? true
+      };
+
+      const product = await storage.createProduct(newProduct);
+      console.log('Successfully created product:', product);
+      res.status(201).json(product);
+    } catch (error) {
+      console.error('Error creating product:', error);
+      res.status(500).json({ 
+        message: "Failed to create product",
+        error: error instanceof Error ? error.message : "Unknown error occurred"
+      });
+    }
+  });
+
   app.get("/api/products", async (req, res) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
@@ -53,10 +82,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const products = await storage.getProducts(offset, limit);
       console.log(`Found ${products.length} products`);
 
-      // Add pagination info in headers for client caching
-      res.setHeader('X-Pagination-Page', page.toString());
-      res.setHeader('X-Pagination-Limit', limit.toString());
-
       res.json({
         data: products,
         nextPage: products.length === limit ? page + 1 : undefined,
@@ -66,26 +91,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Error fetching products:', error);
       res.status(500).json({ 
         message: "Failed to fetch products",
-        error: error instanceof Error ? error.message : "Unknown error occurred"
-      });
-    }
-  });
-
-  app.post("/api/products", requireAdmin, async (req, res) => {
-    try {
-      console.log('Creating new product with data:', req.body);
-      const parsed = insertProductSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json(parsed.error);
-      }
-
-      const product = await storage.createProduct(parsed.data);
-      console.log('Successfully created product:', product);
-      res.status(201).json(product);
-    } catch (error) {
-      console.error('Error creating product:', error);
-      res.status(500).json({ 
-        message: "Failed to create product",
         error: error instanceof Error ? error.message : "Unknown error occurred"
       });
     }
