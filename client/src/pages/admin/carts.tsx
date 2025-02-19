@@ -30,7 +30,6 @@ import {
 import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-
 const AdminCarts = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -264,6 +263,12 @@ const AdminCarts = () => {
                       <div className="grid gap-4">
                         {cartItems.map((item, index) => {
                           const product = productsMap.get(item.productId);
+                          const images = (() => {
+                            if (!product || !Array.isArray(product.images)) {
+                              return item.image ? [item.image] : [];
+                            }
+                            return product.images;
+                          })();
 
                           return (
                             <div
@@ -271,48 +276,17 @@ const AdminCarts = () => {
                               className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors"
                             >
                               <div className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted">
-                                {(() => {
-                                  const product = productsMap.get(item.productId);
-
-                                  if (!product || !Array.isArray(product.images) || product.images.length === 0) {
-                                    return null;
-                                  }
-
-                                  // First try to use product images if available
-                                  if (product?.images?.length) {
-                                    return (
-                                      <ProductCarousel
-                                        images={product.images}
-                                        onImageClick={(image) => setSelectedImage(image)}
-                                        priority={true}
-                                        loading="eager"
-                                        className="w-full h-full"
-                                      />
-                                    );
-                                  }
-                                  
-                                  // Fallback to item's stored image if product images not available
-                                  if (item.image) {
-                                    return (
-                                      <ProductCarousel
-                                        images={[item.image]}
-                                        onImageClick={(image) => setSelectedImage(image)}
-                                        priority={true}
-                                        loading="eager"
-                                        className="w-full h-full"
-                                      />
-                                    );
-                                  }
-
-                                  // No images available
-                                  return (
-                                    <div className="flex items-center justify-center w-full h-full bg-muted">
-                                      <span className="text-xs text-muted-foreground">No image</span>
-                                    </div>
-                                  );
-                                })()}
-                              </div>
-                                })()}
+                                {images.length > 0 ? (
+                                  <ProductCarousel
+                                    images={images}
+                                    onImageClick={(image) => setSelectedImage(image)}
+                                    priority={index < 2}
+                                  />
+                                ) : (
+                                  <div className="flex items-center justify-center w-full h-full bg-muted">
+                                    <span className="text-xs text-muted-foreground">No image</span>
+                                  </div>
+                                )}
                               </div>
                               <div className="flex-1">
                                 <p className="font-medium">{item.name}</p>
