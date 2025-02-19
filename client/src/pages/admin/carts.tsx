@@ -274,6 +274,7 @@ const AdminCarts = () => {
                                     images={product.images}
                                     onImageClick={(image) => setSelectedImage(image)}
                                     priority={index < 2}
+                                    loading="lazy"
                                   />
                                 ) : (
                                   <div className="flex items-center justify-center w-full h-full bg-muted">
