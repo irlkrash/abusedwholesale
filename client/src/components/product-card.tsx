@@ -30,10 +30,9 @@ export function ProductCard({ product, onAddToCart, priority = false }: ProductC
             loading="lazy"
           />
         </div>
-        <div className="p-4">
-          <p className="text-sm text-muted-foreground">{product.description}</p>
-          {product.categories?.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
+        {product.categories?.length > 0 && (
+          <div className="p-4">
+            <div className="flex flex-wrap gap-1">
               {product.categories.map((category) => (
                 <Badge
                   key={category.id}
@@ -44,8 +43,8 @@ export function ProductCard({ product, onAddToCart, priority = false }: ProductC
                 </Badge>
               ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </CardContent>
       <CardFooter className="p-6">
         <Button 
