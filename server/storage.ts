@@ -284,7 +284,9 @@ export class DatabaseStorage implements IStorage {
       // Return the cart with properly parsed items
       return {
         ...cart,
-        items: Array.isArray(cart.items) ? cart.items : JSON.parse(cart.items as string)
+        items: typeof cart.items === 'string'
+          ? JSON.parse(cart.items)
+          : (Array.isArray(cart.items) ? cart.items : [])
       };
     } catch (error) {
       console.error(`Database error in getCart(${id}):`, error);
