@@ -250,12 +250,16 @@ const AdminCarts = () => {
                   <CardContent>
                     <ScrollArea className="h-[300px]">
                       <div className="grid gap-4">
-                        {cartItems.map(async (item, index) => {
-                          try {
+                        {cartItems.map((item, index) => {
+                        const { data: product } = useQuery({
+                          queryKey: [`/api/products/${item.productId}`],
+                          queryFn: async () => {
                             const response = await fetch(`/api/products/${item.productId}?admin=true`);
-                            const product = await response.json();
-                            console.log('Rendering cart item:', item.productId, 'Product:', product);
-                            return (
+                            if (!response.ok) throw new Error('Failed to fetch product');
+                            return response.json();
+                          }
+                        });
+                        return (
                               <div
                                 key={index}
                                 className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors"
