@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { createServer } from "http";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { pool } from "./db";
 
 const app = express();
 
@@ -48,15 +49,16 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  console.log('Starting server initialization...');
+  let server;
   try {
+    console.log('Starting server initialization...');
     console.log('Registering routes...');
-    const server = await registerRoutes(app);
+    server = await registerRoutes(app);
 
     // Enhanced error handling middleware
-    app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
+    app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
       console.error('Error:', err);
-      const status = err.status || err.statusCode || 500;
+      const status = 'status' in err ? (err as any).status : 500;
       const message = err.message || "Internal Server Error";
       const stack = process.env.NODE_ENV === 'development' ? err.stack : undefined;
 
@@ -84,29 +86,44 @@ app.use((req, res, next) => {
     server.headersTimeout = 66000;
 
     // Handle termination signals
-    const gracefulShutdown = (signal: string) => {
+    const gracefulShutdown = async (signal: string) => {
       console.log(`${signal} received. Starting graceful shutdown...`);
-      server.close(() => {
-        console.log('Server closed');
-        process.exit(0);
-      });
 
-      // Force close after 10s
-      setTimeout(() => {
-        console.error('Could not close connections in time, forcefully shutting down');
-        process.exit(1);
-      }, 10000);
+      if (server) {
+        server.close(async () => {
+          console.log('HTTP server closed');
+          try {
+            await pool.end();
+            console.log('Database pool closed');
+            process.exit(0);
+          } catch (error) {
+            console.error('Error closing database pool:', error);
+            process.exit(1);
+          }
+        });
+
+        // Force close after 10s
+        setTimeout(() => {
+          console.error('Could not close connections in time, forcefully shutting down');
+          process.exit(1);
+        }, 10000);
+      }
     };
 
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-    process.on('uncaughtException', (error) => {
+
+    // Improved error handling
+    process.on('uncaughtException', (error: Error) => {
       console.error('Uncaught Exception:', error);
       console.error('Stack:', error.stack);
+      gracefulShutdown('UNCAUGHT_EXCEPTION');
     });
-    process.on('unhandledRejection', (reason, promise) => {
+
+    process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
       console.error('Unhandled Rejection at:', promise);
       console.error('Reason:', reason);
+      gracefulShutdown('UNHANDLED_REJECTION');
     });
 
     // Improved server listening with error handling
@@ -114,28 +131,33 @@ app.use((req, res, next) => {
       try {
         console.log('Environment:', process.env.NODE_ENV);
         console.log('Starting server on port:', initialPort);
-        
-        await server.listen(initialPort, '0.0.0.0');
+
+        await new Promise<void>((resolve, reject) => {
+          server.listen(initialPort, '0.0.0.0', () => resolve());
+          server.on('error', reject);
+        });
+
         console.log(`Server started successfully on port ${initialPort}`);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Server start error:', error);
-        console.error('Stack:', error.stack);
-        
+
         if (error.code === 'EADDRINUSE') {
           console.log(`Port ${initialPort} is already in use. Trying port ${initialPort + 1}`);
           await startServer(initialPort + 1);
         } else {
           console.error('Critical server error:', error);
+          await pool.end();
           process.exit(1);
         }
       }
     };
 
     const port = parseInt(process.env.PORT || '3000');
-    startServer(port);
+    await startServer(port);
 
   } catch (error) {
     console.error('Failed to initialize application:', error);
+    await pool.end();
     process.exit(1);
   }
 })();

@@ -2,7 +2,7 @@ import { InsertUser, User, Product, Cart, InsertCart, Category, InsertCategory }
 import { users, products as productsTable, carts as cartsTable, categories as categoriesTable, productCategories } from "@shared/schema";
 import session from "express-session";
 import { db, pool } from "./db";
-import { eq, desc, lte, and, inArray } from "drizzle-orm";
+import { eq, desc, and, inArray } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 
 const PostgresSessionStore = connectPg(session);
@@ -237,147 +237,139 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCarts(limit: number = 50): Promise<Cart[]> {
+    const client = await pool.connect();
     try {
-      const result = await db.select().from(cartsTable)
+      console.log(`Fetching carts with limit ${limit} from PostgreSQL...`);
+
+      await client.query('BEGIN');
+      const result = await db
+        .select()
+        .from(cartsTable)
         .orderBy(desc(cartsTable.createdAt))
         .limit(limit);
+      await client.query('COMMIT');
+
+      console.log(`Found ${result.length} carts in database`);
 
       return result.map(cart => {
-        let items = [];
         try {
-          if (typeof cart.items === 'string') {
-            items = JSON.parse(cart.items);
-          } else if (cart.items && typeof cart.items === 'object') {
-            items = Array.isArray(cart.items) ? cart.items : [cart.items];
-          }
-        } catch (error) {
-          console.error(`Error parsing items for cart ${cart.id}:`, error);
-        }
+          // Parse items from JSONB
+          const items = typeof cart.items === 'string' 
+            ? JSON.parse(cart.items)
+            : (Array.isArray(cart.items) ? cart.items : []);
 
-        return {
-          id: cart.id,
-          customerName: cart.customerName || '',
-          customerEmail: cart.customerEmail || '',
-          items,
-          createdAt: cart.createdAt || new Date(),
-          updatedAt: cart.updatedAt || new Date()
-        };
+          return {
+            id: cart.id,
+            customerName: cart.customerName,
+            customerEmail: cart.customerEmail,
+            items,
+            createdAt: cart.createdAt,
+            updatedAt: cart.updatedAt
+          };
+        } catch (error) {
+          console.error(`Error processing cart ${cart.id}:`, error);
+          return {
+            id: cart.id,
+            customerName: cart.customerName,
+            customerEmail: cart.customerEmail,
+            items: [],
+            createdAt: cart.createdAt,
+            updatedAt: cart.updatedAt
+          };
+        }
       });
     } catch (error) {
+      await client.query('ROLLBACK');
       console.error('Database error in getCarts:', error);
-      console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
-      throw error;
+      throw new Error('Failed to fetch carts: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      client.release();
     }
   }
 
   async getCart(id: number): Promise<Cart | undefined> {
+    const client = await pool.connect();
     try {
+      await client.query('BEGIN');
+
       const [cart] = await db
         .select()
         .from(cartsTable)
         .where(eq(cartsTable.id, id));
 
+      await client.query('COMMIT');
+
       if (!cart) return undefined;
 
-      // Return the cart with properly parsed items
-      return {
-        ...cart,
-        items: typeof cart.items === 'string'
-          ? JSON.parse(cart.items)
-          : (Array.isArray(cart.items) ? cart.items : [])
-      };
-    } catch (error) {
-      console.error(`Database error in getCart(${id}):`, error);
-      throw error;
-    }
-  }
-
-  async createCart(insertCart: InsertCart): Promise<Cart> {
-    try {
-      console.log('Creating new cart...');
-      const now = new Date();
-
-      // Validate and sanitize items before storing
-      let sanitizedItems = [];
-      if (Array.isArray(insertCart.items)) {
-        sanitizedItems = insertCart.items.map(item => ({
-          productId: item.productId,
-          name: item.name,
-          description: item.description,
-          images: Array.isArray(item.images) ? item.images : [],
-          isAvailable: !!item.isAvailable,
-          createdAt: item.createdAt || now.toISOString()
-        }));
-      }
-
-      const cartData = {
-        customerName: insertCart.customerName,
-        customerEmail: insertCart.customerEmail,
-        items: JSON.stringify(sanitizedItems),
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      console.log('Inserting cart into database...');
-      const [cart] = await db
-        .insert(cartsTable)
-        .values(cartData)
-        .returning();
-
-      if (!cart) {
-        throw new Error('Failed to create cart in database');
-      }
-
-      console.log('Cart created successfully:', cart.id);
-      return {
-        ...cart,
-        items: sanitizedItems // Return the sanitized items array
-      };
-    } catch (error) {
-      console.error('Error in createCart:', error);
-      throw new Error('Failed to create cart: ' + (error instanceof Error ? error.message : 'Unknown error'));
-    }
-  }
-
-  async updateCart(id: number, updates: Partial<Cart>): Promise<Cart> {
-    try {
-      const updateData: any = { ...updates, updatedAt: new Date() };
-
-      // Handle items update if present
-      if (updates.items !== undefined) {
-        updateData.items = JSON.stringify(Array.isArray(updates.items) ? updates.items : []);
-      }
-
-      const [cart] = await db
-        .update(cartsTable)
-        .set(updateData)
-        .where(eq(cartsTable.id, id))
-        .returning();
-
-      if (!cart) {
-        throw new Error('Cart not found');
-      }
-
-      // Parse items for response
-      let items = [];
-      try {
-        items = typeof cart.items === 'string' ? JSON.parse(cart.items) : (Array.isArray(cart.items) ? cart.items : []);
-      } catch (e) {
-        console.error(`Error parsing items for cart ${id}:`, e);
-      }
+      // Parse items from JSONB
+      const items = typeof cart.items === 'string'
+        ? JSON.parse(cart.items)
+        : (Array.isArray(cart.items) ? cart.items : []);
 
       return {
         ...cart,
         items
       };
     } catch (error) {
-      console.error('Error in updateCart:', error);
-      throw new Error('Failed to update cart');
+      await client.query('ROLLBACK');
+      console.error(`Database error in getCart(${id}):`, error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async createCart(insertCart: InsertCart): Promise<Cart> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const now = new Date();
+      const items = Array.isArray(insertCart.items) ? insertCart.items : [];
+
+      const [cart] = await db
+        .insert(cartsTable)
+        .values({
+          customerName: insertCart.customerName,
+          customerEmail: insertCart.customerEmail,
+          items: JSON.stringify(items),
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+
+      await client.query('COMMIT');
+
+      if (!cart) {
+        throw new Error('Failed to create cart in database');
+      }
+
+      return {
+        ...cart,
+        items: items
+      };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error('Error creating cart:', error);
+      throw new Error('Failed to create cart: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      client.release();
     }
   }
 
   async deleteCart(id: number): Promise<void> {
-    await db.delete(cartsTable).where(eq(cartsTable.id, id));
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await db.delete(cartsTable).where(eq(cartsTable.id, id));
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error(`Database error in deleteCart(${id}):`, error);
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   async getCategories(): Promise<Category[]> {
@@ -438,16 +430,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(productCategories.productId, productId));
 
     return result.map(r => r.category);
-  }
-
-  async getProductImage(key: string, type: 'thumbnail' | 'full' = 'thumbnail'): Promise<string | null> {
-    try {
-      //This line remains as it is.  The intention was to only modify cart storage.
-      return await db_client.get(key);
-    } catch (error) {
-      console.error(`Storage error in getProductImage (${type}):`, error);
-      return null;
-    }
   }
 }
 

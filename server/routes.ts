@@ -139,35 +139,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Fetching carts with limit ${limit}...`);
 
       const carts = await storage.getCarts(limit);
-      
-      if (!Array.isArray(carts)) {
-        throw new Error('Invalid cart data format from storage');
-      }
+      console.log(`Successfully retrieved ${carts.length} carts`);
 
-      const parsedCarts = carts.map(cart => {
-        try {
-          const items = typeof cart.items === 'string' ? 
-            JSON.parse(cart.items) : 
-            (Array.isArray(cart.items) ? cart.items : []);
-            
-          return {
-            id: cart.id,
-            customerName: cart.customerName || '',
-            customerEmail: cart.customerEmail || '',
-            items,
-            createdAt: cart.createdAt,
-            updatedAt: cart.updatedAt
-          };
-        } catch (error) {
-          console.error(`Error parsing cart ${cart.id}:`, error);
-          return {
-            ...cart,
-            items: []
-          };
-        }
-      });
-
-      res.json(parsedCarts);
+      res.json(carts);
     } catch (error) {
       console.error('Error fetching carts:', error);
       res.status(500).json({ 
