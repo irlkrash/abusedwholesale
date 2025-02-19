@@ -32,7 +32,8 @@ export function ProductCarousel({
 
   return (
     <Carousel className={cn("relative w-full h-full", className)}>
-      <CarouselContent>
+      <CarouselContent aria-describedby="product-image-viewer">
+        <div id="product-image-viewer" className="sr-only">Product image viewer</div>
         {images.map((image, index) => (
           <CarouselItem key={index}>
             <AspectRatio ratio={1}>
