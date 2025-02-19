@@ -41,14 +41,14 @@ const AdminCarts = () => {
       try {
         const queryParams = new URLSearchParams({
           limit: '1000',
-          includeUnavailable: 'true'
+          page: '1'
         });
 
         const response = await apiRequest("GET", `/api/products?${queryParams.toString()}`);
         if (!response.ok) throw new Error('Failed to fetch products');
         const data = await response.json();
         console.log('Products loaded:', data);
-        return Array.isArray(data) ? data : [];
+        return Array.isArray(data.products) ? data.products : [];
       } catch (error) {
         console.error('Error loading products:', error);
         throw error;
