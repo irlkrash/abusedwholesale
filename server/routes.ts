@@ -45,12 +45,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/products", async (req, res) => {
     try {
-      console.log(`Fetching products: page=${req.query.page || 1}, limit=${req.query.limit || 12}`);
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 12;
-      const offset = (page - 1) * limit;
+      const adminView = req.query.admin === 'true'; //Added check for admin query parameter
+      console.log(`Fetching products: adminView=${adminView}, page=${req.query.page || 1}, limit=${req.query.limit || 12}`);
+      const page = adminView ? undefined : parseInt(req.query.page as string) || 1;
+      const limit = adminView ? undefined : parseInt(req.query.limit as string) || 12;
+      const offset = page ? (page - 1) * limit : 0; //Updated offset calculation
 
-      const products = await storage.getProducts(offset, limit);
+      const products = await storage.getProducts(offset, limit, adminView ? undefined : limit); //Pass limit only if not adminView
 
       if (!products) {
         console.error('No products returned from database');

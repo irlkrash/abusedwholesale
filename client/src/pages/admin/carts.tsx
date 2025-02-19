@@ -38,7 +38,7 @@ const AdminCarts = () => {
   const { data: products = [], isLoading: productsLoading, error: productsError } = useQuery<Product[]>({
     queryKey: ["/api/products"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/products");
+      const response = await apiRequest("GET", "/api/products?admin=true");
       if (!response.ok) throw new Error('Failed to fetch products');
       const data = await response.json();
       console.log('Products loaded:', data);
