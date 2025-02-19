@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { ImageViewer } from "@/components/image-viewer";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Cart, Product, CartItem } from "@shared/schema";
