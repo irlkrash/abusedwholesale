@@ -48,10 +48,12 @@ const AdminCarts = () => {
 
   const productsMap = useMemo(() => {
     const map = new Map<number, Product>();
-    products.forEach(product => {
-      map.set(product.id, product);
-      console.log('Product mapped:', product.id, product.images);
-    });
+    if (Array.isArray(products)) {
+      products.forEach(product => {
+        map.set(product.id, product);
+        console.log('Product mapped:', product.id, product.images);
+      });
+    }
     return map;
   }, [products]);
 
