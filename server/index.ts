@@ -82,26 +82,23 @@ app.use((req, res, next) => {
 
     // Improved server listening with error handling
     const port = process.env.PORT || 5000;
-    server.listen(port, "0.0.0.0")
-      .once('listening', () => {
-        log(`Server started successfully on port ${port}`);
-      })
-      .once('error', (err: any) => {
-        if (err.code === 'EADDRINUSE') {
-          log(`Port ${port} in use, trying ${port + 1}...`);
-          server.listen(port + 1, "0.0.0.0")
-            .once('listening', () => {
-              log(`Server started successfully on port ${port + 1}`);
-            })
-            .once('error', (err) => {
-              console.error('Failed to start server:', err);
-              process.exit(1);
-            });
-        } else {
-          console.error('Failed to start server:', err);
-          process.exit(1);
-        }
-      });
+    const startServer = (p: number) => {
+      server.listen(p, "0.0.0.0")
+        .once('listening', () => {
+          log(`Server started successfully on port ${p}`);
+        })
+        .once('error', (err: any) => {
+          if (err.code === 'EADDRINUSE') {
+            log(`Port ${p} in use, trying ${p + 1}...`);
+            startServer(p + 1);
+          } else {
+            console.error('Failed to start server:', err);
+            process.exit(1);
+          }
+        });
+    };
+    
+    startServer(port);
 
   } catch (error) {
     console.error('Failed to initialize application:', error);
