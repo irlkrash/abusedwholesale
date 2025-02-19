@@ -47,14 +47,21 @@ export class DatabaseStorage implements IStorage {
 
   async getProducts(pageOffset = 0, pageLimit = 12): Promise<Product[]> {
     try {
-      console.log(`Fetching products with offset: ${pageOffset}, limit: ${pageLimit}`);
+      const offset = Math.max(0, pageOffset);
+      const limit = pageLimit === null ? undefined : Math.max(1, Math.min(100, pageLimit));
+      
+      console.log(`Fetching products with offset: ${offset}, limit: ${limit}`);
 
-      const products = await db
+      const query = db
         .select()
         .from(productsTable)
-        .orderBy(desc(productsTable.createdAt))
-        .limit(pageLimit)
-        .offset(pageOffset);
+        .orderBy(desc(productsTable.createdAt));
+
+      if (limit) {
+        query.limit(limit).offset(offset);
+      }
+
+      const products = await query;
 
       console.log(`Successfully retrieved ${products.length} products`);
       return products;
