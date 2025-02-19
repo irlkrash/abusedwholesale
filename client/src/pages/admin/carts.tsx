@@ -41,11 +41,16 @@ const AdminCarts = () => {
       const response = await apiRequest("GET", "/api/carts");
       if (!response.ok) {
         const error = await response.text();
+        console.error('Cart fetch error:', error);
         throw new Error(error || 'Failed to fetch carts');
       }
       const data = await response.json();
-      console.log('Cart data received:', data);
-      return Array.isArray(data) ? data : [];
+      console.log('Cart data received:', JSON.stringify(data, null, 2));
+      if (!Array.isArray(data)) {
+        console.error('Invalid cart data format:', data);
+        return [];
+      }
+      return data;
     },
     refetchInterval: 30000,
     retry: 3,

@@ -149,13 +149,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Parse cart items consistently
-      const parsedCarts = carts.map(cart => ({
-        ...cart,
-        items: typeof cart.items === 'string' ? JSON.parse(cart.items) : cart.items
-      }));
+      // Parse cart items with error handling for each cart
+      const parsedCarts = carts.map(cart => {
+        try {
+          let parsedItems = [];
+          if (typeof cart.items === 'string') {
+            parsedItems = JSON.parse(cart.items);
+          } else if (Array.isArray(cart.items)) {
+            parsedItems = cart.items;
+          }
+          return {
+            ...cart,
+            items: parsedItems
+          };
+        } catch (error) {
+          console.error(`Error parsing cart ${cart.id}:`, error);
+          return {
+            ...cart,
+            items: []
+          };
+        }
+      });
 
-      console.log(`Successfully processed ${parsedCarts.length} carts`);
+      console.log(`Successfully processed ${parsedCarts.length} carts:`, JSON.stringify(parsedCarts, null, 2));
       res.json(parsedCarts);
     } catch (error) {
       console.error('Error fetching carts:', error);
