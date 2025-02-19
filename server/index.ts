@@ -102,20 +102,23 @@ app.use((req, res, next) => {
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
     // Improved server listening with error handling
-    const port = process.env.PORT || 3000;
-    server.listen(port, "0.0.0.0")
-      .once('listening', () => {
-        log(`Server started successfully on port ${port}`);
-      })
-      .once('error', (err: any) => {
-        if (err.code === 'EADDRINUSE') {
-          console.error(`Port ${port} is already in use. Trying port ${port + 1}`);
-          server.listen(port + 1, "0.0.0.0");
+    const startServer = async (initialPort: number) => {
+      try {
+        await server.listen(initialPort, '0.0.0.0');
+        console.log(`Server started successfully on port ${initialPort}`);
+      } catch (error) {
+        if (error.code === 'EADDRINUSE') {
+          console.log(`Port ${initialPort} is already in use. Trying port ${initialPort + 1}`);
+          await startServer(initialPort + 1);
         } else {
-          console.error('Failed to start server:', err);
+          console.error('Failed to start server:', error);
           process.exit(1);
         }
-      });
+      }
+    };
+
+    const port = parseInt(process.env.PORT || '3000');
+    startServer(port);
 
   } catch (error) {
     console.error('Failed to initialize application:', error);
