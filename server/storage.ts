@@ -20,17 +20,15 @@ export interface IStorage {
   createProduct(product: Omit<Product, 'id'> & { categories?: number[] }): Promise<Product>;
   updateProduct(id: number, product: Partial<Product> & { categories?: number[] }): Promise<Product>;
   deleteProduct(id: number): Promise<void>;
-  getCarts(): Promise<Cart[]>;
+  getCarts(limit?: number): Promise<Cart[]>;
   createCart(cart: InsertCart): Promise<Cart>;
   updateCart(id: number, cart: Partial<Cart>): Promise<Cart>;
   deleteCart(id: number): Promise<void>;
   getCart(id: number): Promise<Cart | undefined>;
-  // New category-related methods
   getCategories(): Promise<Category[]>;
   getCategory(id: number): Promise<Category | undefined>;
   createCategory(category: InsertCategory): Promise<Category>;
   deleteCategory(id: number): Promise<void>;
-  // Bulk operations for categories
   addProductCategories(productId: number, categoryIds: number[]): Promise<void>;
   removeProductCategories(productId: number, categoryIds: number[]): Promise<void>;
   getProductCategories(productId: number): Promise<Category[]>;
@@ -248,6 +246,8 @@ export class DatabaseStorage implements IStorage {
         .orderBy(desc(cartsTable.createdAt))
         .limit(limit);
 
+      console.log(`Found ${result.length} carts`);
+
       return result.map(cart => {
         try {
           // Safely parse cart items
@@ -263,9 +263,6 @@ export class DatabaseStorage implements IStorage {
             parsedItems = cart.items;
           }
 
-          // Ensure items is always an array and limit its size
-          parsedItems = Array.isArray(parsedItems) ? parsedItems.slice(0, 100) : [];
-
           return {
             ...cart,
             items: parsedItems
@@ -276,8 +273,9 @@ export class DatabaseStorage implements IStorage {
         }
       });
     } catch (error) {
-      console.error('Database error in getCarts:', error);
-      throw new Error('Failed to fetch carts from database');
+      console.error('Error in getCarts:', error);
+      // Return empty array instead of throwing to prevent app crashes
+      return [];
     }
   }
 
@@ -308,13 +306,10 @@ export class DatabaseStorage implements IStorage {
       console.log('Creating new cart:', insertCart);
       const now = new Date();
 
-      // Ensure items array is valid before stringifying
-      const items = Array.isArray(insertCart.items) ? insertCart.items : [];
-
       const cartData = {
         customerName: insertCart.customerName,
         customerEmail: insertCart.customerEmail,
-        items: JSON.stringify(items),
+        items: JSON.stringify(Array.isArray(insertCart.items) ? insertCart.items : []),
         createdAt: now,
         updatedAt: now,
       };
@@ -325,17 +320,19 @@ export class DatabaseStorage implements IStorage {
         .returning();
 
       if (!cart) {
-        throw new Error('Failed to create cart in database');
+        throw new Error('Failed to create cart');
       }
 
-      // Return the cart with properly parsed items
+      // Parse items back to object for response
+      const items = typeof cart.items === 'string' ? JSON.parse(cart.items) : [];
+
       return {
         ...cart,
-        items: items
+        items
       };
     } catch (error) {
-      console.error('Database error in createCart:', error);
-      throw new Error('Failed to create cart in database');
+      console.error('Error in createCart:', error);
+      throw error;
     }
   }
 

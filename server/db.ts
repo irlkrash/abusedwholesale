@@ -20,12 +20,11 @@ export const pool = new Pool({
         sslmode: 'require'
       } 
     : false,
-  max: 10,
-  idleTimeoutMillis: 60000,
+  max: 20,
+  idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
   keepAlive: true,
-  keepAliveInitialDelayMillis: 5000,
-  connectionRetryLimit: 5
+  keepAliveInitialDelayMillis: 1000,
 });
 
 // Add error handler for the pool
@@ -49,4 +48,5 @@ process.on('SIGTERM', async () => {
   }
   process.exit(0);
 });
+
 export const db = drizzle({ client: pool, schema });
