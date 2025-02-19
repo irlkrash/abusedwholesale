@@ -1,6 +1,4 @@
 import { InsertUser, User, Product, Cart, InsertCart, Category, InsertCategory } from "@shared/schema";
-import Database from '@replit/database';
-const db_client = new Database();
 import { users, products as productsTable, carts as cartsTable, categories as categoriesTable, productCategories } from "@shared/schema";
 import session from "express-session";
 import { db, pool } from "./db";
@@ -417,7 +415,6 @@ export class DatabaseStorage implements IStorage {
     await db.delete(cartsTable).where(eq(cartsTable.id, id));
   }
 
-  // New category-related methods
   async getCategories(): Promise<Category[]> {
     return db.select().from(categoriesTable).orderBy(desc(categoriesTable.createdAt));
   }
@@ -480,6 +477,7 @@ export class DatabaseStorage implements IStorage {
 
   async getProductImage(key: string, type: 'thumbnail' | 'full' = 'thumbnail'): Promise<string | null> {
     try {
+      //This line remains as it is.  The intention was to only modify cart storage.
       return await db_client.get(key);
     } catch (error) {
       console.error(`Storage error in getProductImage (${type}):`, error);
