@@ -1,5 +1,5 @@
-import { useAuth } from "@/hooks/use-auth";
 import { useState, useMemo, useEffect } from "react";
+import { useAuth } from "@/hooks/use-auth";
 import { ImageViewer } from "@/components/image-viewer";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Cart, Product, CartItem } from "@shared/schema";
@@ -36,13 +36,23 @@ const AdminCarts = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const { data: products = [], isLoading: productsLoading, error: productsError } = useQuery<Product[]>({
-    queryKey: ["/api/products"],
+    queryKey: ["/api/products", "all"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/products");
-      if (!response.ok) throw new Error('Failed to fetch products');
-      const data = await response.json();
-      console.log('Products loaded:', data);
-      return Array.isArray(data) ? data : [];
+      try {
+        const queryParams = new URLSearchParams({
+          limit: '1000',
+          includeUnavailable: 'true'
+        });
+
+        const response = await apiRequest("GET", `/api/products?${queryParams.toString()}`);
+        if (!response.ok) throw new Error('Failed to fetch products');
+        const data = await response.json();
+        console.log('Products loaded:', data);
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error('Error loading products:', error);
+        throw error;
+      }
     }
   });
 
@@ -50,9 +60,8 @@ const AdminCarts = () => {
     const map = new Map<number, Product>();
     if (Array.isArray(products)) {
       products.forEach(product => {
-        if (product && typeof product.id === 'number') {
-          map.set(product.id, product);
-        }
+        map.set(product.id, product);
+        console.log('Product mapped:', product.id, product.name, product.images?.length);
       });
     }
     return map;
@@ -273,7 +282,6 @@ const AdminCarts = () => {
                                   <ProductCarousel
                                     images={product.images}
                                     onImageClick={(image) => setSelectedImage(image)}
-                                    priority={index < 2}
                                     priority={index < 2}
                                   />
                                 ) : (
