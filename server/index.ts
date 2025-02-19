@@ -81,7 +81,7 @@ app.use((req, res, next) => {
     server.headersTimeout = 66000; // Slightly higher than keepAliveTimeout
 
     // Improved server listening with error handling
-    const port = 5000;
+    const port = process.env.PORT || 5000;
     server.listen(port, "0.0.0.0")
       .once('listening', () => {
         log(`Server started successfully on port ${port}`);
