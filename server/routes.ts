@@ -137,22 +137,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
       console.log(`Fetching carts with limit ${limit}...`);
+      
       const carts = await storage.getCarts(limit);
-      if (!carts?.length) {
-        return res.json([]);
-      }
-
-      // Handle null/undefined case
+      
+      // Ensure we have a valid response
       if (!carts) {
         console.log('No carts found, returning empty array');
         return res.json([]);
       }
 
-      // Ensure we always return an array
-      if (!Array.isArray(carts)) {
-        console.log('Converting single cart to array');
-        return res.json([carts].filter(Boolean));
-      }
+      const cartsArray = Array.isArray(carts) ? carts : [carts].filter(Boolean);
+      
+      // Sanitize the cart items
+      const sanitizedCarts = cartsArray.map(cart => {
+        try {
+          const items = typeof cart.items === 'string' ? 
+            JSON.parse(cart.items) : 
+            (Array.isArray(cart.items) ? cart.items : []);
+            
+          return {
+            ...cart,
+            items: items || []
+          };
+        } catch (e) {
+          console.error(`Error processing cart ${cart.id}:`, e);
+          return {
+            ...cart,
+            items: []
+          };
+        }
+      });
 
       // Validate each cart's items with robust error handling
       const validatedCarts = carts.map(cart => {
@@ -187,15 +201,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
-      console.log(`Successfully processed ${validatedCarts.length} carts`);
-      res.json(validatedCarts);
+      console.log(`Successfully processed ${sanitizedCarts.length} carts`);
+      res.json(sanitizedCarts);
     } catch (error) {
       console.error('Error fetching carts:', error);
-      console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
       res.status(500).json({ 
         message: "Failed to fetch carts",
-        error: error instanceof Error ? error.message : "Unknown error occurred",
-        stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : null) : undefined
+        error: error instanceof Error ? error.message : "Unknown error occurred"
       });
     }
   });
