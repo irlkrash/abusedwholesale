@@ -55,10 +55,21 @@ export class DatabaseStorage implements IStorage {
       const query = db
         .select()
         .from(productsTable)
-        .orderBy(desc(productsTable.createdAt));
+        .orderBy(desc(productsTable.createdAt))
+        .limit(limit || 100);
 
-      if (limit) {
-        query.limit(limit).offset(offset);
+      // Use cursor-based pagination for better performance
+      if (offset > 0) {
+        const cursor = await db
+          .select({ createdAt: productsTable.createdAt })
+          .from(productsTable)
+          .orderBy(desc(productsTable.createdAt))
+          .limit(1)
+          .offset(offset - 1);
+
+        if (cursor.length > 0) {
+          query.where(lte(productsTable.createdAt, cursor[0].createdAt));
+        }
       }
 
       const products = await query;

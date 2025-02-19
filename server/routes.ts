@@ -60,6 +60,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(200).json([]); // Return empty array instead of 404
       }
 
+      // Add cursor info in headers for client caching
+      res.setHeader('X-Pagination-Offset', offset.toString());
+      res.setHeader('X-Pagination-Limit', limit.toString());
       res.json(products);
     } catch (error) {
       console.error('Error fetching products:', error);
