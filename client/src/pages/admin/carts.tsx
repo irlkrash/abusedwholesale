@@ -310,12 +310,8 @@ const AdminCarts = () => {
                                       <span className="text-xs text-muted-foreground">No image</span>
                                     </div>
                                   );
-                                      onImageClick={(image) => setSelectedImage(image)}
-                                      priority={true}
-                                      loading="eager"
-                                      className="w-full h-full"
-                                    />
-                                  );
+                                })()}
+                              </div>
                                 })()}
                               </div>
                               <div className="flex-1">
