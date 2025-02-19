@@ -278,17 +278,38 @@ const AdminCarts = () => {
                                     return null;
                                   }
 
-                                  if (!product?.images?.length) {
+                                  // First try to use product images if available
+                                  if (product?.images?.length) {
                                     return (
-                                      <div className="flex items-center justify-center w-full h-full bg-muted">
-                                        <span className="text-xs text-muted-foreground">No image</span>
-                                      </div>
+                                      <ProductCarousel
+                                        images={product.images}
+                                        onImageClick={(image) => setSelectedImage(image)}
+                                        priority={true}
+                                        loading="eager"
+                                        className="w-full h-full"
+                                      />
                                     );
                                   }
                                   
+                                  // Fallback to item's stored image if product images not available
+                                  if (item.image) {
+                                    return (
+                                      <ProductCarousel
+                                        images={[item.image]}
+                                        onImageClick={(image) => setSelectedImage(image)}
+                                        priority={true}
+                                        loading="eager"
+                                        className="w-full h-full"
+                                      />
+                                    );
+                                  }
+
+                                  // No images available
                                   return (
-                                    <ProductCarousel
-                                      images={product.images}
+                                    <div className="flex items-center justify-center w-full h-full bg-muted">
+                                      <span className="text-xs text-muted-foreground">No image</span>
+                                    </div>
+                                  );
                                       onImageClick={(image) => setSelectedImage(image)}
                                       priority={true}
                                       loading="eager"
