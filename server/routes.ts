@@ -139,10 +139,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Fetching carts with limit ${limit}...`);
       
       const carts = await storage.getCarts(limit);
+      console.log('Raw carts response:', carts);
       
-      if (!carts || !Array.isArray(carts)) {
-        console.log('No carts found or invalid response, returning empty array');
+      if (!carts) {
+        console.log('No carts found, returning empty array');
         return res.json([]);
+      }
+
+      if (!Array.isArray(carts)) {
+        console.error('Invalid carts response format:', carts);
+        return res.status(500).json({ 
+          message: "Invalid response format from storage",
+          error: "Expected array of carts"
+        });
       }
 
       const sanitizedCarts = carts.map(cart => {
