@@ -140,57 +140,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const carts = await storage.getCarts(limit);
       
-      // Ensure we have a valid response
-      if (!carts) {
-        console.log('No carts found, returning empty array');
+      if (!carts || !Array.isArray(carts)) {
+        console.log('No carts found or invalid response, returning empty array');
         return res.json([]);
       }
 
-      const cartsArray = Array.isArray(carts) ? carts : [carts].filter(Boolean);
-      
-      // Sanitize the cart items
-      const sanitizedCarts = cartsArray.map(cart => {
+      const sanitizedCarts = carts.map(cart => {
         try {
-          const items = typeof cart.items === 'string' ? 
-            JSON.parse(cart.items) : 
-            (Array.isArray(cart.items) ? cart.items : []);
-            
-          return {
-            ...cart,
-            items: items || []
-          };
-        } catch (e) {
-          console.error(`Error processing cart ${cart.id}:`, e);
-          return {
-            ...cart,
-            items: []
-          };
-        }
-      });
-
-      // Validate each cart's items with robust error handling
-      const validatedCarts = carts.map(cart => {
-        try {
-          let parsedItems = cart.items;
-
-          // Handle string-encoded items
+          let items = [];
           if (typeof cart.items === 'string') {
             try {
-              parsedItems = JSON.parse(cart.items);
-            } catch (e) {
-              console.error(`Failed to parse cart ${cart.id} items:`, e);
-              parsedItems = [];
+              items = JSON.parse(cart.items);
+            } catch {
+              console.warn(`Failed to parse items for cart ${cart.id}, defaulting to empty array`);
+              items = [];
             }
-          }
-
-          // Ensure items is always an array
-          if (!Array.isArray(parsedItems)) {
-            parsedItems = [];
+          } else if (Array.isArray(cart.items)) {
+            items = cart.items;
           }
 
           return {
             ...cart,
-            items: parsedItems
+            items: items
           };
         } catch (e) {
           console.error(`Error processing cart ${cart.id}:`, e);
