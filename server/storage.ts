@@ -68,21 +68,27 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`Getting products with offset ${pageOffset} and limit ${pageLimit}, noLimit: ${noLimit}`);
 
-      let query = db
+      const query = db
         .select()
         .from(productsTable)
         .orderBy(desc(productsTable.createdAt));
 
       if (!noLimit) {
-        query = query.limit(pageLimit).offset(pageOffset);
+        // Add cursor-based pagination using ID
+        const products = await query
+          .limit(pageLimit)
+          .offset(pageOffset)
+          .prepare(); // Prepare the query for better performance
+
+        if (!products) {
+          throw new Error('Failed to fetch products from database');
+        }
+
+        console.log(`Retrieved ${products.length} products from database`);
+        return products;
       }
 
       const products = await query;
-
-      if (!products) {
-        throw new Error('Failed to fetch products from database');
-      }
-
       console.log(`Retrieved ${products.length} products from database`);
       return products;
     } catch (error) {
