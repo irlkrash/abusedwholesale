@@ -278,6 +278,14 @@ const AdminCarts = () => {
                                     return null;
                                   }
 
+                                  if (!product?.images?.length) {
+                                    return (
+                                      <div className="flex items-center justify-center w-full h-full bg-muted">
+                                        <span className="text-xs text-muted-foreground">No image</span>
+                                      </div>
+                                    );
+                                  }
+                                  
                                   return (
                                     <ProductCarousel
                                       images={product.images}
