@@ -49,15 +49,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const limit = parseInt(req.query.limit as string) || 12;
       const offset = (page - 1) * limit;
 
+      console.log(`Fetching products page ${page} with limit ${limit}`);
       const products = await storage.getProducts(offset, limit);
-
-      if (!products) {
-        return res.status(200).json({
-          data: [],
-          nextPage: undefined,
-          lastPage: true
-        });
-      }
+      console.log(`Found ${products.length} products`);
 
       // Add pagination info in headers for client caching
       res.setHeader('X-Pagination-Page', page.toString());
@@ -79,12 +73,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/products", requireAdmin, async (req, res) => {
     try {
+      console.log('Creating new product with data:', req.body);
       const parsed = insertProductSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json(parsed.error);
       }
 
       const product = await storage.createProduct(parsed.data);
+      console.log('Successfully created product:', product);
       res.status(201).json(product);
     } catch (error) {
       console.error('Error creating product:', error);

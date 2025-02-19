@@ -49,23 +49,19 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`Fetching products with offset: ${pageOffset}, limit: ${pageLimit}`);
 
-      const limit = Math.max(1, Math.min(100, pageLimit)); // Ensure limit is between 1 and 100
-
-      // Basic query without cursor
-      let query = db
+      const limit = Math.max(1, Math.min(100, pageLimit));
+      const products = await db
         .select()
         .from(productsTable)
         .orderBy(desc(productsTable.createdAt))
         .offset(pageOffset)
         .limit(limit);
 
-      const products = await query;
-      console.log(`Successfully retrieved ${products.length} products`);
-
+      console.log(`Retrieved ${products.length} products:`, products);
       return products;
     } catch (error) {
       console.error('Error in getProducts:', error);
-      return []; // Return empty array instead of throwing
+      throw error; // Let the route handler handle the error
     }
   }
 
@@ -85,26 +81,20 @@ export class DatabaseStorage implements IStorage {
 
   async createProduct(insertProduct: Product): Promise<Product> {
     try {
-      const imageKeys = await Promise.all(
-        insertProduct.images.map(async (imageData, index) => {
-          const keys = await storeImage(imageData, `product_image_${index}`);
-          return {
-            thumbnail: keys.thumbnail,
-            full: keys.full,
-          };
-        })
-      );
-
+      console.log('Creating product with data:', insertProduct);
       const [product] = await db
         .insert(productsTable)
         .values({
           name: insertProduct.name,
           description: insertProduct.description,
-          images: imageKeys.map((keys) => keys.thumbnail), // Store thumbnail keys as main images
-          fullImages: imageKeys.map((keys) => keys.full), // Store full resolution keys
+          images: insertProduct.images || [],
+          fullImages: insertProduct.fullImages || [],
           isAvailable: insertProduct.isAvailable ?? true,
+          createdAt: new Date(),
         })
         .returning();
+
+      console.log('Successfully created product:', product);
       return product;
     } catch (error) {
       console.error('Database error in createProduct:', error);
