@@ -250,7 +250,7 @@ export class DatabaseStorage implements IStorage {
       // Ensure items are properly parsed JSON objects
       return result.map(cart => {
         try {
-          const parsedItems = typeof cart.items === 'string' 
+          const parsedItems = typeof cart.items === 'string'
             ? JSON.parse(cart.items)
             : (Array.isArray(cart.items) ? cart.items : []);
 
