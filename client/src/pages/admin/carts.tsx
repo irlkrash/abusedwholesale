@@ -66,7 +66,8 @@ const AdminCarts = () => {
       console.log('Carts loaded:', data);
       return Array.isArray(data) ? data : [];
     },
-    refetchInterval: 5000
+    refetchInterval: 5000,
+    keepPreviousData: true
   });
 
   const sortedCarts = useMemo(() =>
