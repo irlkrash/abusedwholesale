@@ -1,7 +1,7 @@
 import { InsertUser, User, Product, Cart, InsertProduct, InsertCart } from "@shared/schema";
 
-import { Client } from '@replit/database';
-const db_client = new Client();
+import Database from '@replit/database';
+const db_client = new Database();
 
 import { users, products as productsTable, carts as cartsTable } from "@shared/schema";
 import session from "express-session";
