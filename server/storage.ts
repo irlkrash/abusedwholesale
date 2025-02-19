@@ -3,7 +3,7 @@ import Database from '@replit/database';
 const db_client = new Database();
 import { users, products as productsTable, carts as cartsTable, categories as categoriesTable, productCategories } from "@shared/schema";
 import session from "express-session";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { eq, desc, lte, and, inArray } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 
@@ -242,19 +242,26 @@ export class DatabaseStorage implements IStorage {
 
   async getCarts(): Promise<Cart[]> {
     try {
-      const result = await db
-        .select()
+      await pool.connect();
+      const result = await db.select()
         .from(cartsTable)
         .orderBy(desc(cartsTable.createdAt));
 
-      return result.map(cart => ({
-        ...cart,
-        items: Array.isArray(cart.items) ? cart.items : 
-               (typeof cart.items === 'string' ? JSON.parse(cart.items) : [])
-      }));
+      return result.map(cart => {
+        try {
+          return {
+            ...cart,
+            items: Array.isArray(cart.items) ? cart.items : 
+                   (typeof cart.items === 'string' ? JSON.parse(cart.items) : [])
+          };
+        } catch (parseError) {
+          console.error(`Error parsing cart ${cart.id} items:`, parseError);
+          return { ...cart, items: [] };
+        }
+      });
     } catch (error) {
       console.error('Database error in getCarts:', error);
-      throw new Error(`Failed to fetch carts: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Database error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
