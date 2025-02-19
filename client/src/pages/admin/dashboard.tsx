@@ -91,7 +91,8 @@ export default function AdminDashboard() {
         const queryParams = new URLSearchParams({
           page: pageParam.toString(),
           limit: '12',
-          sort: 'createdAt:desc'
+          sort: 'createdAt:desc',
+          admin: 'true'
         });
 
         const response = await apiRequest(
@@ -158,7 +159,7 @@ export default function AdminDashboard() {
     if (selectedProducts.size === products.length) {
       clearSelection();
     } else {
-      const allProductIds = products.map(product => product.id);
+      const allProductIds = data?.pages?.flatMap(page => page.data.map(product => product.id)) ?? [];
       setSelectedProducts(new Set(allProductIds));
     }
   };
