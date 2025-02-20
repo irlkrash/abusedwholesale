@@ -1,4 +1,4 @@
-import { InsertUser, User, Product, Cart, InsertCart, Category, InsertCategory, CartItem } from "@shared/schema";
+import { InsertUser, User, Product, Cart, InsertCart, Category, InsertCategory, CartItem, cartItems, InsertCartItem } from "@shared/schema";
 import { users, products as productsTable, carts as cartsTable, categories as categoriesTable, productCategories } from "@shared/schema";
 import session from "express-session";
 import { db, pool } from "./db";
@@ -237,107 +237,68 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCarts(limit: number = 50): Promise<Cart[]> {
-    const client = await pool.connect();
     try {
       console.log(`Fetching carts with limit ${limit} from PostgreSQL...`);
 
       const result = await db
-        .select()
+        .select({
+          cart: cartsTable,
+          items: cartItems,
+        })
         .from(cartsTable)
+        .leftJoin(cartItems, eq(cartsTable.id, cartItems.cartId))
         .orderBy(desc(cartsTable.createdAt))
         .limit(Math.min(limit, 100));
 
-      console.log(`Found ${result.length} carts in database`);
+      // Group items by cart
+      const cartsMap = new Map<number, Cart>();
 
-      return result.map(cart => {
-        try {
-          // Parse items from JSONB if needed
-          const items = typeof cart.items === 'string'
-            ? JSON.parse(cart.items)
-            : cart.items;
-
-          // Ensure items is an array
-          const itemsArray = Array.isArray(items) ? items : [];
-
-          // Sanitize each item
-          const sanitizedItems = itemsArray.map(item => ({
-            productId: Number(item.productId),
-            name: String(item.name || ''),
-            description: String(item.description || ''),
-            images: Array.isArray(item.images) ? item.images.map(String) : [],
-            fullImages: Array.isArray(item.fullImages) ? item.fullImages.map(String) : [],
-            isAvailable: Boolean(item.isAvailable),
-            createdAt: new Date(item.createdAt).toISOString()
-          }));
-
-          return {
-            id: cart.id,
-            customerName: cart.customerName,
-            customerEmail: cart.customerEmail,
-            items: sanitizedItems,
-            createdAt: cart.createdAt,
-            updatedAt: cart.updatedAt
-          };
-        } catch (error) {
-          console.error(`Error processing cart ${cart.id}:`, error);
-          // Return cart with empty items array if processing fails
-          return {
-            id: cart.id,
-            customerName: cart.customerName,
-            customerEmail: cart.customerEmail,
+      result.forEach(({ cart, items }) => {
+        if (!cartsMap.has(cart.id)) {
+          cartsMap.set(cart.id, {
+            ...cart,
             items: [],
-            createdAt: cart.createdAt,
-            updatedAt: cart.updatedAt
-          };
+          });
+        }
+
+        if (items) {
+          const existingCart = cartsMap.get(cart.id)!;
+          existingCart.items.push(items);
         }
       });
+
+      return Array.from(cartsMap.values());
     } catch (error) {
       console.error('Database error in getCarts:', error);
       throw new Error('Failed to fetch carts: ' + (error instanceof Error ? error.message : 'Unknown error'));
-    } finally {
-      client.release();
     }
   }
 
   async getCart(id: number): Promise<Cart | undefined> {
-    const client = await pool.connect();
     try {
-      await client.query('BEGIN');
-
-      const [cart] = await db
-        .select()
+      const result = await db
+        .select({
+          cart: cartsTable,
+          items: cartItems,
+        })
         .from(cartsTable)
+        .leftJoin(cartItems, eq(cartsTable.id, cartItems.cartId))
         .where(eq(cartsTable.id, id));
 
-      await client.query('COMMIT');
+      if (result.length === 0) return undefined;
 
-      if (!cart) return undefined;
-
-      // Parse items from JSONB and ensure all required fields
-      const items = typeof cart.items === 'string'
-        ? JSON.parse(cart.items)
-        : (Array.isArray(cart.items) ? cart.items : []);
-
-      const sanitizedItems = items.map((item: any) => ({
-        productId: item.productId,
-        name: item.name,
-        description: item.description,
-        images: Array.isArray(item.images) ? item.images : [],
-        fullImages: Array.isArray(item.fullImages) ? item.fullImages : [],
-        isAvailable: !!item.isAvailable,
-        createdAt: item.createdAt || new Date().toISOString()
-      }));
+      const cart = result[0].cart;
+      const items = result
+        .filter(r => r.items)
+        .map(r => r.items);
 
       return {
         ...cart,
-        items: sanitizedItems
+        items,
       };
     } catch (error) {
-      await client.query('ROLLBACK');
       console.error(`Database error in getCart(${id}):`, error);
       throw error;
-    } finally {
-      client.release();
     }
   }
 
@@ -346,30 +307,39 @@ export class DatabaseStorage implements IStorage {
     try {
       await client.query('BEGIN');
 
-      const now = new Date();
-      const items = Array.isArray(insertCart.items)
-        ? insertCart.items.map(item => ({
-            ...item,
-            createdAt: item.createdAt || now.toISOString()
-          }))
-        : [];
-
+      // Create cart first
       const [cart] = await db
         .insert(cartsTable)
         .values({
           customerName: insertCart.customerName,
           customerEmail: insertCart.customerEmail,
-          items: JSON.stringify(items),
-          createdAt: now,
-          updatedAt: now,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         })
+        .returning();
+
+      // Insert cart items
+      const cartItemValues = insertCart.items.map(item => ({
+        cartId: cart.id,
+        productId: item.productId,
+        name: item.name,
+        description: item.description,
+        images: item.images,
+        fullImages: item.fullImages || [],
+        isAvailable: item.isAvailable,
+        createdAt: new Date(),
+      }));
+
+      const items = await db
+        .insert(cartItems)
+        .values(cartItemValues)
         .returning();
 
       await client.query('COMMIT');
 
       return {
         ...cart,
-        items: items
+        items,
       };
     } catch (error) {
       await client.query('ROLLBACK');
@@ -384,6 +354,7 @@ export class DatabaseStorage implements IStorage {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
+      // Due to CASCADE deletion, we only need to delete the cart
       await db.delete(cartsTable).where(eq(cartsTable.id, id));
       await client.query('COMMIT');
     } catch (error) {

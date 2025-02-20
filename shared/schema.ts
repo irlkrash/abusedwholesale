@@ -1,6 +1,7 @@
 import { pgTable, text, serial, integer, boolean, jsonb, timestamp, index, primaryKey } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { relations } from "drizzle-orm";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -43,13 +44,26 @@ export const carts = pgTable("carts", {
   id: serial("id").primaryKey(),
   customerName: text("customer_name").notNull(),
   customerEmail: text("customer_email").notNull(),
-  items: jsonb("items").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
   customerEmailIdx: index("customer_email_idx").on(table.customerEmail),
   createdAtIdx: index("carts_created_at_idx").on(table.createdAt),
-  itemsGinIdx: index("items_gin_idx").on(table.items)
+}));
+
+export const cartItems = pgTable("cart_items", {
+  id: serial("id").primaryKey(),
+  cartId: integer("cart_id").notNull().references(() => carts.id, { onDelete: 'cascade' }),
+  productId: integer("product_id").notNull(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  images: text("images").array().notNull(),
+  fullImages: text("full_images").array().notNull().default([]),
+  isAvailable: boolean("is_available").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  cartIdIdx: index("cart_items_cart_id_idx").on(table.cartId),
+  productIdIdx: index("cart_items_product_id_idx").on(table.productId),
 }));
 
 export const orders = pgTable("orders", {
@@ -61,6 +75,18 @@ export const orders = pgTable("orders", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+// Define relations
+export const cartsRelations = relations(carts, ({ many }) => ({
+  items: many(cartItems),
+}));
+
+export const cartItemsRelations = relations(cartItems, ({ one }) => ({
+  cart: one(carts, {
+    fields: [cartItems.cartId],
+    references: [carts.id],
+  }),
+}));
 
 // Schema for category operations
 export const insertCategorySchema = createInsertSchema(categories).pick({
@@ -96,11 +122,13 @@ export const cartItemSchema = z.object({
   createdAt: z.string().or(z.date())
 });
 
+export const insertCartItemSchema = createInsertSchema(cartItems);
+
 export const insertCartSchema = createInsertSchema(carts).pick({
   customerName: true,
   customerEmail: true,
 }).extend({
-  items: z.array(cartItemSchema),
+  items: z.array(insertCartItemSchema.omit({ id: true, cartId: true })),
 });
 
 export const insertOrderSchema = createInsertSchema(orders).pick({
@@ -112,12 +140,13 @@ export const insertOrderSchema = createInsertSchema(orders).pick({
 
 export type Category = typeof categories.$inferSelect;
 export type InsertCategory = typeof categories.$inferInsert;
-export type CartItem = z.infer<typeof cartItemSchema>;
+export type CartItem = typeof cartItems.$inferSelect;
+export type InsertCartItem = typeof cartItems.$inferInsert;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type InsertCart = z.infer<typeof insertCartSchema>;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type User = typeof users.$inferSelect;
 export type Product = typeof products.$inferSelect & { categories?: Category[] };
-export type Cart = typeof carts.$inferSelect;
+export type Cart = typeof carts.$inferSelect & { items: CartItem[] };
 export type Order = typeof orders.$inferSelect;
