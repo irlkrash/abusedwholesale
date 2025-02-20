@@ -326,28 +326,22 @@ export class DatabaseStorage implements IStorage {
 
       console.log('Created cart:', cart);
 
-      // 2. Insert cart items with proper validation
-      const cartItems = insertCart.items.map(item => {
-        if (!item.productId || !item.name || !item.images) {
-          throw new Error(`Invalid cart item: ${JSON.stringify(item)}`);
-        }
-
-        return {
-          cartId: cart.id,
-          productId: item.productId,
-          name: item.name,
-          description: item.description || '',
-          images: item.images,
-          fullImages: item.fullImages || [],
-          isAvailable: item.isAvailable !== false,
-          createdAt: new Date()
-        };
-      });
+      // 2. Insert cart items
+      const itemsToInsert = insertCart.items.map(item => ({
+        cartId: cart.id,
+        productId: item.productId,
+        name: item.name,
+        description: item.description || '',
+        images: Array.isArray(item.images) ? item.images : [],
+        fullImages: Array.isArray(item.fullImages) ? item.fullImages : [],
+        isAvailable: item.isAvailable !== false,
+        createdAt: new Date()
+      }));
 
       // 3. Insert all cart items
       const items = await db
         .insert(cartItems)
-        .values(cartItems)
+        .values(itemsToInsert)
         .returning();
 
       console.log('Inserted cart items:', items);
@@ -357,7 +351,7 @@ export class DatabaseStorage implements IStorage {
       // 4. Return complete cart with items
       return {
         ...cart,
-        items: items
+        items
       };
     } catch (error) {
       await client.query('ROLLBACK');

@@ -51,12 +51,11 @@ export function CartOverlay({
       // Prepare cart items with required fields
       const cartItems = items.map(item => ({
         productId: item.productId,
-        name: item.name || 'Unknown Product',
-        description: item.description || 'No description available',
-        images: item.images || [],
-        fullImages: item.fullImages || [],
-        isAvailable: true,
-        createdAt: new Date().toISOString()
+        name: item.name,
+        description: item.description || '',
+        images: Array.isArray(item.images) ? item.images : [],
+        fullImages: Array.isArray(item.fullImages) ? item.fullImages : [],
+        isAvailable: item.isAvailable !== false
       }));
 
       const payload = {
