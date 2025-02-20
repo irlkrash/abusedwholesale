@@ -55,7 +55,8 @@ export function CartOverlay({
         description: item.description || 'No description available',
         images: item.images || [],
         fullImages: item.fullImages || [],
-        isAvailable: true
+        isAvailable: true,
+        createdAt: new Date().toISOString()
       }));
 
       const payload = {
