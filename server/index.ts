@@ -3,11 +3,16 @@ import { createServer } from "http";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { pool } from "./db";
+import cors from "cors";
 
 const app = express();
 
 // Optimize payload limits for production
 const payloadLimit = process.env.NODE_ENV === 'production' ? '10mb' : '50mb';
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 app.use(express.json({ limit: payloadLimit }));
 app.use(express.urlencoded({ extended: false, limit: payloadLimit }));
 
