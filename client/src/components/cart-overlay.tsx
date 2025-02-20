@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Product, CartItem } from "@shared/schema";
+import { CartItem } from "@shared/schema";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -52,9 +52,12 @@ export function CartOverlay({
         name: item.name,
         description: item.description,
         images: item.images,
+        fullImages: item.fullImages || [],
         isAvailable: item.isAvailable,
-        createdAt: item.createdAt
+        createdAt: new Date().toISOString()
       }));
+
+      console.log('Submitting cart with items:', cartItems);
 
       const response = await apiRequest("POST", "/api/carts", {
         customerName,
@@ -63,7 +66,8 @@ export function CartOverlay({
       });
 
       if (!response.ok) {
-        throw new Error('Failed to submit cart');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to submit cart');
       }
 
       toast({
@@ -79,7 +83,7 @@ export function CartOverlay({
       console.error('Cart submission error:', error);
       toast({
         title: "Failed to submit cart",
-        description: "Please try again later.",
+        description: error instanceof Error ? error.message : "Please try again later.",
         variant: "destructive",
       });
     } finally {

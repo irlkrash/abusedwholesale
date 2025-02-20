@@ -108,6 +108,7 @@ export default function HomePage() {
       name: product.name,
       description: product.description,
       images: product.images,
+      fullImages: product.fullImages || [],
       isAvailable: product.isAvailable,
       createdAt: new Date().toISOString() 
     };

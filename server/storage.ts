@@ -308,6 +308,11 @@ export class DatabaseStorage implements IStorage {
     try {
       await client.query('BEGIN');
 
+      console.log('Creating cart with customer data:', {
+        name: insertCart.customerName,
+        email: insertCart.customerEmail
+      });
+
       // Create cart first
       const [cart] = await db
         .insert(cartsTable)
@@ -321,10 +326,27 @@ export class DatabaseStorage implements IStorage {
 
       console.log('Created cart:', cart);
 
-      // Validate and prepare cart items with complete product data
-      const cartItemValues = insertCart.items.map(item => {
-        if (!item.productId || !item.name || !item.description || !Array.isArray(item.images)) {
-          throw new Error(`Invalid cart item data: ${JSON.stringify(item)}`);
+      // Validate and prepare cart items
+      if (!Array.isArray(insertCart.items)) {
+        throw new Error('Cart items must be an array');
+      }
+
+      console.log('Processing cart items:', insertCart.items);
+
+      // Map and validate each cart item
+      const cartItemValues = insertCart.items.map((item, index) => {
+        // Validate required fields
+        if (!item.productId) {
+          throw new Error(`Missing productId for item at index ${index}`);
+        }
+        if (!item.name) {
+          throw new Error(`Missing name for item at index ${index}`);
+        }
+        if (!item.description) {
+          throw new Error(`Missing description for item at index ${index}`);
+        }
+        if (!Array.isArray(item.images)) {
+          throw new Error(`Invalid images array for item at index ${index}`);
         }
 
         return {
@@ -339,7 +361,7 @@ export class DatabaseStorage implements IStorage {
         };
       });
 
-      console.log('Inserting cart items:', cartItemValues);
+      console.log('Prepared cart items for insertion:', cartItemValues);
 
       // Insert cart items
       const items = await db
@@ -347,7 +369,7 @@ export class DatabaseStorage implements IStorage {
         .values(cartItemValues)
         .returning();
 
-      console.log('Inserted cart items:', items);
+      console.log('Successfully inserted cart items:', items);
 
       await client.query('COMMIT');
 
