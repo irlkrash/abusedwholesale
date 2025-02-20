@@ -10,10 +10,12 @@ const app = express();
 // Optimize payload limits for production
 const payloadLimit = process.env.NODE_ENV === 'production' ? '10mb' : '50mb';
 app.use(cors({
-  origin: true,
+  origin: process.env.NODE_ENV === 'production' 
+    ? 'https://' + process.env.REPL_SLUG + '.replit.app'
+    : true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
 }));
 app.use(express.json({ limit: payloadLimit }));
 app.use(express.urlencoded({ extended: false, limit: payloadLimit }));
