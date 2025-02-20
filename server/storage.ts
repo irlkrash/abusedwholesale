@@ -250,7 +250,7 @@ export class DatabaseStorage implements IStorage {
         .orderBy(desc(cartsTable.createdAt))
         .limit(Math.min(limit, 100));
 
-      // Group items by cart
+      // Group items by cart with proper null handling
       const cartsMap = new Map<number, Cart>();
 
       result.forEach(({ cart, items }) => {
@@ -261,7 +261,7 @@ export class DatabaseStorage implements IStorage {
           });
         }
 
-        if (items) {
+        if (items !== null) {
           const existingCart = cartsMap.get(cart.id)!;
           existingCart.items.push(items);
         }
@@ -288,8 +288,9 @@ export class DatabaseStorage implements IStorage {
       if (result.length === 0) return undefined;
 
       const cart = result[0].cart;
+      // Filter out null items and ensure type safety
       const items = result
-        .filter(r => r.items)
+        .filter((r): r is typeof r & { items: NonNullable<typeof r.items> } => r.items !== null)
         .map(r => r.items);
 
       return {
