@@ -49,11 +49,11 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  let server;
+  let httpServer: ReturnType<typeof createServer>;
   try {
     console.log('Starting server initialization...');
     console.log('Registering routes...');
-    server = await registerRoutes(app);
+    httpServer = await registerRoutes(app);
 
     // Enhanced error handling middleware
     app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
@@ -76,21 +76,21 @@ app.use((req, res, next) => {
 
     // Setup Vite or static files based on environment
     if (app.get("env") === "development") {
-      await setupVite(app, server);
+      await setupVite(app, httpServer);
     } else {
       serveStatic(app);
     }
 
     // Configure server timeouts and keepalive
-    server.keepAliveTimeout = 65000;
-    server.headersTimeout = 66000;
+    httpServer.keepAliveTimeout = 65000;
+    httpServer.headersTimeout = 66000;
 
     // Handle termination signals
     const gracefulShutdown = async (signal: string) => {
       console.log(`${signal} received. Starting graceful shutdown...`);
 
-      if (server) {
-        server.close(async () => {
+      if (httpServer) {
+        httpServer.close(async () => {
           console.log('HTTP server closed');
           try {
             await pool.end();
@@ -126,36 +126,36 @@ app.use((req, res, next) => {
       gracefulShutdown('UNHANDLED_REJECTION');
     });
 
-    // Improved server listening with error handling
-    const startServer = async (initialPort: number) => {
+    // Improved server listening with error handling and port configuration
+    const startServer = async (initialPort: number): Promise<void> => {
       try {
         console.log('Environment:', process.env.NODE_ENV);
         console.log('Starting server on port:', initialPort);
 
         await new Promise<void>((resolve, reject) => {
-          server.listen(initialPort, '0.0.0.0', () => {
+          httpServer.listen(initialPort, '0.0.0.0', () => {
             console.log(`Server started successfully on port ${initialPort}`);
             resolve();
           });
-          server.on('error', reject);
+          httpServer.on('error', (error: NodeJS.ErrnoException) => {
+            if (error.code === 'EADDRINUSE') {
+              console.log(`Port ${initialPort} is already in use. Trying next port...`);
+              resolve(startServer(initialPort + 1));
+            } else {
+              reject(error);
+            }
+          });
         });
-
-      } catch (error: any) {
+      } catch (error) {
         console.error('Server start error:', error);
-
-        if (error.code === 'EADDRINUSE') {
-          console.log(`Port ${initialPort} is already in use. Trying port ${initialPort + 1}`);
-          await startServer(initialPort + 1);
-        } else {
-          console.error('Critical server error:', error);
-          await pool.end();
-          process.exit(1);
-        }
+        await pool.end();
+        process.exit(1);
       }
     };
 
-    // Use port 8080 as default instead of 3000
-    const port = parseInt(process.env.PORT || '8080');
+    // Use port 5000 as default for development
+    const defaultPort = process.env.NODE_ENV === 'production' ? 8080 : 5000;
+    const port = parseInt(process.env.PORT || defaultPort.toString());
     await startServer(port);
 
   } catch (error) {
