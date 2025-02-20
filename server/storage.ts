@@ -241,14 +241,15 @@ export class DatabaseStorage implements IStorage {
       console.log(`Fetching carts with limit ${limit} from PostgreSQL...`);
 
       const result = await db
-        .select({
-          cart: cartsTable,
-          items: cartItems,
-        })
+        .select()
         .from(cartsTable)
         .leftJoin(cartItems, eq(cartsTable.id, cartItems.cartId))
         .orderBy(desc(cartsTable.createdAt))
         .limit(Math.min(limit, 100));
+
+      if (!result || result.length === 0) {
+        return [];
+      }
 
       // Group items by cart with proper null handling
       const cartsMap = new Map<number, Cart>();
