@@ -49,8 +49,8 @@ export function CartOverlay({
       setIsSubmitting(true);
       const cartItems = items.map(item => ({
         productId: item.productId,
-        name: item.name,
-        description: item.description,
+        name: item.name || 'Untitled Product',
+        description: item.description || 'No description available',
         images: item.images,
         fullImages: item.fullImages || [],
         isAvailable: item.isAvailable,
