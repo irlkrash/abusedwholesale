@@ -126,7 +126,6 @@ export const insertCartItemSchema = createInsertSchema(cartItems);
 
 export const insertCartSchema = z.object({
   customerName: z.string().min(1, "Customer name is required"),
-  customerEmail: z.string().email("Valid email is required"),
   items: z.array(cartItemSchema)
 });
 

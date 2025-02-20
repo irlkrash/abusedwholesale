@@ -32,14 +32,14 @@ export function CartOverlay({
 }: CartOverlayProps) {
   const { toast } = useToast();
   const [customerName, setCustomerName] = useState("");
-  const [customerEmail, setCustomerEmail] = useState("");
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmitCart = async () => {
-    if (!customerName || !customerEmail || items.length === 0) {
+    if (!customerName || items.length === 0) {
       toast({
         title: "Invalid submission",
-        description: "Please fill in all required fields and add items to cart",
+        description: "Please enter your name and add items to cart",
         variant: "destructive",
       });
       return;
@@ -60,7 +60,6 @@ export function CartOverlay({
 
       const payload = {
         customerName,
-        customerEmail,
         items: cartItems
       };
 
@@ -85,7 +84,7 @@ export function CartOverlay({
       onClearCart();
       onOpenChange(false);
       setCustomerName("");
-      setCustomerEmail("");
+      
     } catch (error) {
       console.error('Cart submission error:', error);
       toast({
@@ -143,13 +142,7 @@ export function CartOverlay({
             onChange={(e) => setCustomerName(e.target.value)}
             required
           />
-          <Input
-            type="email"
-            placeholder="Your Email"
-            value={customerEmail}
-            onChange={(e) => setCustomerEmail(e.target.value)}
-            required
-          />
+          
         </div>
 
         <SheetFooter className="mt-4">
