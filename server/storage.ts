@@ -320,41 +320,49 @@ export class DatabaseStorage implements IStorage {
         })
         .returning();
 
+      if (!cart) {
+        throw new Error('Failed to create cart');
+      }
+
       console.log('Created cart:', cart);
 
-      // 2. Prepare cart items
-      const cartItemValues = insertCart.items.map(item => ({
-        cartId: cart.id,
-        productId: item.productId,
-        name: item.name || 'Untitled Product',
-        description: item.description || 'No description available',
-        images: Array.isArray(item.images) ? item.images : [],
-        fullImages: Array.isArray(item.fullImages) ? item.fullImages : [],
-        isAvailable: item.isAvailable ?? true,
-        createdAt: new Date()
-      }));
+      // 2. Insert cart items with proper validation
+      const cartItems = insertCart.items.map(item => {
+        if (!item.productId || !item.name || !item.images) {
+          throw new Error(`Invalid cart item: ${JSON.stringify(item)}`);
+        }
 
-      console.log('Inserting cart items:', cartItemValues);
+        return {
+          cartId: cart.id,
+          productId: item.productId,
+          name: item.name,
+          description: item.description || '',
+          images: item.images,
+          fullImages: item.fullImages || [],
+          isAvailable: item.isAvailable !== false,
+          createdAt: new Date()
+        };
+      });
 
-      // 3. Insert cart items
+      // 3. Insert all cart items
       const items = await db
         .insert(cartItems)
-        .values(cartItemValues)
+        .values(cartItems)
         .returning();
 
-      console.log('Successfully inserted cart items:', items);
+      console.log('Inserted cart items:', items);
 
       await client.query('COMMIT');
 
       // 4. Return complete cart with items
       return {
         ...cart,
-        items
+        items: items
       };
     } catch (error) {
       await client.query('ROLLBACK');
       console.error('Error creating cart:', error);
-      throw new Error('Failed to create cart: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      throw error;
     } finally {
       client.release();
     }

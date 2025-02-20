@@ -51,11 +51,11 @@ export function CartOverlay({
       // Ensure all required fields are present for each item
       const cartItems = items.map(item => ({
         productId: item.productId,
-        name: item.name || 'Untitled Product',
-        description: item.description || 'No description available',
+        name: item.name,
+        description: item.description || '',
         images: item.images,
         fullImages: item.fullImages || [],
-        isAvailable: item.isAvailable ?? true
+        isAvailable: true
       }));
 
       console.log('Submitting cart with items:', cartItems);
@@ -67,9 +67,12 @@ export function CartOverlay({
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to submit cart');
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to submit cart');
       }
+
+      const result = await response.json();
+      console.log('Cart submission successful:', result);
 
       toast({
         title: "Cart submitted successfully!",
