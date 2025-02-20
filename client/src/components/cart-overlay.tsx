@@ -51,8 +51,8 @@ export function CartOverlay({
       // Prepare cart items with required fields
       const cartItems = items.map(item => ({
         productId: item.productId,
-        name: item.name,
-        description: item.description || '',
+        name: item.name || 'Unknown Product',
+        description: item.description || 'No description available',
         images: item.images || [],
         fullImages: item.fullImages || [],
         isAvailable: true
