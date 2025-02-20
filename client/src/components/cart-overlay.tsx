@@ -49,10 +49,11 @@ export function CartOverlay({
       setIsSubmitting(true);
 
       // Prepare cart items with required fields
+      // Ensure we send the current item data
       const cartItems = items.map(item => ({
         productId: item.productId,
-        name: item.name,
-        description: item.description || '',
+        name: item.name || 'Untitled Product',
+        description: item.description || 'No description available',
         images: Array.isArray(item.images) ? item.images : [],
         fullImages: Array.isArray(item.fullImages) ? item.fullImages : [],
         isAvailable: item.isAvailable !== false
