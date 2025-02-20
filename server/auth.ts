@@ -40,10 +40,10 @@ export function setupAuth(app: Express) {
     store: storage.sessionStore,
     proxy: true,
     cookie: {
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: true,
+      sameSite: 'none',
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      domain: process.env.NODE_ENV === 'production' ? '.replit.app' : undefined
+      path: '/'
     }
   };
 

@@ -11,7 +11,9 @@ const app = express();
 const payloadLimit = process.env.NODE_ENV === 'production' ? '10mb' : '50mb';
 app.use(cors({
   origin: true,
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json({ limit: payloadLimit }));
 app.use(express.urlencoded({ extended: false, limit: payloadLimit }));
