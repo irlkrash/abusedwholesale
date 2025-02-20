@@ -124,11 +124,18 @@ export const cartItemSchema = z.object({
 
 export const insertCartItemSchema = createInsertSchema(cartItems);
 
-export const insertCartSchema = createInsertSchema(carts).pick({
-  customerName: true,
-  customerEmail: true,
-}).extend({
-  items: z.array(insertCartItemSchema.omit({ id: true, cartId: true })),
+export const insertCartSchema = z.object({
+  customerName: z.string(),
+  customerEmail: z.string().email(),
+  items: z.array(z.object({
+    productId: z.number(),
+    name: z.string().optional(),
+    description: z.string().optional(),
+    images: z.array(z.string()),
+    fullImages: z.array(z.string()).optional(),
+    isAvailable: z.boolean().optional(),
+    createdAt: z.string().optional()
+  }))
 });
 
 export const insertOrderSchema = createInsertSchema(orders).pick({
