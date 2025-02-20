@@ -152,7 +152,7 @@ export function CartOverlay({
             </Button>
             <Button
               onClick={handleSubmitCart}
-              disabled={!customerName || !customerEmail || items.length === 0 || isSubmitting}
+              disabled={!customerName || items.length === 0 || isSubmitting}
             >
               {isSubmitting ? "Submitting..." : "Submit Cart"}
             </Button>

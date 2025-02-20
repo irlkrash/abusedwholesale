@@ -314,7 +314,6 @@ export class DatabaseStorage implements IStorage {
         .insert(cartsTable)
         .values({
           customerName: insertCart.customerName,
-          customerEmail: insertCart.customerEmail,
           createdAt: new Date(),
           updatedAt: new Date(),
         })
