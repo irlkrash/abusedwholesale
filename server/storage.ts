@@ -309,12 +309,7 @@ export class DatabaseStorage implements IStorage {
     try {
       await client.query('BEGIN');
 
-      console.log('Creating cart with customer data:', {
-        name: insertCart.customerName,
-        email: insertCart.customerEmail
-      });
-
-      // Create cart first
+      // 1. Create the cart
       const [cart] = await db
         .insert(cartsTable)
         .values({
@@ -327,44 +322,21 @@ export class DatabaseStorage implements IStorage {
 
       console.log('Created cart:', cart);
 
-      // Validate and prepare cart items
-      if (!Array.isArray(insertCart.items)) {
-        throw new Error('Cart items must be an array');
-      }
+      // 2. Prepare cart items
+      const cartItemValues = insertCart.items.map(item => ({
+        cartId: cart.id,
+        productId: item.productId,
+        name: item.name || 'Untitled Product',
+        description: item.description || 'No description available',
+        images: Array.isArray(item.images) ? item.images : [],
+        fullImages: Array.isArray(item.fullImages) ? item.fullImages : [],
+        isAvailable: item.isAvailable ?? true,
+        createdAt: new Date()
+      }));
 
-      console.log('Processing cart items:', insertCart.items);
+      console.log('Inserting cart items:', cartItemValues);
 
-      // Map and validate each cart item
-      const cartItemValues = insertCart.items.map((item, index) => {
-        // Validate required fields
-        if (!item.productId) {
-          throw new Error(`Missing productId for item at index ${index}`);
-        }
-        if (!item.name) {
-          throw new Error(`Missing name for item at index ${index}`);
-        }
-        if (!item.description) {
-          throw new Error(`Missing description for item at index ${index}`);
-        }
-        if (!Array.isArray(item.images)) {
-          throw new Error(`Invalid images array for item at index ${index}`);
-        }
-
-        return {
-          cartId: cart.id,
-          productId: item.productId,
-          name: item.name,
-          description: item.description,
-          images: item.images,
-          fullImages: Array.isArray(item.fullImages) ? item.fullImages : [],
-          isAvailable: item.isAvailable ?? true,
-          createdAt: new Date(),
-        };
-      });
-
-      console.log('Prepared cart items for insertion:', cartItemValues);
-
-      // Insert cart items
+      // 3. Insert cart items
       const items = await db
         .insert(cartItems)
         .values(cartItemValues)
@@ -374,9 +346,10 @@ export class DatabaseStorage implements IStorage {
 
       await client.query('COMMIT');
 
+      // 4. Return complete cart with items
       return {
         ...cart,
-        items,
+        items
       };
     } catch (error) {
       await client.query('ROLLBACK');

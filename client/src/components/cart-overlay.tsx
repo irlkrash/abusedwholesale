@@ -47,14 +47,15 @@ export function CartOverlay({
 
     try {
       setIsSubmitting(true);
+
+      // Ensure all required fields are present for each item
       const cartItems = items.map(item => ({
         productId: item.productId,
         name: item.name || 'Untitled Product',
         description: item.description || 'No description available',
         images: item.images,
         fullImages: item.fullImages || [],
-        isAvailable: item.isAvailable,
-        createdAt: new Date().toISOString()
+        isAvailable: item.isAvailable ?? true
       }));
 
       console.log('Submitting cart with items:', cartItems);
@@ -149,7 +150,7 @@ export function CartOverlay({
           <SheetClose asChild>
             <Button variant="outline">Cancel</Button>
           </SheetClose>
-          <Button 
+          <Button
             onClick={handleSubmitCart}
             disabled={!customerName || !customerEmail || items.length === 0 || isSubmitting}
           >

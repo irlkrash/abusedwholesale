@@ -114,28 +114,20 @@ export const insertProductSchema = createInsertSchema(products).pick({
 
 export const cartItemSchema = z.object({
   productId: z.number(),
-  name: z.string(),
+  name: z.string().min(1, "Product name is required"),
   description: z.string(),
   images: z.array(z.string()),
   fullImages: z.array(z.string()).optional(),
-  isAvailable: z.boolean(),
-  createdAt: z.string().or(z.date())
+  isAvailable: z.boolean().optional(),
+  createdAt: z.string().or(z.date()).optional()
 });
 
 export const insertCartItemSchema = createInsertSchema(cartItems);
 
 export const insertCartSchema = z.object({
-  customerName: z.string(),
-  customerEmail: z.string().email(),
-  items: z.array(z.object({
-    productId: z.number(),
-    name: z.string().optional(),
-    description: z.string().optional(),
-    images: z.array(z.string()),
-    fullImages: z.array(z.string()).optional(),
-    isAvailable: z.boolean().optional(),
-    createdAt: z.string().optional()
-  }))
+  customerName: z.string().min(1, "Customer name is required"),
+  customerEmail: z.string().email("Valid email is required"),
+  items: z.array(cartItemSchema)
 });
 
 export const insertOrderSchema = createInsertSchema(orders).pick({
