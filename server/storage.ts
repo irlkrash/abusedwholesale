@@ -240,38 +240,27 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`Fetching carts with limit ${limit} from PostgreSQL...`);
 
-      const result = await db
+      const carts = await db
         .select()
         .from(cartsTable)
-        .leftJoin(cartItems, eq(cartsTable.id, cartItems.cartId))
         .orderBy(desc(cartsTable.createdAt))
         .limit(Math.min(limit, 100));
 
-      if (!result || result.length === 0) {
-        return [];
-      }
-
-      // Group items by cart with proper null handling
-      const cartsMap = new Map<number, Cart>();
-
-      result.forEach((row) => {
-        const cart = row.carts;
-        const items = row.cart_items;
-        
-        if (!cartsMap.has(cart.id)) {
-          cartsMap.set(cart.id, {
+      const cartsWithItems = await Promise.all(
+        carts.map(async (cart) => {
+          const items = await db
+            .select()
+            .from(cartItems)
+            .where(eq(cartItems.cartId, cart.id));
+          
+          return {
             ...cart,
-            items: [],
-          });
-        }
+            items: items || []
+          };
+        })
+      );
 
-        if (items !== null) {
-          const existingCart = cartsMap.get(cart.id)!;
-          existingCart.items.push(items);
-        }
-      });
-
-      return Array.from(cartsMap.values());
+      return cartsWithItems;
     } catch (error) {
       console.error('Database error in getCarts:', error);
       throw new Error('Failed to fetch carts: ' + (error instanceof Error ? error.message : 'Unknown error'));
