@@ -254,7 +254,10 @@ export class DatabaseStorage implements IStorage {
       // Group items by cart with proper null handling
       const cartsMap = new Map<number, Cart>();
 
-      result.forEach(({ cart, items }) => {
+      result.forEach((row) => {
+        const cart = row.carts;
+        const items = row.cart_items;
+        
         if (!cartsMap.has(cart.id)) {
           cartsMap.set(cart.id, {
             ...cart,
