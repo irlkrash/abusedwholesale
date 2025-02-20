@@ -153,15 +153,17 @@ export function CartOverlay({
         </div>
 
         <SheetFooter className="mt-4">
-          <SheetClose asChild>
-            <Button variant="outline">Cancel</Button>
-          </SheetClose>
-          <Button
-            onClick={handleSubmitCart}
-            disabled={!customerName || !customerEmail || items.length === 0 || isSubmitting}
-          >
-            {isSubmitting ? "Submitting..." : "Submit Cart"}
-          </Button>
+          <div className="flex gap-2 justify-end w-full">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmitCart}
+              disabled={!customerName || !customerEmail || items.length === 0 || isSubmitting}
+            >
+              {isSubmitting ? "Submitting..." : "Submit Cart"}
+            </Button>
+          </div>
         </SheetFooter>
       </SheetContent>
     </Sheet>
