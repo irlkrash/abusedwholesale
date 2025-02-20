@@ -47,19 +47,15 @@ const AdminCarts = () => {
         }
         const data = await response.json();
         console.log('Cart data received:', JSON.stringify(data, null, 2));
-        
+
         // Ensure data is properly formatted
-        if (!Array.isArray(data)) {
+        if (!Array.isArray(data?.data)) {
           console.error('Invalid cart data format:', data);
           return [];
         }
-        
-        // Validate and parse cart items
-        return data.map(cart => ({
-          ...cart,
-          items: Array.isArray(cart.items) ? cart.items : 
-                 (typeof cart.items === 'string' ? JSON.parse(cart.items) : [])
-        }));
+
+        // Return the data array from the response
+        return data.data;
       } catch (err) {
         console.error('Error fetching carts:', err);
         return [];
@@ -69,10 +65,10 @@ const AdminCarts = () => {
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
-    cacheTime: 1000 * 60 * 30 // Keep data in cache for 30 minutes
+    gcTime: 1000 * 60 * 30 // Keep data in cache for 30 minutes (replaced cacheTime)
   });
 
-  const sortedCarts = [...(Array.isArray(carts) ? carts : [])].sort(
+  const sortedCarts = [...carts].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
@@ -185,7 +181,7 @@ const AdminCarts = () => {
         <div className="space-y-6">
           {sortedCarts.length > 0 ? (
             sortedCarts.map((cart) => {
-              const cartItems = Array.isArray(cart.items) ? cart.items : [] as CartItem[];
+              const cartItems: CartItem[] = Array.isArray(cart.items) ? cart.items : [];
               return (
                 <Card key={cart.id} className="overflow-hidden">
                   <CardHeader className="space-y-0 pb-4">
@@ -256,7 +252,7 @@ const AdminCarts = () => {
                   <CardContent>
                     <ScrollArea className="h-[300px]">
                       <div className="grid gap-4">
-                        {cartItems.map((item, index) => (
+                        {cartItems.map((item: CartItem, index: number) => (
                           <div
                             key={index}
                             className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors"

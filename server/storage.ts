@@ -1,4 +1,4 @@
-import { InsertUser, User, Product, Cart, InsertCart, Category, InsertCategory } from "@shared/schema";
+import { InsertUser, User, Product, Cart, InsertCart, Category, InsertCategory, CartItem } from "@shared/schema";
 import { users, products as productsTable, carts as cartsTable, categories as categoriesTable, productCategories } from "@shared/schema";
 import session from "express-session";
 import { db, pool } from "./db";
@@ -102,7 +102,7 @@ export class DatabaseStorage implements IStorage {
       if (categoryIds && categoryIds.length > 0) {
         query = query.where(
           inArray(productCategories.categoryId, categoryIds)
-        );
+        ) as any; // Type assertion needed due to Drizzle type inference limitation
       }
 
       const result = await query
@@ -241,32 +241,33 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`Fetching carts with limit ${limit} from PostgreSQL...`);
 
-      await client.query('BEGIN');
       const result = await db
         .select()
         .from(cartsTable)
         .orderBy(desc(cartsTable.createdAt))
-        .limit(limit);
-      await client.query('COMMIT');
+        .limit(Math.min(limit, 100));
 
       console.log(`Found ${result.length} carts in database`);
 
       return result.map(cart => {
         try {
-          // Parse items from JSONB
+          // Parse items from JSONB if needed
           const items = typeof cart.items === 'string'
             ? JSON.parse(cart.items)
-            : (Array.isArray(cart.items) ? cart.items : []);
+            : cart.items;
 
-          // Ensure all required product fields are present
-          const sanitizedItems = items.map((item: any) => ({
-            productId: item.productId,
-            name: item.name,
-            description: item.description,
-            images: Array.isArray(item.images) ? item.images : [],
-            fullImages: Array.isArray(item.fullImages) ? item.fullImages : [],
-            isAvailable: !!item.isAvailable,
-            createdAt: item.createdAt || new Date().toISOString()
+          // Ensure items is an array
+          const itemsArray = Array.isArray(items) ? items : [];
+
+          // Sanitize each item
+          const sanitizedItems = itemsArray.map(item => ({
+            productId: Number(item.productId),
+            name: String(item.name || ''),
+            description: String(item.description || ''),
+            images: Array.isArray(item.images) ? item.images.map(String) : [],
+            fullImages: Array.isArray(item.fullImages) ? item.fullImages.map(String) : [],
+            isAvailable: Boolean(item.isAvailable),
+            createdAt: new Date(item.createdAt).toISOString()
           }));
 
           return {
@@ -279,6 +280,7 @@ export class DatabaseStorage implements IStorage {
           };
         } catch (error) {
           console.error(`Error processing cart ${cart.id}:`, error);
+          // Return cart with empty items array if processing fails
           return {
             id: cart.id,
             customerName: cart.customerName,
@@ -290,7 +292,6 @@ export class DatabaseStorage implements IStorage {
         }
       });
     } catch (error) {
-      await client.query('ROLLBACK');
       console.error('Database error in getCarts:', error);
       throw new Error('Failed to fetch carts: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
@@ -346,7 +347,12 @@ export class DatabaseStorage implements IStorage {
       await client.query('BEGIN');
 
       const now = new Date();
-      const items = Array.isArray(insertCart.items) ? insertCart.items : [];
+      const items = Array.isArray(insertCart.items)
+        ? insertCart.items.map(item => ({
+            ...item,
+            createdAt: item.createdAt || now.toISOString()
+          }))
+        : [];
 
       const [cart] = await db
         .insert(cartsTable)
@@ -360,10 +366,6 @@ export class DatabaseStorage implements IStorage {
         .returning();
 
       await client.query('COMMIT');
-
-      if (!cart) {
-        throw new Error('Failed to create cart in database');
-      }
 
       return {
         ...cart,
@@ -460,7 +462,7 @@ export class DatabaseStorage implements IStorage {
       // If items are being updated, ensure proper formatting
       let updatedItems;
       if (updates.items) {
-        updatedItems = updates.items.map(item => ({
+        updatedItems = (updates.items as CartItem[]).map(item => ({
           productId: item.productId,
           name: item.name,
           description: item.description,

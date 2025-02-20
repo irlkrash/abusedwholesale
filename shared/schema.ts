@@ -91,8 +91,9 @@ export const cartItemSchema = z.object({
   name: z.string(),
   description: z.string(),
   images: z.array(z.string()),
+  fullImages: z.array(z.string()).optional(),
   isAvailable: z.boolean(),
-  createdAt: z.string()
+  createdAt: z.string().or(z.date())
 });
 
 export const insertCartSchema = createInsertSchema(carts).pick({

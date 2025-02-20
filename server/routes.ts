@@ -27,22 +27,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Products routes with pagination - Make GET public, but keep POST/PATCH/DELETE protected
-  app.get("/api/images/:key", async (req, res) => {
-    try {
-      const imageData = await storage.getProductImage(req.params.key);
-      if (!imageData) {
-        return res.status(404).send('Image not found');
-      }
-      res.send(imageData);
-    } catch (error) {
-      console.error('Error serving image:', error);
-      res.status(500).json({ 
-        message: "Failed to serve image",
-        error: error instanceof Error ? error.message : "Unknown error occurred"
-      });
-    }
-  });
-
   app.post("/api/products", requireAdmin, async (req, res) => {
     try {
       console.log('Creating new product with data:', req.body);
@@ -52,15 +36,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Create the product with type safety
-      const newProduct = {
-        ...parsed.data,
-        createdAt: new Date(),
-        images: parsed.data.images || [],
+      const product = await storage.createProduct({
+        name: parsed.data.name,
+        description: parsed.data.description,
+        images: parsed.data.images,
         fullImages: parsed.data.fullImages || [],
-        isAvailable: parsed.data.isAvailable ?? true
-      };
+        isAvailable: parsed.data.isAvailable ?? true,
+        createdAt: new Date(),
+        categories: parsed.data.categories
+      });
 
-      const product = await storage.createProduct(newProduct);
       console.log('Successfully created product:', product);
       res.status(201).json(product);
     } catch (error) {
