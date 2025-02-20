@@ -314,6 +314,7 @@ export class DatabaseStorage implements IStorage {
         .insert(cartsTable)
         .values({
           customerName: insertCart.customerName,
+          customerEmail: 'anonymous@example.com', // Default email since it's required by DB
           createdAt: new Date(),
           updatedAt: new Date(),
         })
