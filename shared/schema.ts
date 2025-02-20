@@ -43,11 +43,9 @@ export const productCategories = pgTable("product_categories", {
 export const carts = pgTable("carts", {
   id: serial("id").primaryKey(),
   customerName: text("customer_name").notNull(),
-  customerEmail: text("customer_email").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
-  customerEmailIdx: index("customer_email_idx").on(table.customerEmail),
   createdAtIdx: index("carts_created_at_idx").on(table.createdAt),
 }));
 
