@@ -48,26 +48,29 @@ export function CartOverlay({
     try {
       setIsSubmitting(true);
 
-      // Ensure all required fields are present for each item
+      // Prepare cart items with required fields
       const cartItems = items.map(item => ({
         productId: item.productId,
         name: item.name,
         description: item.description || '',
-        images: item.images,
+        images: item.images || [],
         fullImages: item.fullImages || [],
         isAvailable: true
       }));
 
-      console.log('Submitting cart with items:', cartItems);
-
-      const response = await apiRequest("POST", "/api/carts", {
+      const payload = {
         customerName,
         customerEmail,
-        items: cartItems,
-      });
+        items: cartItems
+      };
+
+      console.log('Submitting cart with payload:', payload);
+
+      const response = await apiRequest("POST", "/api/carts", payload);
 
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('Cart submission failed:', errorText);
         throw new Error(errorText || 'Failed to submit cart');
       }
 
