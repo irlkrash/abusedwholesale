@@ -319,7 +319,7 @@ export class DatabaseStorage implements IStorage {
         })
         .returning();
 
-      // Insert cart items
+      // Insert cart items with complete product data
       const cartItemValues = insertCart.items.map(item => ({
         cartId: cart.id,
         productId: item.productId,

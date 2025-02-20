@@ -195,7 +195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log(`Making items unavailable for cart ${cartId}`);
-      const cartItems = cart.items as { productId: number }[];
+      const cartItems = cart.items;
 
       // Update products in parallel
       const updates = await Promise.all(
