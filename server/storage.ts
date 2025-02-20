@@ -319,22 +319,35 @@ export class DatabaseStorage implements IStorage {
         })
         .returning();
 
-      // Insert cart items with complete product data
-      const cartItemValues = insertCart.items.map(item => ({
-        cartId: cart.id,
-        productId: item.productId,
-        name: item.name,
-        description: item.description,
-        images: item.images,
-        fullImages: item.fullImages || [],
-        isAvailable: item.isAvailable,
-        createdAt: new Date(),
-      }));
+      console.log('Created cart:', cart);
 
+      // Validate and prepare cart items with complete product data
+      const cartItemValues = insertCart.items.map(item => {
+        if (!item.productId || !item.name || !item.description || !Array.isArray(item.images)) {
+          throw new Error(`Invalid cart item data: ${JSON.stringify(item)}`);
+        }
+
+        return {
+          cartId: cart.id,
+          productId: item.productId,
+          name: item.name,
+          description: item.description,
+          images: item.images,
+          fullImages: Array.isArray(item.fullImages) ? item.fullImages : [],
+          isAvailable: item.isAvailable ?? true,
+          createdAt: new Date(),
+        };
+      });
+
+      console.log('Inserting cart items:', cartItemValues);
+
+      // Insert cart items
       const items = await db
         .insert(cartItems)
         .values(cartItemValues)
         .returning();
+
+      console.log('Inserted cart items:', items);
 
       await client.query('COMMIT');
 
