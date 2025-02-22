@@ -85,8 +85,6 @@ export default function AdminDashboard() {
   const [bulkEditValue, setBulkEditValue] = useState({ name: "", description: "" });
   const [hideDetails, setHideDetails] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
-  const [newCategoryName, setNewCategoryName] = useState("");
-  const [newCategoryPrice, setNewCategoryPrice] = useState<string>("0"); 
   const [categoryFilter, setCategoryFilter] = useState<number[]>([]);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
@@ -441,23 +439,22 @@ export default function AdminDashboard() {
   );
 
   const CategoryManagement = () => {
-    const formRef = useRef<HTMLFormElement>(null);
-    
+    const [formState, setFormState] = useState({ name: "", price: "0" });
+
     const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      event.currentTarget.value = event.currentTarget.value.trim();
-      setNewCategoryName(event.currentTarget.value);
+      setFormState(prev => ({...prev, name: event.target.value.trim()}));
     };
 
     const handlePriceChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      setNewCategoryPrice(event.currentTarget.value);
+      setFormState(prev => ({...prev, price: event.target.value}));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
 
       try {
-        const name = newCategoryName.trim();
-        const price = parseFloat(newCategoryPrice);
+        const name = formState.name.trim();
+        const price = parseFloat(formState.price);
 
         if (!name) {
           toast({
@@ -483,8 +480,7 @@ export default function AdminDashboard() {
         });
 
         // Only clear form after successful creation
-        setNewCategoryName("");
-        setNewCategoryPrice("");
+        setFormState({ name: "", price: "0" });
       } catch (error) {
         toast({
           title: "Error",
@@ -497,13 +493,13 @@ export default function AdminDashboard() {
     return (
       <div className="space-y-4 mb-8">
         <h3 className="text-lg font-medium">Category Management</h3>
-        <form ref={formRef} onSubmit={handleSubmit} className="flex items-end gap-4">
+        <form onSubmit={handleSubmit} className="flex items-end gap-4">
           <div className="space-y-2 flex-1">
             <Label htmlFor="categoryName">New Category Name</Label>
             <Input
               id="categoryName"
               type="text"
-              value={newCategoryName}
+              value={formState.name}
               onChange={handleNameChange}
               placeholder="Enter category name..."
               className="w-full"
@@ -513,8 +509,10 @@ export default function AdminDashboard() {
             <Label htmlFor="categoryPrice">Default Price ($)</Label>
             <Input
               id="categoryPrice"
-              type="text"
-              value={newCategoryPrice}
+              type="number"
+              min="0"
+              step="0.01"
+              value={formState.price}
               onChange={handlePriceChange}
               placeholder="Enter default price..."
               className="w-full"
