@@ -51,10 +51,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('- Headers:', req.headers);
 
       // Convert price to number explicitly
+      console.log('Raw request body:', req.body);
       const categoryData = {
         name: String(req.body.name).trim(),
         defaultPrice: Number(req.body.defaultPrice)
       };
+      console.log('Processed category data:', {
+        data: categoryData,
+        types: {
+          name: typeof categoryData.name,
+          defaultPrice: typeof categoryData.defaultPrice
+        },
+        values: {
+          name: categoryData.name,
+          defaultPrice: categoryData.defaultPrice
+        }
+      });
       
       console.log('Pre-validation data:', {
         raw: categoryData,

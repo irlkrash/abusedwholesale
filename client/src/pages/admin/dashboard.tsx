@@ -484,7 +484,14 @@ export default function AdminDashboard() {
 
       try {
         const name = formState.name.trim();
-        const price = parseInt(formState.price, 10); //Corrected parseInt and base 10
+        const price = parseInt(formState.price, 10);
+        
+        console.log('Submitting category:', {
+          name,
+          price,
+          rawPrice: formState.price,
+          priceType: typeof price
+        }); //Corrected parseInt and base 10
 
         if (!name) {
           toast({
