@@ -67,7 +67,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           defaultPrice: categoryData.defaultPrice
         }
       });
-      
+
       console.log('Pre-validation data:', {
         raw: categoryData,
         nameType: typeof categoryData.name,
@@ -75,7 +75,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         nameLength: categoryData.name.length,
         priceValue: categoryData.defaultPrice
       });
-      
+
       const parsed = insertCategorySchema.safeParse(categoryData);
       console.log('Validation result:', {
         success: parsed.success,
