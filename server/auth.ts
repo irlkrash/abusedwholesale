@@ -54,56 +54,90 @@ export function setupAuth(app: Express) {
 
   passport.use(
     new LocalStrategy(async (username, password, done) => {
-      const user = await storage.getUserByUsername(username);
-      if (!user || !(await comparePasswords(password, user.password))) {
-        return done(null, false);
-      } else {
+      try {
+        console.log(`Attempting login for user: ${username}`);
+        const user = await storage.getUserByUsername(username);
+        if (!user) {
+          console.log(`User not found: ${username}`);
+          return done(null, false, { message: "Invalid username or password" });
+        }
+
+        const isValid = await comparePasswords(password, user.password);
+        if (!isValid) {
+          console.log(`Invalid password for user: ${username}`);
+          return done(null, false, { message: "Invalid username or password" });
+        }
+
+        console.log(`Successful login for user: ${username}`);
         return done(null, user);
+      } catch (error) {
+        console.error(`Login error for ${username}:`, error);
+        return done(error);
       }
     }),
   );
 
   passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {
-    const user = await storage.getUser(id);
-    done(null, user);
+    try {
+      const user = await storage.getUser(id);
+      if (!user) {
+        return done(new Error('User not found'));
+      }
+      done(null, user);
+    } catch (error) {
+      done(error);
+    }
   });
 
   app.post("/api/register", async (req, res, next) => {
-    const existingUser = await storage.getUserByUsername(req.body.username);
-    if (existingUser) {
-      return res.status(400).json({ message: "Username already exists" });
+    try {
+      const existingUser = await storage.getUserByUsername(req.body.username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+
+      // Get user count to determine if this is the first user
+      const users = await storage.getUsers();
+      const isFirstUser = users.length === 0;
+
+      // Check if attempting to create an admin account
+      const requestedAdmin = req.body.secretCode === ADMIN_SECRET_CODE;
+
+      // Only allow admin creation for first user or with correct secret code
+      const isAdmin = isFirstUser || requestedAdmin;
+
+      // If not first user and trying to register without secret code
+      if (!isFirstUser && !requestedAdmin) {
+        return res.status(400).json({ message: "Secret code is required for registration" });
+      }
+
+      const user = await storage.createUser({
+        username: req.body.username,
+        password: await hashPassword(req.body.password),
+        isAdmin
+      });
+
+      req.login(user, (err) => {
+        if (err) return next(err);
+        res.status(201).json(user);
+      });
+    } catch (error) {
+      next(error);
     }
-
-    // Get user count to determine if this is the first user
-    const users = await storage.getUsers();
-    const isFirstUser = users.length === 0;
-
-    // Check if attempting to create an admin account
-    const requestedAdmin = req.body.secretCode === ADMIN_SECRET_CODE;
-
-    // Only allow admin creation for first user or with correct secret code
-    const isAdmin = isFirstUser || requestedAdmin;
-
-    // If not first user and trying to register without secret code
-    if (!isFirstUser && !requestedAdmin) {
-      return res.status(400).json({ message: "Secret code is required for registration" });
-    }
-
-    const user = await storage.createUser({
-      username: req.body.username,
-      password: await hashPassword(req.body.password),
-      isAdmin
-    });
-
-    req.login(user, (err) => {
-      if (err) return next(err);
-      res.status(201).json(user);
-    });
   });
 
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    res.status(200).json(req.user);
+  app.post("/api/login", (req, res, next) => {
+    passport.authenticate("local", (err, user, info) => {
+      if (err) return next(err);
+      if (!user) {
+        return res.status(401).json({ message: info?.message || "Authentication failed" });
+      }
+      req.login(user, (err) => {
+        if (err) return next(err);
+        res.status(200).json(user);
+      });
+    })(req, res, next);
   });
 
   app.post("/api/logout", (req, res, next) => {
