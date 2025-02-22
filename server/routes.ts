@@ -173,25 +173,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 12;
+      const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string) : undefined;
       const offset = (page - 1) * limit;
 
-      console.log(`Fetching products page ${page} with limit ${limit}`);
-      const products = await storage.getProducts(offset, limit);
+      console.log(`Fetching products page ${page} with limit ${limit}, categoryId: ${categoryId}`);
+      const products = await storage.getProducts(offset, limit, categoryId);
       console.log(`Found ${products.length} products`);
 
-      // For each product, calculate the total price based on its categories
+      // For each product, calculate the final price based on categories or custom override
       const productsWithPrices = products.map(product => {
-        let totalPrice = 0;
-        if (product.categories && product.categories.length > 0) {
-          totalPrice = product.categories.reduce((sum, category) => sum + category.defaultPrice, 0);
+        let finalPrice = product.customPrice || 0;
+
+        // If no custom price is set, sum up the category default prices
+        if (!product.customPrice && product.categories && product.categories.length > 0) {
+          finalPrice = product.categories.reduce((sum, category) => sum + category.defaultPrice, 0);
         }
+
         return {
           ...product,
-          price: totalPrice
+          price: finalPrice,
+          // Include categories for filtering UI
+          categories: product.categories || []
         };
       });
 
-      // Always return the same data structure
       res.json({
         data: productsWithPrices || [],
         nextPage: productsWithPrices && productsWithPrices.length === limit ? page + 1 : undefined,

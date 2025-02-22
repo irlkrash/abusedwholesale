@@ -91,7 +91,7 @@ export class DatabaseStorage implements IStorage {
 
   async getProducts(pageOffset = 0, pageLimit = 12, categoryIds?: number[]): Promise<Product[]> {
     try {
-      console.log(`Fetching products with offset: ${pageOffset}, limit: ${pageLimit}`);
+      console.log(`Fetching products with offset: ${pageOffset}, limit: ${pageLimit}, categories: ${categoryIds}`);
 
       const limit = Math.max(1, Math.min(100, pageLimit));
       let query = db
@@ -109,10 +109,13 @@ export class DatabaseStorage implements IStorage {
           eq(productCategories.categoryId, categoriesTable.id)
         );
 
+      // Add category filter if categoryIds is provided
       if (categoryIds && categoryIds.length > 0) {
-        query = query.where(
-          inArray(productCategories.categoryId, categoryIds)
-        ) as any; // Type assertion needed due to Drizzle type inference limitation
+        if (Array.isArray(categoryIds)) {
+          query = query.where(inArray(productCategories.categoryId, categoryIds));
+        } else {
+          query = query.where(eq(productCategories.categoryId, categoryIds));
+        }
       }
 
       const result = await query
