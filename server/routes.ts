@@ -45,12 +45,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Creating new category with data:', req.body);
 
       // Convert price to number explicitly
-      const categoryData = {
-        name: req.body.name,
-        defaultPrice: req.body.defaultPrice.toString()
-      };
-
-      const parsed = insertCategorySchema.safeParse(categoryData);
+      const parsed = insertCategorySchema.safeParse(req.body);
       if (!parsed.success) {
         console.error('Validation failed:', parsed.error.errors);
         return res.status(400).json({ 
