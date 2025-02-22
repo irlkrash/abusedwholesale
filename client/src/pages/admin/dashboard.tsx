@@ -66,6 +66,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {Checkbox} from "@/components/ui/checkbox";
+import { useQueryClient } from "@tanstack/react-query";
 
 
 interface ProductsResponse {
@@ -487,7 +488,7 @@ export default function AdminDashboard() {
       try {
         const name = formState.name.trim();
         const price = parseInt(formState.price, 10);
-        
+
         console.log('Submitting category:', {
           name,
           price,
