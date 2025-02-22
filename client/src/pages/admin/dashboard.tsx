@@ -477,7 +477,7 @@ const BulkCategoryActions = () => {
               if (!selectedCategory || selectedProducts.size === 0) return;
               updateProductCategoriesMutation.mutate({
                 productIds: Array.from(selectedProducts),
-                categoryId: selectedCategory;
+                categoryId: selectedCategory,
               });
             }}
           >
@@ -489,7 +489,7 @@ const BulkCategoryActions = () => {
   );
 };
                 productIds: Array.from(selectedProducts),
-                categoryId: selectedCategory;
+                categoryId: selectedCategory,
               });
             }}
           >
