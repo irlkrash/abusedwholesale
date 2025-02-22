@@ -442,35 +442,45 @@ export default function AdminDashboard() {
 
   const CategoryManagement = () => {
     const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      event.preventDefault();
       setNewCategoryName(event.target.value);
     };
 
     const handlePriceChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      event.preventDefault();
       const value = event.target.value;
       setNewCategoryPrice(value ? parseFloat(value) : 0);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
-      if (newCategoryName.trim() && newCategoryPrice > 0) {
-        try {
-          await createCategoryMutation.mutateAsync({
-            name: newCategoryName.trim(),
-            defaultPrice: newCategoryPrice
-          });
-        } catch (error) {
-          toast({
-            title: "Error",
-            description: error instanceof Error ? error.message : "Failed to create category",
-            variant: "destructive",
-          });
-        }
-      } else {
+      if (!newCategoryName.trim()) {
         toast({
           title: "Validation Error",
-          description: "Please provide both a category name and a valid price",
+          description: "Please provide a category name",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!newCategoryPrice || newCategoryPrice <= 0) {
+        toast({
+          title: "Validation Error",
+          description: "Please provide a valid price greater than 0",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      try {
+        await createCategoryMutation.mutateAsync({
+          name: newCategoryName.trim(),
+          defaultPrice: newCategoryPrice
+        });
+        setNewCategoryName("");
+        setNewCategoryPrice(0);
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to create category",
           variant: "destructive",
         });
       }
