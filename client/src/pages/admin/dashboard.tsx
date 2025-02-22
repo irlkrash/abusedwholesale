@@ -327,12 +327,16 @@ export default function AdminDashboard() {
     },
     onError: (error: any) => {
       console.error('Category creation error details:', {
-        error,
+        error: JSON.stringify(error, null, 2),
+        response: error?.response,
         status: error?.response?.status,
         data: error?.response?.data,
         message: error?.message,
-        name: formState.name,
-        price: formState.price
+        formData: {
+          name: formState.name,
+          price: formState.price,
+          priceType: typeof formState.price
+        }
       });
       const errorMessage = error?.response?.data?.message || error?.message || "Failed to create category";
       toast({

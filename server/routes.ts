@@ -56,9 +56,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         defaultPrice: Number(req.body.defaultPrice)
       };
       
-      console.log('Validating with schema:', categoryData);
-      console.log('Attempting to validate:', JSON.stringify(categoryData, null, 2));
+      console.log('Pre-validation data:', {
+        raw: categoryData,
+        nameType: typeof categoryData.name,
+        priceType: typeof categoryData.defaultPrice,
+        nameLength: categoryData.name.length,
+        priceValue: categoryData.defaultPrice
+      });
+      
       const parsed = insertCategorySchema.safeParse(categoryData);
+      console.log('Validation result:', {
+        success: parsed.success,
+        errors: !parsed.success ? parsed.error.errors : undefined
+      });
       if (!parsed.success) {
         console.error('Validation failed:', {
           input: categoryData,
