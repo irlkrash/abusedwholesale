@@ -410,7 +410,10 @@ export default function AdminDashboard() {
     </>
   );
 
-  const BulkCategoryActions = () => {
+  import { useQueryClient } from '@tanstack/react-query';
+
+const BulkCategoryActions = () => {
+  const queryClient = useQueryClient();
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const updateProductCategoriesMutation = useMutation({
     mutationFn: async ({ productIds, categoryId }: { productIds: number[], categoryId: number }) => {
@@ -423,11 +426,13 @@ export default function AdminDashboard() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
       toast({
         title: "Success",
         description: "Categories updated successfully",
       });
+      setSelectedCategory(null);
     },
     onError: (error: Error) => {
       toast({
