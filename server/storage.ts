@@ -443,23 +443,33 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addProductCategories(productId: number, categoryIds: number[]): Promise<void> {
-    const values = categoryIds.map(categoryId => ({
-      productId,
-      categoryId,
-    }));
+    try {
+      const values = categoryIds.map(categoryId => ({
+        productId,
+        categoryId,
+      }));
 
-    await db.insert(productCategories).values(values);
+      await db.insert(productCategories).values(values);
+    } catch (error) {
+      console.error('Error in addProductCategories:', error);
+      throw error;
+    }
   }
 
   async removeProductCategories(productId: number, categoryIds: number[]): Promise<void> {
-    await db
-      .delete(productCategories)
-      .where(
-        and(
-          eq(productCategories.productId, productId),
-          inArray(productCategories.categoryId, categoryIds)
-        )
-      );
+    try {
+      await db
+        .delete(productCategories)
+        .where(
+          and(
+            eq(productCategories.productId, productId),
+            inArray(productCategories.categoryId, categoryIds)
+          )
+        );
+    } catch (error) {
+      console.error('Error in removeProductCategories:', error);
+      throw error;
+    }
   }
 
   async getProductCategories(productId: number): Promise<Category[]> {

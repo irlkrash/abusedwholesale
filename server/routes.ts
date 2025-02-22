@@ -169,6 +169,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add new bulk category assignment endpoint
+  app.post("/api/products/bulk-assign-categories", requireAdmin, async (req, res) => {
+    try {
+      const { productIds, categoryId } = req.body;
+
+      if (!Array.isArray(productIds) || !productIds.length || typeof categoryId !== 'number') {
+        return res.status(400).json({ message: "Invalid request format" });
+      }
+
+      console.log(`Bulk assigning category ${categoryId} to products:`, productIds);
+
+      // Process each product
+      const results = await Promise.all(
+        productIds.map(async (productId) => {
+          try {
+            await storage.addProductCategories(productId, [categoryId]);
+            const updatedProduct = await storage.getProduct(productId);
+            return { productId, success: true, product: updatedProduct };
+          } catch (error) {
+            console.error(`Failed to update product ${productId}:`, error);
+            return { productId, success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+          }
+        })
+      );
+
+      res.json({
+        message: "Bulk category assignment completed",
+        results
+      });
+    } catch (error) {
+      console.error('Error in bulk category assignment:', error);
+      res.status(500).json({ 
+        message: "Failed to assign categories",
+        error: error instanceof Error ? error.message : "Unknown error occurred"
+      });
+    }
+  });
+
+  // Update GET /api/products to handle category filtering and pricing
   app.get("/api/products", async (req, res) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
@@ -177,7 +216,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const offset = (page - 1) * limit;
 
       console.log(`Fetching products page ${page} with limit ${limit}, categoryId: ${categoryId}`);
-      const products = await storage.getProducts(offset, limit, categoryId);
+      const products = await storage.getProducts(offset, limit, categoryId ? [categoryId] : undefined);
       console.log(`Found ${products.length} products`);
 
       // For each product, calculate the final price based on categories or custom override

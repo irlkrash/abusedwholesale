@@ -1,0 +1,50 @@
+The category assignment and filtering system is not working as expected. There are four major issues:
+
+Bulk category assignment is not functioning – selecting multiple listings does not apply the category to all at once.
+Individual category assignments do not persist – category changes are not saved properly in the database.
+Default category pricing is not reflected – when a category is assigned, products do not inherit the category’s default_price unless manually set.
+Category filters do not work on the main page – selecting a category does not update the displayed products.
+Expected Behavior:
+✔ Admin should be able to bulk-assign categories to multiple listings at once.
+✔ When a category is assigned to a product, it should persist in the database.
+✔ Products without a custom price should inherit the default category price when assigned.
+✔ Users should be able to filter products by category on the main page, updating the product list dynamically.
+
+Debugging & Fixes Needed:
+1. Fix Bulk Category Assignment
+Verify that the API request for bulk category updates correctly sends an array of product IDs and the chosen category ID.
+Ensure that the backend properly processes the bulk update and correctly updates the database.
+Confirm that the API response includes updated category data for all selected products.
+✅ Debugging Steps:
+
+Log the request payload from the frontend to ensure it is structured correctly.
+Log the database update query and result to confirm that category assignments are being applied.
+2. Fix Individual Category Assignments (Persistence Issue)
+Ensure that when a category is assigned, the database correctly saves the change.
+Verify that the frontend immediately updates the product’s category upon selection.
+Confirm that the API returns the updated category data after assignment.
+✅ Debugging Steps:
+
+Log the API request body when assigning a category.
+Log the database row before and after update to confirm persistence.
+3. Fix Default Category Pricing Not Applying
+When a product’s custom_price is NULL, ensure it inherits the category’s default_price automatically.
+If a product has a custom price set, ensure it retains its price instead of being overridden.
+Confirm that category-based pricing updates are properly reflected on the main page.
+✅ Debugging Steps:
+
+Log the product’s price before and after category assignment to verify if it updates correctly.
+Check the database schema constraints to confirm that price inheritance is handled properly.
+4. Fix Category Filters on the Main Page
+Ensure that selecting a category triggers an API request to retrieve filtered products.
+Confirm that the API returns only products that match the selected category.
+Verify that the frontend updates the displayed product list correctly based on the selected filter.
+✅ Debugging Steps:
+
+Log the API response for filtered products to confirm that it returns the correct data.
+Check if the frontend state updates properly when a filter is applied.
+Action Items for Replit:
+Fix bulk category assignment so multiple products can be updated at once.
+Ensure individual category assignments persist in the database.
+Apply category default pricing automatically when a category is assigned to a product with no custom price.
+Make category filters functional so users can browse products by category.
