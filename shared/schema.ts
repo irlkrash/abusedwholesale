@@ -13,7 +13,7 @@ export const users = pgTable("users", {
 export const categories = pgTable("categories", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
-  defaultPrice: decimal("default_price", { precision: 10, scale: 2 }).notNull().default("0"),
+  defaultPrice: integer("default_price").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
