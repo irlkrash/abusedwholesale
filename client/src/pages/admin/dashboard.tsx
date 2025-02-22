@@ -436,12 +436,10 @@ export default function AdminDashboard() {
 
   const CategoryManagement = () => {
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      e.preventDefault();
       setNewCategoryName(e.target.value);
     };
 
     const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      e.preventDefault();
       const value = e.target.value;
       setNewCategoryPrice(value ? parseFloat(value) : 0);
     };
