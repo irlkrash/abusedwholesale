@@ -452,32 +452,24 @@ export default function AdminDashboard() {
     const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
 
-      // Validate name
-      if (!newCategoryName.trim()) {
-        toast({
-          title: "Validation Error",
-          description: "Please provide a category name",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Validate price
-      const priceValue = parseFloat(newCategoryPrice);
-      if (isNaN(priceValue) || priceValue <= 0) {
-        toast({
-          title: "Validation Error",
-          description: "Please provide a valid price greater than 0",
-          variant: "destructive",
-        });
-        return;
-      }
-
       try {
+        const name = newCategoryName.trim();
+        const price = parseFloat(newCategoryPrice);
+
+        if (!name) {
+          throw new Error("Category name is required");
+        }
+
+        if (isNaN(price)) {
+          throw new Error("Please enter a valid price");
+        }
+
         await createCategoryMutation.mutateAsync({
-          name: newCategoryName.trim(),
-          defaultPrice: priceValue
+          name: name,
+          defaultPrice: price
         });
+
+        // Only clear form after successful creation
         setNewCategoryName("");
         setNewCategoryPrice("0");
       } catch (error) {
