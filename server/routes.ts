@@ -56,7 +56,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const category = await storage.createCategory({
         name: parsed.data.name,
-        defaultPrice: parsed.data.defaultPrice
+        defaultPrice: parseFloat(parsed.data.defaultPrice.toString()) // Ensure price is a number
       });
 
       console.log('Successfully created category:', category);
