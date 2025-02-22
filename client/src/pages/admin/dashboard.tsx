@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { Product, Category } from "@shared/schema";
 import { ProductForm } from "@/components/admin/product-form";
 import { Button } from "@/components/ui/button";
@@ -57,7 +57,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
-import { useQueryClient } from '@tanstack/react-query';
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -478,7 +477,7 @@ const BulkCategoryActions = () => {
               if (!selectedCategory || selectedProducts.size === 0) return;
               updateProductCategoriesMutation.mutate({
                 productIds: Array.from(selectedProducts),
-                categoryId: selectedCategory,
+                categoryId: selectedCategory;
               });
             }}
           >
@@ -490,7 +489,7 @@ const BulkCategoryActions = () => {
   );
 };
                 productIds: Array.from(selectedProducts),
-                categoryId: selectedCategory,
+                categoryId: selectedCategory;
               });
             }}
           >
