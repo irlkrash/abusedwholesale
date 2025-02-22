@@ -26,6 +26,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(req.user);
   });
 
+  // Bulk category assignment endpoint
+  app.post("/api/products/bulk-assign-category", requireAdmin, async (req, res) => {
+    try {
+      const { productIds, categoryId } = req.body;
+      console.log('Bulk category assignment request:', { productIds, categoryId });
+
+      if (!Array.isArray(productIds) || !productIds.length || typeof categoryId !== 'number') {
+        return res.status(400).json({ message: "Invalid request format" });
+      }
+
+      const results = await Promise.all(
+        productIds.map(async (productId) => {
+          try {
+            const product = await storage.updateProduct(productId, {
+              categories: [categoryId]
+            });
+            return { productId, success: true, product };
+          } catch (error) {
+            console.error(`Failed to update product ${productId}:`, error);
+            return { productId, success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+          }
+        })
+      );
+
+      res.json({
+        message: "Bulk category assignment completed",
+        results
+      });
+    } catch (error) {
+      console.error('Bulk category assignment failed:', error);
+      res.status(500).json({ 
+        message: "Failed to assign categories",
+        error: error instanceof Error ? error.message : "Unknown error occurred"
+      });
+    }
+  });
+
   // Category routes
   app.get("/api/categories", async (req, res) => {
     try {

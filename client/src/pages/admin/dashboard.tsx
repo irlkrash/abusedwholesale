@@ -412,7 +412,37 @@ export default function AdminDashboard() {
     </>
   );
 
-  const BulkCategoryActions = () => (
+  const BulkCategoryActions = () => {
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const bulkAssignMutation = useMutation({
+    mutationFn: async ({ productIds, categoryId }: { productIds: number[], categoryId: number }) => {
+      console.log('Sending bulk assign request:', { productIds, categoryId });
+      const response = await apiRequest("POST", "/api/products/bulk-assign-category", {
+        productIds, 
+        categoryId
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      toast({
+        title: "Categories updated",
+        description: "Products have been assigned to the selected category.",
+      });
+      setSelectedCategory(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  return (
     <Dialog>
       <DialogTrigger asChild>
         <Button variant="outline">
@@ -425,21 +455,15 @@ export default function AdminDashboard() {
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <Label>Select Categories</Label>
+            <Label>Select Category</Label>
             <ScrollArea className="h-[200px] w-full rounded-md border p-4">
               <div className="space-y-2">
                 {categories.map((category) => (
                   <div key={category.id} className="flex items-center space-x-2">
                     <Checkbox
-                      checked={selectedCategories.includes(category.id)}
+                      checked={selectedCategory === category.id}
                       onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedCategories(prev => [...prev, category.id]);
-                        } else {
-                          setSelectedCategories(prev =>
-                            prev.filter(id => id !== category.id)
-                          );
-                        }
+                        setSelectedCategory(checked ? category.id : null);
                       }}
                     />
                     <Label>{category.name}</Label>
@@ -451,8 +475,25 @@ export default function AdminDashboard() {
         </div>
         <DialogFooter>
           <Button
-            onClick={() =>
-              updateProductCategoriesMutation.mutate({
+            disabled={!selectedCategory || isSubmitting}
+            onClick={() => {
+              if (!selectedCategory) return;
+              console.log('Selected products:', Array.from(selectedProducts));
+              console.log('Selected category:', selectedCategory);
+              setIsSubmitting(true);
+              bulkAssignMutation.mutate({
+                productIds: Array.from(selectedProducts),
+                categoryId: selectedCategory
+              });
+            }}
+          >
+            {isSubmitting ? "Updating..." : "Update Categories"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
                 productIds: Array.from(selectedProducts),
                 categoryIds: selectedCategories,
               })
