@@ -412,7 +412,6 @@ export default function AdminDashboard() {
 
 const BulkCategoryActions = () => {
   const queryClient = useQueryClient();
-  const queryClient = useQueryClient();
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const updateProductCategoriesMutation = useMutation({
     mutationFn: async ({ productIds, categoryId }: { productIds: number[], categoryId: number }) => {
