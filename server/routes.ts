@@ -44,10 +44,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Detailed request logging
       console.log('Category Creation Request:');
-      console.log('- Raw body:', req.body);
-      console.log('- Name:', req.body.name);
-      console.log('- Default Price:', req.body.defaultPrice);
-      console.log('- Price Type:', typeof req.body.defaultPrice);
+      console.log('- Raw body:', JSON.stringify(req.body, null, 2));
+      console.log('- Name:', req.body.name, typeof req.body.name);
+      console.log('- Default Price:', req.body.defaultPrice, typeof req.body.defaultPrice);
+      console.log('- Parsed Price:', Number(req.body.defaultPrice));
       console.log('- Headers:', req.headers);
 
       // Convert price to number explicitly
@@ -56,7 +56,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         defaultPrice: Number(req.body.defaultPrice)
       };
       
+      console.log('Validating with schema:', categoryData);
       const parsed = insertCategorySchema.safeParse(categoryData);
+      console.log('Schema validation result:', parsed.success ? 'Valid' : 'Invalid');
       if (!parsed.success) {
         const errorDetails = parsed.error.errors.map(e => ({
           path: e.path.join('.'),
@@ -78,9 +80,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(category);
     } catch (error) {
       console.error('Error creating category:', error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      console.error('Detailed error:', error);
       res.status(500).json({ 
-        message: "Failed to create category",
-        error: error instanceof Error ? error.message : "Unknown error occurred"
+        message: "Failed to create category: " + errorMessage,
+        error: errorMessage,
+        details: error
       });
     }
   });
