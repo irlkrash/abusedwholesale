@@ -87,6 +87,8 @@ export default function AdminDashboard() {
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryPrice, setNewCategoryPrice] = useState<number>(0);
+  const [categoryFilter, setCategoryFilter] = useState<number[]>([]);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   const {
     data,
@@ -97,14 +99,18 @@ export default function AdminDashboard() {
     isError,
     error
   } = useInfiniteQuery({
-    queryKey: ["/api/products"],
+    queryKey: ["/api/products", categoryFilter, sortOrder],
     queryFn: async ({ pageParam = 1 }) => {
       try {
         const queryParams = new URLSearchParams({
           page: pageParam.toString(),
           limit: '12',
-          sort: 'createdAt:desc'
+          sort: `createdAt:${sortOrder}`
         });
+
+        if (categoryFilter.length > 0) {
+          categoryFilter.forEach(id => queryParams.append('categories', id.toString()));
+        }
 
         const response = await apiRequest(
           "GET",
@@ -514,6 +520,58 @@ export default function AdminDashboard() {
     );
   };
 
+  const CategoryFilter = () => {
+    return (
+      <div className="space-y-4 mb-8">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-medium">Filter by Category</h3>
+          <Select
+            value={sortOrder}
+            onValueChange={(value: "asc" | "desc") => setSortOrder(value)}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Sort order" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="desc">Newest first</SelectItem>
+              <SelectItem value="asc">Oldest first</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <ScrollArea className="h-[200px] w-full rounded-md border p-4">
+          <div className="space-y-2">
+            {categories.map((category) => (
+              <div key={category.id} className="flex items-center space-x-2">
+                <Checkbox
+                  checked={categoryFilter.includes(category.id)}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setCategoryFilter(prev => [...prev, category.id]);
+                    } else {
+                      setCategoryFilter(prev =>
+                        prev.filter(id => id !== category.id)
+                      );
+                    }
+                  }}
+                />
+                <Label>{category.name} (${Number(category.defaultPrice).toFixed(2)})</Label>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+        {categoryFilter.length > 0 && (
+          <Button
+            variant="outline"
+            onClick={() => setCategoryFilter([])}
+            className="w-full"
+          >
+            Clear Filters
+          </Button>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
@@ -721,6 +779,7 @@ export default function AdminDashboard() {
         </div>
 
         <CategoryManagement />
+        <CategoryFilter />
 
         <div className="space-y-8">
           <div className="space-y-4">
