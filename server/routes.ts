@@ -170,9 +170,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Add new bulk category assignment endpoint
-  app.post("/api/products/bulk-assign-categories", requireAdmin, async (req, res) => {
+  app.post("/api/products/bulk-assign-category", requireAdmin, async (req, res) => {
     try {
       const { productIds, categoryId } = req.body;
+      console.log('Bulk assigning category:', { productIds, categoryId });
 
       if (!Array.isArray(productIds) || !productIds.length || typeof categoryId !== 'number') {
         return res.status(400).json({ message: "Invalid request format" });

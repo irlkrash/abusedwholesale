@@ -363,19 +363,17 @@ export default function AdminDashboard() {
   });
 
   const updateProductCategoriesMutation = useMutation({
-    mutationFn: async ({ productIds, categoryIds }: { productIds: number[]; categoryIds: number[] }) => {
-      const results = await Promise.all(
-        productIds.map(id =>
-          apiRequest("PATCH", `/api/products/${id}`, { categories: categoryIds })
-            .then(res => res.json())
-            .catch(error => ({ error, id }))
-        )
-      );
-      const errors = results.filter(r => 'error' in r);
-      if (errors.length > 0) {
-        throw new Error(`Failed to update categories for ${errors.length} products`);
+    mutationFn: async ({ productIds, categoryId }: { productIds: number[]; categoryId: number }) => {
+      console.log('Sending bulk assign request:', { productIds, categoryId });
+      const response = await apiRequest("POST", "/api/products/bulk-assign-category", {
+        productIds,
+        categoryId
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to update categories');
       }
-      return results;
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
@@ -451,11 +449,13 @@ export default function AdminDashboard() {
         </div>
         <DialogFooter>
           <Button
-            onClick={() =>
+            onClick={() => {
+              if (!selectedCategory) return;
               updateProductCategoriesMutation.mutate({
                 productIds: Array.from(selectedProducts),
-                categoryIds: selectedCategories,
-              })
+                categoryId: selectedCategory
+              });
+            }}
             }
           >
             Update Categories
