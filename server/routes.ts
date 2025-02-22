@@ -57,9 +57,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       console.log('Validating with schema:', categoryData);
+      console.log('Attempting to validate:', JSON.stringify(categoryData, null, 2));
       const parsed = insertCategorySchema.safeParse(categoryData);
-      console.log('Schema validation result:', parsed.success ? 'Valid' : 'Invalid');
       if (!parsed.success) {
+        console.error('Validation failed:', {
+          input: categoryData,
+          errors: parsed.error.errors
+        });
         const errorDetails = parsed.error.errors.map(e => ({
           path: e.path.join('.'),
           message: e.message
