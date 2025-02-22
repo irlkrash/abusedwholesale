@@ -442,12 +442,16 @@ export default function AdminDashboard() {
 
   const CategoryManagement = () => {
     const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      setNewCategoryName(event.target.value);
+      setNewCategoryName(event.target.value.trimStart());
     };
 
     const handlePriceChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       const value = event.target.value;
-      setNewCategoryPrice(value ? parseFloat(value) : 0);
+      // Allow empty field and validate on submit instead
+      const numericValue = value === '' ? 0 : parseFloat(value);
+      if (!isNaN(numericValue)) {
+        setNewCategoryPrice(numericValue);
+      }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
