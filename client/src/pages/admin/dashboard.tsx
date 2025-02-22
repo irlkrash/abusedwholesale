@@ -451,6 +451,8 @@ export default function AdminDashboard() {
 
     const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
+
+      // Validate name
       if (!newCategoryName.trim()) {
         toast({
           title: "Validation Error",
@@ -460,6 +462,7 @@ export default function AdminDashboard() {
         return;
       }
 
+      // Validate price
       const priceValue = parseFloat(newCategoryPrice);
       if (isNaN(priceValue) || priceValue <= 0) {
         toast({
@@ -476,7 +479,7 @@ export default function AdminDashboard() {
           defaultPrice: priceValue
         });
         setNewCategoryName("");
-        setNewCategoryPrice("");
+        setNewCategoryPrice("0");
       } catch (error) {
         toast({
           title: "Error",
@@ -505,9 +508,7 @@ export default function AdminDashboard() {
             <Label htmlFor="categoryPrice">Default Price ($)</Label>
             <Input
               id="categoryPrice"
-              type="number"
-              min="0"
-              step="0.01"
+              type="text"
               value={newCategoryPrice}
               onChange={handlePriceChange}
               placeholder="Enter default price..."
