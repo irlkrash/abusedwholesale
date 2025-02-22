@@ -252,7 +252,7 @@ export class DatabaseStorage implements IStorage {
             .select()
             .from(cartItems)
             .where(eq(cartItems.cartId, cart.id));
-          
+
           return {
             ...cart,
             items: items || []
@@ -370,28 +370,61 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCategories(): Promise<Category[]> {
-    return db.select().from(categoriesTable).orderBy(desc(categoriesTable.createdAt));
+    try {
+      return await db
+        .select()
+        .from(categoriesTable)
+        .orderBy(desc(categoriesTable.createdAt));
+    } catch (error) {
+      console.error('Error in getCategories:', error);
+      throw error;
+    }
   }
 
   async getCategory(id: number): Promise<Category | undefined> {
-    const [category] = await db
-      .select()
-      .from(categoriesTable)
-      .where(eq(categoriesTable.id, id))
-      .limit(1);
-    return category;
+    try {
+      const [category] = await db
+        .select()
+        .from(categoriesTable)
+        .where(eq(categoriesTable.id, id))
+        .limit(1);
+      return category;
+    } catch (error) {
+      console.error(`Error in getCategory(${id}):`, error);
+      throw error;
+    }
   }
 
   async createCategory(category: InsertCategory): Promise<Category> {
-    const [newCategory] = await db
-      .insert(categoriesTable)
-      .values(category)
-      .returning();
-    return newCategory;
+    try {
+      console.log('Creating category with data:', category);
+      const [newCategory] = await db
+        .insert(categoriesTable)
+        .values({
+          name: category.name,
+          defaultPrice: category.defaultPrice,
+          createdAt: new Date()
+        })
+        .returning();
+
+      if (!newCategory) {
+        throw new Error('Failed to create category');
+      }
+
+      return newCategory;
+    } catch (error) {
+      console.error('Error in createCategory:', error);
+      throw error;
+    }
   }
 
   async deleteCategory(id: number): Promise<void> {
-    await db.delete(categoriesTable).where(eq(categoriesTable.id, id));
+    try {
+      await db.delete(categoriesTable).where(eq(categoriesTable.id, id));
+    } catch (error) {
+      console.error(`Error in deleteCategory(${id}):`, error);
+      throw error;
+    }
   }
 
   async addProductCategories(productId: number, categoryIds: number[]): Promise<void> {
