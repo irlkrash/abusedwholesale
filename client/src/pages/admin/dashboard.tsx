@@ -86,6 +86,7 @@ export default function AdminDashboard() {
   const [hideDetails, setHideDetails] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryPrice, setNewCategoryPrice] = useState<number>(0);
 
   const {
     data,
@@ -300,8 +301,8 @@ export default function AdminDashboard() {
   });
 
   const createCategoryMutation = useMutation({
-    mutationFn: async (name: string) => {
-      const res = await apiRequest("POST", "/api/categories", { name });
+    mutationFn: async (data: { name: string; defaultPrice: number }) => {
+      const res = await apiRequest("POST", "/api/categories", data);
       return res.json();
     },
     onSuccess: () => {
@@ -311,6 +312,7 @@ export default function AdminDashboard() {
         description: "New category has been added.",
       });
       setNewCategoryName("");
+      setNewCategoryPrice(0);
       refetchCategories();
     },
   });
@@ -444,9 +446,22 @@ export default function AdminDashboard() {
             placeholder="Enter category name..."
           />
         </div>
+        <div className="space-y-2 flex-1">
+          <Label>Default Price ($)</Label>
+          <Input
+            type="number"
+            step="0.01"
+            value={newCategoryPrice}
+            onChange={(e) => setNewCategoryPrice(e.target.value ? parseFloat(e.target.value) : 0)}
+            placeholder="Enter default price..."
+          />
+        </div>
         <Button
-          onClick={() => createCategoryMutation.mutate(newCategoryName)}
-          disabled={!newCategoryName.trim()}
+          onClick={() => createCategoryMutation.mutate({
+            name: newCategoryName,
+            defaultPrice: newCategoryPrice
+          })}
+          disabled={!newCategoryName.trim() || newCategoryPrice <= 0}
         >
           Add Category
         </Button>
@@ -459,7 +474,7 @@ export default function AdminDashboard() {
               variant="secondary"
               className="text-sm py-1 px-2"
             >
-              {category.name}
+              {category.name} (${Number(category.defaultPrice).toFixed(2)})
               <Button
                 variant="ghost"
                 size="sm"
