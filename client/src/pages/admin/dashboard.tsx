@@ -326,8 +326,12 @@ export default function AdminDashboard() {
       });
     },
     onError: (error: any) => {
+      console.error('Category creation error details:', {
+        error,
+        response: error?.response,
+        message: error?.message
+      });
       const errorMessage = error?.response?.data?.message || error?.message || "Failed to create category";
-      console.error('Category creation error:', error);
       toast({
         title: "Error",
         description: errorMessage,

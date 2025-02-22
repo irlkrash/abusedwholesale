@@ -79,13 +79,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Successfully created category:', category);
       res.status(201).json(category);
     } catch (error) {
-      console.error('Error creating category:', error);
+      console.error('Category creation failed:', {
+        error,
+        stack: error instanceof Error ? error.stack : undefined,
+        type: typeof error,
+        body: req.body
+      });
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      console.error('Detailed error:', error);
       res.status(500).json({ 
         message: "Failed to create category: " + errorMessage,
         error: errorMessage,
-        details: error
+        details: JSON.stringify(error)
       });
     }
   });
