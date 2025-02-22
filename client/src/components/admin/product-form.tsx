@@ -89,6 +89,7 @@ interface ProductFormProps {
     images?: string[];
     isAvailable?: boolean;
     categoryIds?: number[];
+    customPrice?: number;
   };
 }
 
@@ -118,6 +119,7 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
       images: initialData?.images || [],
       isAvailable: initialData?.isAvailable ?? true,
       categoryIds: initialData?.categoryIds || [],
+      customPrice: initialData?.customPrice || undefined,
     },
   });
 
@@ -238,6 +240,27 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
 
         <FormField
           control={form.control}
+          name="customPrice"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Custom Price (Optional)</FormLabel>
+              <FormControl>
+                <Input 
+                  type="number" 
+                  step="0.01" 
+                  {...field} 
+                  value={field.value ?? ''} 
+                  onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                  placeholder="Use category default if not set"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
           name="isAvailable"
           render={({ field }) => (
             <FormItem className="flex items-center justify-between">
@@ -303,21 +326,25 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
           <FormLabel>Categories</FormLabel>
           <div className="flex flex-wrap gap-2">
             {categories.map((category: any) => (
-              <Button
-                key={category.id}
-                type="button"
-                variant={selectedCategories.includes(category.id) ? "default" : "outline"}
-                onClick={() => {
-                  setSelectedCategories((prev) =>
-                    prev.includes(category.id)
-                      ? prev.filter((id) => id !== category.id)
-                      : [...prev, category.id]
-                  );
-                }}
-                className="h-8"
-              >
-                {category.name}
-              </Button>
+              <div key={category.id} className="flex items-center space-x-2 bg-secondary p-2 rounded-lg">
+                <Button
+                  type="button"
+                  variant={selectedCategories.includes(category.id) ? "default" : "outline"}
+                  onClick={() => {
+                    setSelectedCategories((prev) =>
+                      prev.includes(category.id)
+                        ? prev.filter((id) => id !== category.id)
+                        : [...prev, category.id]
+                    );
+                  }}
+                  className="h-8"
+                >
+                  {category.name}
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  (${category.defaultPrice})
+                </span>
+              </div>
             ))}
           </div>
         </FormItem>

@@ -16,6 +16,12 @@ export function ProductCard({ product, onAddToCart, priority = false }: ProductC
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedFullImage, setSelectedFullImage] = useState<string | null>(null);
 
+  // Calculate the effective price (custom price or lowest category price)
+  const effectivePrice = product.customPrice ?? 
+    (product.categories?.length 
+      ? Math.min(...product.categories.map(cat => Number(cat.defaultPrice)))
+      : 0);
+
   return (
     <Card className="overflow-hidden transition-shadow hover:shadow-lg">
       <CardContent className="p-0">
@@ -30,21 +36,28 @@ export function ProductCard({ product, onAddToCart, priority = false }: ProductC
             loading="lazy"
           />
         </div>
-        {product.categories && product.categories.length > 0 && (
-          <div className="p-4">
-            <div className="flex flex-wrap gap-1">
-              {product.categories.map((category) => (
-                <Badge
-                  key={category.id}
-                  variant="secondary"
-                  className="text-xs"
-                >
-                  {category.name}
-                </Badge>
-              ))}
-            </div>
+        <div className="p-4">
+          <h3 className="font-semibold text-lg">{product.name}</h3>
+          <p className="text-muted-foreground text-sm mt-1">{product.description}</p>
+          <div className="mt-2">
+            <span className="text-lg font-bold">${effectivePrice.toFixed(2)}</span>
           </div>
-        )}
+          {product.categories && product.categories.length > 0 && (
+            <div className="mt-2">
+              <div className="flex flex-wrap gap-1">
+                {product.categories.map((category) => (
+                  <Badge
+                    key={category.id}
+                    variant="secondary"
+                    className="text-xs"
+                  >
+                    {category.name}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </CardContent>
       <CardFooter className="p-6">
         <Button 

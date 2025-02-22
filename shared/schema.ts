@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, jsonb, timestamp, index, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, jsonb, timestamp, index, primaryKey, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -13,6 +13,7 @@ export const users = pgTable("users", {
 export const categories = pgTable("categories", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
+  defaultPrice: decimal("default_price", { precision: 10, scale: 2 }).notNull().default("0"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -22,6 +23,7 @@ export const products = pgTable("products", {
   description: text("description").notNull(),
   images: text("images").array().notNull(),
   fullImages: text("fullImages").array().notNull().default([]),
+  customPrice: decimal("custom_price", { precision: 10, scale: 2 }),
   isAvailable: boolean("is_available").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => ({
@@ -30,7 +32,6 @@ export const products = pgTable("products", {
   createdAtIdx: index("created_at_idx").on(table.createdAt),
 }));
 
-// Junction table for product-category relationship
 export const productCategories = pgTable("product_categories", {
   productId: integer("product_id").notNull().references(() => products.id, { onDelete: 'cascade' }),
   categoryId: integer("category_id").notNull().references(() => categories.id, { onDelete: 'cascade' }),
@@ -57,6 +58,7 @@ export const cartItems = pgTable("cart_items", {
   description: text("description").notNull(),
   images: text("images").array().notNull(),
   fullImages: text("full_images").array().notNull().default([]),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull().default("0"),
   isAvailable: boolean("is_available").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => ({
@@ -74,7 +76,6 @@ export const orders = pgTable("orders", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-// Define relations
 export const cartsRelations = relations(carts, ({ many }) => ({
   items: many(cartItems),
 }));
@@ -86,9 +87,9 @@ export const cartItemsRelations = relations(cartItems, ({ one }) => ({
   }),
 }));
 
-// Schema for category operations
 export const insertCategorySchema = createInsertSchema(categories).pick({
   name: true,
+  defaultPrice: true,
 });
 
 export const insertUserSchema = createInsertSchema(users)
@@ -105,6 +106,7 @@ export const insertProductSchema = createInsertSchema(products).pick({
   description: true,
   images: true,
   fullImages: true,
+  customPrice: true,
   isAvailable: true,
 }).extend({
   categories: z.array(z.number()).optional(),
@@ -116,6 +118,7 @@ export const cartItemSchema = z.object({
   description: z.string(),
   images: z.array(z.string()),
   fullImages: z.array(z.string()).optional(),
+  price: z.number(),
   isAvailable: z.boolean().optional(),
   createdAt: z.string().or(z.date()).optional()
 });
