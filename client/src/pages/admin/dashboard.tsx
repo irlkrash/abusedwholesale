@@ -464,7 +464,9 @@ export default function AdminDashboard() {
     </Dialog>
   );
 
-  const CategoryManagement = () => {
+  const CategoryManagement: React.FC = () => {
+    const { toast } = useToast();
+    const queryClient = useQueryClient();
     const [formState, setFormState] = useState({ name: "", price: "0" });
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
