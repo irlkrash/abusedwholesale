@@ -475,7 +475,7 @@ export default function AdminDashboard() {
               if (!selectedCategory || selectedProducts.size === 0) return;
               updateProductCategoriesMutation.mutate({
                 productIds: Array.from(selectedProducts),
-                categoryId: selectedCategory
+                categoryId: selectedCategory,
               });
             }}
           >
@@ -487,7 +487,7 @@ export default function AdminDashboard() {
   );
 };
                 productIds: Array.from(selectedProducts),
-                categoryId: selectedCategory
+                categoryId: selectedCategory,
               });
             }}
           >
@@ -1024,7 +1024,7 @@ export default function AdminDashboard() {
               </Card>
             )}
 
-            <div ref={loadMoreRef} className="h-20 flex items-center justify-center">
+            <div ref={loadMoreRef} className="h20 flex items-center justify-center">
               {isFetchingNextPage && (
                 <Loader2 className="w-6 h-6 animate-spin" />
               )}
