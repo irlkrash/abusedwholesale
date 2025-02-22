@@ -42,8 +42,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/categories", requireAdmin, async (req, res) => {
     try {
-      console.log('Creating new category with data:', req.body);
-      console.log('Type of defaultPrice:', typeof req.body.defaultPrice);
+      // Detailed request logging
+      console.log('Category Creation Request:');
+      console.log('- Raw body:', req.body);
+      console.log('- Name:', req.body.name);
+      console.log('- Default Price:', req.body.defaultPrice);
+      console.log('- Price Type:', typeof req.body.defaultPrice);
+      console.log('- Headers:', req.headers);
 
       // Convert price to number explicitly
       const categoryData = {
