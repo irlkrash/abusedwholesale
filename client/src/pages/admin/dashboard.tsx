@@ -325,10 +325,12 @@ export default function AdminDashboard() {
         description: "New category has been added.",
       });
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.message || error?.message || "Failed to create category";
+      console.error('Category creation error:', error);
       toast({
         title: "Error",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     },
