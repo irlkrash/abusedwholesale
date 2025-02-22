@@ -444,6 +444,7 @@ export default function AdminDashboard() {
             value={newCategoryName}
             onChange={(e) => setNewCategoryName(e.target.value)}
             placeholder="Enter category name..."
+            className="w-full"
           />
         </div>
         <div className="space-y-2 flex-1">
@@ -451,9 +452,10 @@ export default function AdminDashboard() {
           <Input
             type="number"
             step="0.01"
-            value={newCategoryPrice}
+            value={newCategoryPrice || ''}
             onChange={(e) => setNewCategoryPrice(e.target.value ? parseFloat(e.target.value) : 0)}
             placeholder="Enter default price..."
+            className="w-full"
           />
         </div>
         <Button
