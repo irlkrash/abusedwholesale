@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertProductSchema, insertCartSchema } from "@shared/schema";
+import { insertProductSchema, insertCartSchema, insertCategorySchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -24,6 +24,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(401).json({ message: "Not authenticated" });
     }
     res.json(req.user);
+  });
+
+  // Category routes
+  app.get("/api/categories", async (req, res) => {
+    try {
+      const categories = await storage.getCategories();
+      res.json(categories);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      res.status(500).json({ 
+        message: "Failed to fetch categories",
+        error: error instanceof Error ? error.message : "Unknown error occurred"
+      });
+    }
+  });
+
+  app.post("/api/categories", requireAdmin, async (req, res) => {
+    try {
+      console.log('Creating new category with data:', req.body);
+      const parsed = insertCategorySchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ 
+          message: "Invalid category data",
+          errors: parsed.error.errors 
+        });
+      }
+
+      const category = await storage.createCategory({
+        name: parsed.data.name,
+        defaultPrice: parsed.data.defaultPrice
+      });
+
+      console.log('Successfully created category:', category);
+      res.status(201).json(category);
+    } catch (error) {
+      console.error('Error creating category:', error);
+      res.status(500).json({ 
+        message: "Failed to create category",
+        error: error instanceof Error ? error.message : "Unknown error occurred"
+      });
+    }
+  });
+
+  app.delete("/api/categories/:id", requireAdmin, async (req, res) => {
+    try {
+      const categoryId = parseInt(req.params.id);
+      if (isNaN(categoryId)) {
+        return res.status(400).json({ message: "Invalid category ID" });
+      }
+
+      await storage.deleteCategory(categoryId);
+      res.json({ message: "Category deleted successfully" });
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      res.status(500).json({ 
+        message: "Failed to delete category",
+        error: error instanceof Error ? error.message : "Unknown error occurred"
+      });
+    }
   });
 
   // Products routes with pagination - Make GET public, but keep POST/PATCH/DELETE protected

@@ -371,10 +371,12 @@ export class DatabaseStorage implements IStorage {
 
   async getCategories(): Promise<Category[]> {
     try {
-      return await db
+      const categories = await db
         .select()
         .from(categoriesTable)
         .orderBy(desc(categoriesTable.createdAt));
+
+      return categories.filter((category): category is Category => category !== null);
     } catch (error) {
       console.error('Error in getCategories:', error);
       throw error;
@@ -388,7 +390,7 @@ export class DatabaseStorage implements IStorage {
         .from(categoriesTable)
         .where(eq(categoriesTable.id, id))
         .limit(1);
-      return category;
+      return category || undefined;
     } catch (error) {
       console.error(`Error in getCategory(${id}):`, error);
       throw error;

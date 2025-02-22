@@ -441,12 +441,12 @@ export default function AdminDashboard() {
   const CategoryManagement = () => {
     const [formState, setFormState] = useState({ name: "", price: "0" });
 
-    const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      setFormState(prev => ({...prev, name: event.target.value.trim()}));
+    const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setFormState(prev => ({ ...prev, name: e.target.value }));
     };
 
-    const handlePriceChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      setFormState(prev => ({...prev, price: event.target.value}));
+    const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setFormState(prev => ({ ...prev, price: e.target.value }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -609,6 +609,9 @@ export default function AdminDashboard() {
       </div>
     );
   };
+
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryPrice, setNewCategoryPrice] = useState("0");
 
   return (
     <div className="min-h-screen bg-background">

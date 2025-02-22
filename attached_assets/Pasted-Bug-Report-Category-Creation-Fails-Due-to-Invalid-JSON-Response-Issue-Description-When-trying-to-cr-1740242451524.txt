@@ -1,0 +1,89 @@
+Bug Report: Category Creation Fails Due to Invalid JSON Response
+Issue Description
+When trying to create a new category via the "Add Category" button, the following error appears:
+
+Error: Unexpected token '<', "<!DOCTYPE " ... is not valid JSON
+
+This suggests that the frontend is expecting a JSON response, but is instead receiving an HTML error page, which often happens when:
+
+The API endpoint is incorrect or unreachable.
+The backend is returning an HTML error (e.g., 404 Not Found, 500 Internal Server Error).
+The request is not properly formatted or lacks the required headers.
+Steps to Reproduce
+Navigate to the admin dashboard and enter a Category Name and Default Price.
+Click "Add Category".
+Observe the error message.
+Possible Causes & Fixes
+1. Verify the API Endpoint
+Ensure the frontend is making a request to the correct API endpoint.
+Check if the backend route exists and is correctly set up to handle POST /api/categories.
+2. Debug API Response
+Before calling response.json(), log the raw response to check if it contains HTML instead of JSON.
+
+Example Fix (Frontend Logging):
+
+tsx
+Copy
+Edit
+const createCategory = async () => {
+  const response = await fetch("/api/categories", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: categoryName, default_price: categoryPrice }),
+  });
+
+  const text = await response.text(); // Log raw response
+  console.log("Raw response:", text);
+
+  try {
+    const data = JSON.parse(text);
+    console.log(data);
+  } catch (error) {
+    console.error("Failed to parse JSON:", error);
+  }
+};
+If the response contains an HTML error page, the backend is likely failing.
+
+3. Ensure Backend Returns JSON
+The backend should always return valid JSON, even in case of an error.
+
+Example Fix (Backend - Express API Route):
+
+typescript
+Copy
+Edit
+app.post("/api/categories", async (req, res) => {
+  try {
+    console.log("Received request:", req.body);
+    const { name, default_price } = req.body;
+
+    if (!name || typeof default_price !== "number") {
+      return res.status(400).json({ error: "Invalid input" }); // Ensure JSON response
+    }
+
+    const newCategory = await db.insert(categories).values({ name, default_price }).returning();
+    res.status(201).json(newCategory);
+  } catch (error) {
+    console.error("Error creating category:", error);
+    res.status(500).json({ error: "Internal server error" }); // Return JSON instead of HTML
+  }
+});
+4. Ensure JSON Parsing is Enabled in Express
+If req.body is undefined, the request might not be parsed correctly.
+
+Ensure that express.json() middleware is added:
+
+typescript
+Copy
+Edit
+app.use(express.json()); // Required to parse JSON body
+Expected Behavior
+When submitting the category form: ✔ The request is sent to POST /api/categories.
+✔ The API returns a valid JSON response.
+✔ The category is successfully created, and the UI updates accordingly.
+
+Next Steps for Replit
+Check if the /api/categories route exists and is reachable.
+Log the API response before attempting to parse JSON.
+Ensure the backend properly handles JSON requests and returns JSON responses.
+Verify that express.json() middleware is enabled.
