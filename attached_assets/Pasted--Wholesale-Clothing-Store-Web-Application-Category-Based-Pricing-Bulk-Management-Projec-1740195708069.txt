@@ -1,0 +1,129 @@
+**Wholesale Clothing Store Web Application - Category-Based Pricing & Bulk Management**
+
+## **Project Overview**
+This update introduces a **category-based pricing system** with bulk product assignment, default pricing, and individual price overrides. The goal is to streamline admin workflows, reduce manual price setting, and provide flexibility for high-value items.
+
+---
+
+## **Technical Requirements**
+
+### **1. Database Schema Updates**
+Enhance the existing PostgreSQL schema to support category-based pricing, product tagging, and price overrides.
+
+#### **Tables & Modifications:**
+- **`categories`** (Modify)
+  - `id` (Primary Key)
+  - `name` (VARCHAR, Unique, e.g., "T-Shirts", "Sweaters")
+  - `default_price` (DECIMAL, NEW column for category-wide pricing)
+
+- **`products`** (Modify)
+  - `id` (Primary Key)
+  - `name` (VARCHAR)
+  - `category_id` (Foreign Key to `categories`)
+  - `custom_price` (DECIMAL, NEW column, nullable: If `NULL`, use category price)
+
+**Constraints:**
+- Assigning a product to a category automatically applies the category's `default_price` (unless overridden).
+- When `custom_price` is set, it overrides the category price.
+- Bulk category assignment updates pricing unless a `custom_price` exists.
+
+---
+
+### **2. Backend Updates (Express + Drizzle ORM)**
+
+#### **Category Management**
+- Allow admins to create, edit, and delete categories.
+- Ensure categories have a `default_price`.
+- When updating a `default_price`, apply changes to all assigned products (except those with `custom_price`).
+
+#### **Product Category Assignment & Pricing Logic**
+- **Assigning a Category:**
+  - When tagging products with a category, they inherit the category’s `default_price`.
+  - If a product has a `custom_price`, it remains unchanged.
+
+- **Overriding Category Price:**
+  - Setting `custom_price` on a product overrides the category’s default.
+  - Resetting `custom_price` to `NULL` reverts to category pricing.
+
+#### **Bulk Product Management**
+- Allow bulk product selection and category assignment.
+- When bulk assigning a category:
+  - Apply category’s `default_price` to products without a `custom_price`.
+  - Do not alter products with `custom_price`.
+- Enable bulk resetting of `custom_price` to follow category pricing.
+
+#### **API Endpoints**
+
+- **Create/Edit Category**
+  - `POST /categories` → `{ "name": "T-Shirts", "default_price": 15.00 }`
+  - `PUT /categories/:id` → `{ "default_price": 18.00 }`
+
+- **Assign Category to Products**
+  - `PUT /products/bulk-assign-category` → `{ "product_ids": [1,2,3], "category_id": 5 }`
+
+- **Set Custom Price for Product**
+  - `PUT /products/:id` → `{ "custom_price": 25.00 }`
+
+- **Reset Custom Price to Category Pricing**
+  - `PUT /products/:id/reset-price` → `{ "custom_price": null }`
+
+---
+
+### **3. Admin Dashboard Updates (React + Vite)**
+
+#### **Category Management UI**
+- Allow admins to:
+  - Create categories with a `default_price`.
+  - Edit `default_price`, affecting all assigned products (unless overridden).
+  - Delete categories (with reassignment option for existing products).
+
+#### **Product Management UI**
+- **Bulk Product Assignment:**
+  - Enable selecting multiple products and assigning them to a category.
+  - Show a confirmation message before applying new category pricing.
+
+- **Product Pricing Display:**
+  - Show `custom_price` if set, otherwise display category’s `default_price`.
+  - Include a “Reset to Category Price” button.
+
+##### **Example React Component for Price Display**
+```tsx
+const ProductPrice = ({ product }) => {
+  return (
+    <p>
+      Price: ${product.custom_price ?? product.category.default_price}
+      {product.custom_price && <span>(Custom Price)</span>}
+    </p>
+  );
+};
+```
+
+---
+
+### **4. Bulk Product Pricing & CSV Export**
+- Admins can bulk reset selected products to use category pricing.
+- Option to export product pricing data (CSV format) for review.
+
+---
+
+## **Deployment & Configuration**
+### **Environment Variables**
+Ensure database migrations and API endpoints integrate with the existing Replit environment.
+
+### **Migration Script for Database Updates**
+```sql
+ALTER TABLE categories ADD COLUMN default_price DECIMAL NOT NULL DEFAULT 0.00;
+ALTER TABLE products ADD COLUMN custom_price DECIMAL;
+```
+
+---
+
+## **Expected Outcome**
+✔ **Admins can create and manage categories with default pricing.**
+✔ **Bulk product assignment applies category pricing automatically.**
+✔ **Products can have custom pricing, overriding category pricing when needed.**
+✔ **Admins can reset individual or bulk product prices to category defaults.**
+✔ **Cart and order totals dynamically use the correct price per product.**
+
+This implementation will significantly improve product management efficiency for the wholesale business, allowing for scalable pricing updates while maintaining flexibility for premium items.
+
