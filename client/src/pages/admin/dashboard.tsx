@@ -441,21 +441,37 @@ export default function AdminDashboard() {
   );
 
   const CategoryManagement = () => {
-    const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      setNewCategoryName(e.target.value);
+    const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+      event.preventDefault();
+      setNewCategoryName(event.target.value);
     };
 
-    const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value;
+    const handlePriceChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+      event.preventDefault();
+      const value = event.target.value;
       setNewCategoryPrice(value ? parseFloat(value) : 0);
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       if (newCategoryName.trim() && newCategoryPrice > 0) {
-        createCategoryMutation.mutate({
-          name: newCategoryName,
-          defaultPrice: newCategoryPrice
+        try {
+          await createCategoryMutation.mutateAsync({
+            name: newCategoryName.trim(),
+            defaultPrice: newCategoryPrice
+          });
+        } catch (error) {
+          toast({
+            title: "Error",
+            description: error instanceof Error ? error.message : "Failed to create category",
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({
+          title: "Validation Error",
+          description: "Please provide both a category name and a valid price",
+          variant: "destructive",
         });
       }
     };
@@ -473,6 +489,7 @@ export default function AdminDashboard() {
               onChange={handleNameChange}
               placeholder="Enter category name..."
               className="w-full"
+              autoComplete="off"
             />
           </div>
           <div className="space-y-2 flex-1">
@@ -486,13 +503,21 @@ export default function AdminDashboard() {
               onChange={handlePriceChange}
               placeholder="Enter default price..."
               className="w-full"
+              autoComplete="off"
             />
           </div>
           <Button
             type="submit"
             disabled={!newCategoryName.trim() || newCategoryPrice <= 0 || createCategoryMutation.isPending}
           >
-            Add Category
+            {createCategoryMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              'Add Category'
+            )}
           </Button>
         </form>
         <ScrollArea className="w-full">
@@ -509,6 +534,7 @@ export default function AdminDashboard() {
                   size="sm"
                   className="h-4 w-4 p-0 ml-2"
                   onClick={() => deleteCategoryMutation.mutate(category.id)}
+                  disabled={deleteCategoryMutation.isPending}
                 >
                   ×
                 </Button>
