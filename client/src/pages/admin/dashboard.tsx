@@ -456,7 +456,6 @@ export default function AdminDashboard() {
                 categoryId: selectedCategory
               });
             }}
-            }
           >
             Update Categories
           </Button>
