@@ -47,7 +47,17 @@ export class DatabaseStorage implements IStorage {
       tableName: 'session_store',
       createTableIfMissing: true,
       pruneSessionInterval: false,
+      errorLog: console.error,
     });
+
+    // Create session store table if it doesn't exist
+    pool.query(`
+      CREATE TABLE IF NOT EXISTS "session_store" (
+        "sid" varchar NOT NULL COLLATE "default" PRIMARY KEY NOT DEFERRABLE INITIALLY IMMEDIATE,
+        "sess" json NOT NULL,
+        "expire" timestamp(6) NOT NULL
+      )
+    `).catch(err => console.error('Error creating session table:', err));
   }
 
   async getUsers(): Promise<User[]> {
