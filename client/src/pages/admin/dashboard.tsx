@@ -491,9 +491,19 @@ export default function AdminDashboard() {
           return;
         }
 
+        const defaultPrice = Number(price);
+        if (!Number.isInteger(defaultPrice)) {
+          toast({
+            title: "Error",
+            description: "Price must be a valid integer",
+            variant: "destructive",
+          });
+          return;
+        }
+
         await createCategoryMutation.mutateAsync({
           name: name.trim(),
-          defaultPrice: Math.floor(Number(price))
+          defaultPrice: defaultPrice
         });
 
         // Reset form only after successful creation
