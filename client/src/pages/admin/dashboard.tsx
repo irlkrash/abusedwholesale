@@ -434,63 +434,87 @@ export default function AdminDashboard() {
     </Dialog>
   );
 
-  const CategoryManagement = () => (
-    <div className="space-y-4 mb-8">
-      <h3 className="text-lg font-medium">Category Management</h3>
-      <div className="flex items-end gap-4">
-        <div className="space-y-2 flex-1">
-          <Label>New Category Name</Label>
-          <Input
-            value={newCategoryName}
-            onChange={(e) => setNewCategoryName(e.target.value)}
-            placeholder="Enter category name..."
-            className="w-full"
-          />
-        </div>
-        <div className="space-y-2 flex-1">
-          <Label>Default Price ($)</Label>
-          <Input
-            type="number"
-            step="0.01"
-            value={newCategoryPrice || ''}
-            onChange={(e) => setNewCategoryPrice(e.target.value ? parseFloat(e.target.value) : 0)}
-            placeholder="Enter default price..."
-            className="w-full"
-          />
-        </div>
-        <Button
-          onClick={() => createCategoryMutation.mutate({
-            name: newCategoryName,
-            defaultPrice: newCategoryPrice
-          })}
-          disabled={!newCategoryName.trim() || newCategoryPrice <= 0}
-        >
-          Add Category
-        </Button>
-      </div>
-      <ScrollArea className="w-full">
-        <div className="flex flex-wrap gap-2">
-          {categories.map((category) => (
-            <Badge
-              key={category.id}
-              variant="secondary"
-              className="text-sm py-1 px-2"
-            >
-              {category.name} (${Number(category.defaultPrice).toFixed(2)})
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-4 w-4 p-0 ml-2"
-                onClick={() => deleteCategoryMutation.mutate(category.id)}
+  const CategoryManagement = () => {
+    const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      e.preventDefault();
+      setNewCategoryName(e.target.value);
+    };
+
+    const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      e.preventDefault();
+      const value = e.target.value;
+      setNewCategoryPrice(value ? parseFloat(value) : 0);
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (newCategoryName.trim() && newCategoryPrice > 0) {
+        createCategoryMutation.mutate({
+          name: newCategoryName,
+          defaultPrice: newCategoryPrice
+        });
+      }
+    };
+
+    return (
+      <div className="space-y-4 mb-8">
+        <h3 className="text-lg font-medium">Category Management</h3>
+        <form onSubmit={handleSubmit} className="flex items-end gap-4">
+          <div className="space-y-2 flex-1">
+            <Label htmlFor="categoryName">New Category Name</Label>
+            <Input
+              id="categoryName"
+              type="text"
+              value={newCategoryName}
+              onChange={handleNameChange}
+              placeholder="Enter category name..."
+              className="w-full"
+            />
+          </div>
+          <div className="space-y-2 flex-1">
+            <Label htmlFor="categoryPrice">Default Price ($)</Label>
+            <Input
+              id="categoryPrice"
+              type="number"
+              min="0"
+              step="0.01"
+              value={newCategoryPrice || ''}
+              onChange={handlePriceChange}
+              placeholder="Enter default price..."
+              className="w-full"
+            />
+          </div>
+          <Button
+            type="submit"
+            disabled={!newCategoryName.trim() || newCategoryPrice <= 0 || createCategoryMutation.isPending}
+          >
+            Add Category
+          </Button>
+        </form>
+        <ScrollArea className="w-full">
+          <div className="flex flex-wrap gap-2">
+            {categories.map((category) => (
+              <Badge
+                key={category.id}
+                variant="secondary"
+                className="text-sm py-1 px-2"
               >
-                ×
-              </Button>
-            </Badge>
-          ))}
-        </div>
-      </ScrollArea>
-    </div>
-  );
+                {category.name} (${Number(category.defaultPrice).toFixed(2)})
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-4 w-4 p-0 ml-2"
+                  onClick={() => deleteCategoryMutation.mutate(category.id)}
+                >
+                  ×
+                </Button>
+              </Badge>
+            ))}
+          </div>
+        </ScrollArea>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background">
