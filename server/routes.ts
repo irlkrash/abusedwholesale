@@ -43,8 +43,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/categories", requireAdmin, async (req, res) => {
     try {
       console.log('Creating new category with data:', req.body);
-      const parsed = insertCategorySchema.safeParse(req.body);
+
+      // Convert price to number explicitly
+      const categoryData = {
+        name: req.body.name,
+        defaultPrice: parseFloat(req.body.defaultPrice)
+      };
+
+      const parsed = insertCategorySchema.safeParse(categoryData);
       if (!parsed.success) {
+        console.error('Validation failed:', parsed.error.errors);
         return res.status(400).json({ 
           message: "Invalid category data",
           errors: parsed.error.errors 

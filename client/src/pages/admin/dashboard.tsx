@@ -459,7 +459,11 @@ export default function AdminDashboard() {
     };
 
     const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      setFormState(prev => ({ ...prev, price: e.target.value }));
+      const value = e.target.value;
+      // Allow empty string or valid numbers
+      if (value === "" || !isNaN(parseFloat(value))) {
+        setFormState(prev => ({ ...prev, price: value }));
+      }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -495,6 +499,7 @@ export default function AdminDashboard() {
         // Reset form only after successful creation
         setFormState({ name: "", price: "0" });
       } catch (error) {
+        console.error('Error creating category:', error);
         toast({
           title: "Error",
           description: error instanceof Error ? error.message : "Failed to create category",
