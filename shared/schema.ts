@@ -90,12 +90,8 @@ export const cartItemsRelations = relations(cartItems, ({ one }) => ({
 export const insertCategorySchema = createInsertSchema(categories)
   .pick({
     name: true,
-    defaultPrice: true,
-  })
-  .transform((data) => ({
-    ...data,
-    defaultPrice: data.defaultPrice.toString()
-  }));
+    defaultPrice: z.number().int().min(0),
+  });
 
 export const insertUserSchema = createInsertSchema(users)
   .pick({

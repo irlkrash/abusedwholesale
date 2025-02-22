@@ -308,7 +308,7 @@ export default function AdminDashboard() {
     mutationFn: async (data: { name: string; defaultPrice: number }) => {
       const response = await apiRequest("POST", "/api/categories", {
         name: data.name.trim(),
-        defaultPrice: Number(data.defaultPrice)
+        defaultPrice: Math.round(Number(data.defaultPrice)) //Corrected line
       });
 
       if (!response.ok) {
@@ -461,7 +461,7 @@ export default function AdminDashboard() {
     const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value;
       // Allow empty string or valid numbers
-      if (value === "" || !isNaN(parseFloat(value))) {
+      if (value === "" || !isNaN(parseInt(value, 10))) { //Corrected parseInt and base 10
         setFormState(prev => ({ ...prev, price: value }));
       }
     };
@@ -471,7 +471,7 @@ export default function AdminDashboard() {
 
       try {
         const name = formState.name.trim();
-        const price = parseFloat(formState.price);
+        const price = parseInt(formState.price, 10); //Corrected parseInt and base 10
 
         if (!name) {
           toast({
@@ -493,7 +493,7 @@ export default function AdminDashboard() {
 
         await createCategoryMutation.mutateAsync({
           name,
-          defaultPrice: price.toString()
+          defaultPrice: price //Corrected line
         });
 
         // Reset form only after successful creation
@@ -529,7 +529,7 @@ export default function AdminDashboard() {
               id="categoryPrice"
               type="number"
               min="0"
-              step="0.01"
+              step="1" //Corrected step
               value={formState.price}
               onChange={handlePriceChange}
               placeholder="Enter default price..."
@@ -558,7 +558,7 @@ export default function AdminDashboard() {
                 variant="secondary"
                 className="text-sm py-1 px-2"
               >
-                {category.name} (${Number(category.defaultPrice).toFixed(2)})
+                {category.name} (${category.defaultPrice}) {/*Corrected to remove toFixed*/}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -610,7 +610,7 @@ export default function AdminDashboard() {
                     }
                   }}
                 />
-                <Label>{category.name} (${Number(category.defaultPrice).toFixed(2)})</Label>
+                <Label>{category.name} (${category.defaultPrice})</Label> {/*Corrected to remove toFixed*/}
               </div>
             ))}
           </div>
