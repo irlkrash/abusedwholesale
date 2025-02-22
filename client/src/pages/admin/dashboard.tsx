@@ -441,12 +441,15 @@ export default function AdminDashboard() {
   );
 
   const CategoryManagement = () => {
+    const formRef = useRef<HTMLFormElement>(null);
+    
     const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      setNewCategoryName(event.target.value);
+      event.currentTarget.value = event.currentTarget.value.trim();
+      setNewCategoryName(event.currentTarget.value);
     };
 
     const handlePriceChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      setNewCategoryPrice(event.target.value);
+      setNewCategoryPrice(event.currentTarget.value);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -494,7 +497,7 @@ export default function AdminDashboard() {
     return (
       <div className="space-y-4 mb-8">
         <h3 className="text-lg font-medium">Category Management</h3>
-        <form onSubmit={handleSubmit} className="flex items-end gap-4">
+        <form ref={formRef} onSubmit={handleSubmit} className="flex items-end gap-4">
           <div className="space-y-2 flex-1">
             <Label htmlFor="categoryName">New Category Name</Label>
             <Input
