@@ -410,7 +410,35 @@ export default function AdminDashboard() {
     </>
   );
 
-  const BulkCategoryActions = () => (
+  const BulkCategoryActions = () => {
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const updateProductCategoriesMutation = useMutation({
+    mutationFn: async ({ productIds, categoryId }: { productIds: number[], categoryId: number }) => {
+      const response = await fetch('/api/products/bulk-assign-category', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productIds, categoryId })
+      });
+      if (!response.ok) throw new Error('Failed to update categories');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      toast({
+        title: "Success",
+        description: "Categories updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  return (
     <Dialog>
       <DialogTrigger asChild>
         <Button variant="outline">
@@ -423,21 +451,15 @@ export default function AdminDashboard() {
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <Label>Select Categories</Label>
+            <Label>Select Category</Label>
             <ScrollArea className="h-[200px] w-full rounded-md border p-4">
               <div className="space-y-2">
                 {categories.map((category) => (
                   <div key={category.id} className="flex items-center space-x-2">
                     <Checkbox
-                      checked={selectedCategories.includes(category.id)}
+                      checked={selectedCategory === category.id}
                       onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedCategories(prev => [...prev, category.id]);
-                        } else {
-                          setSelectedCategories(prev =>
-                            prev.filter(id => id !== category.id)
-                          );
-                        }
+                        setSelectedCategory(checked ? category.id : null);
                       }}
                     />
                     <Label>{category.name}</Label>
@@ -450,8 +472,20 @@ export default function AdminDashboard() {
         <DialogFooter>
           <Button
             onClick={() => {
-              if (!selectedCategory) return;
+              if (!selectedCategory || selectedProducts.size === 0) return;
               updateProductCategoriesMutation.mutate({
+                productIds: Array.from(selectedProducts),
+                categoryId: selectedCategory
+              });
+            }}
+          >
+            Update Categories
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
                 productIds: Array.from(selectedProducts),
                 categoryId: selectedCategory
               });
