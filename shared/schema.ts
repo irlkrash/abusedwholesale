@@ -87,6 +87,25 @@ export const cartItemsRelations = relations(cartItems, ({ one }) => ({
   }),
 }));
 
+export const productsToCategories = relations(products, ({ many }) => ({
+  categories: many(productCategories),
+}));
+
+export const productCategoriesRelations = relations(productCategories, ({ one }) => ({
+  product: one(products, {
+    fields: [productCategories.productId],
+    references: [products.id],
+  }),
+  category: one(categories, {
+    fields: [productCategories.categoryId],
+    references: [categories.id],
+  }),
+}));
+
+export const categoriesToProducts = relations(categories, ({ many }) => ({
+  products: many(productCategories),
+}));
+
 export const insertCategorySchema = createInsertSchema(categories)
   .pick({
     name: true,

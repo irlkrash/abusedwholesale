@@ -154,7 +154,7 @@ export class DatabaseStorage implements IStorage {
       const result = await db
         .select({
           product: productsTable,
-          categories: categoriesTable,
+          category: categoriesTable,
         })
         .from(productsTable)
         .leftJoin(
@@ -171,8 +171,9 @@ export class DatabaseStorage implements IStorage {
 
       const product = result[0].product;
       const categories = result
-        .filter(r => r.categories)
-        .map(r => r.categories);
+        .filter(r => r.category)
+        .map(r => r.category)
+        .filter((category): category is Category => category !== null);
 
       return {
         ...product,
@@ -213,30 +214,51 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateProduct(id: number, updates: Partial<Product> & { categories?: number[] }): Promise<Product> {
+    const client = await pool.connect();
     try {
+      await client.query('BEGIN');
+
       const { categories: categoryIds, ...productUpdates } = updates;
 
+      // Update product details
       const [product] = await db
         .update(productsTable)
-        .set(productUpdates)
+        .set({
+          ...productUpdates,
+          updatedAt: new Date(),
+        })
         .where(eq(productsTable.id, id))
         .returning();
 
-      if (categoryIds) {
-        // Remove existing categories and add new ones
+      if (categoryIds !== undefined) {
+        // Remove existing categories
         await db
           .delete(productCategories)
           .where(eq(productCategories.productId, id));
 
         if (categoryIds.length > 0) {
-          await this.addProductCategories(id, categoryIds);
+          // Add new categories
+          const categoryEntries = categoryIds.map(categoryId => ({
+            productId: id,
+            categoryId,
+          }));
+
+          await db
+            .insert(productCategories)
+            .values(categoryEntries);
         }
       }
 
+      await client.query('COMMIT');
+
+      // Fetch updated product with categories
       return this.getProduct(id) as Promise<Product>;
     } catch (error) {
+      await client.query('ROLLBACK');
       console.error(`Database error in updateProduct(${id}):`, error);
       throw error;
+    } finally {
+      client.release();
     }
   }
 
