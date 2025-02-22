@@ -52,7 +52,7 @@ import {
 import {
   Sheet,
   SheetContent,
-  SheetHeader as SheetHeader2,
+  SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
@@ -65,8 +65,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {Checkbox} from "@/components/ui/checkbox";
-
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface ProductsResponse {
   data: Product[];
@@ -74,7 +73,89 @@ interface ProductsResponse {
   lastPage: boolean;
 }
 
-export default function AdminDashboard() {
+const BulkCategoryActions = () => {
+  const { toast } = useToast();
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+
+  const updateCategoriesMutation = useMutation({
+    mutationFn: async ({ productIds, categoryId }: { productIds: number[]; categoryId: number }) => {
+      const response = await apiRequest("POST", "/api/products/bulk-assign-category", {
+        productIds,
+        categoryId
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update categories');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      toast({
+        title: "Success",
+        description: "Categories updated successfully",
+      });
+      setSelectedCategory(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline">
+          Update Categories
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Update Categories</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label>Select Category</Label>
+            <ScrollArea className="h-[200px] w-full rounded-md border p-4">
+              <div className="space-y-2">
+                {categories.map((category) => (
+                  <div key={category.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      checked={selectedCategory === category.id}
+                      onCheckedChange={(checked) => {
+                        setSelectedCategory(checked ? category.id : null);
+                      }}
+                    />
+                    <Label>{category.name}</Label>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            onClick={() => {
+              if (!selectedCategory || selectedProducts.size === 0) return;
+              updateCategoriesMutation.mutate({
+                productIds: Array.from(selectedProducts),
+                categoryId: selectedCategory,
+              });
+            }}
+          >
+            Update Categories
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+function AdminDashboard() {
   const { toast } = useToast();
   const { user, logoutMutation } = useAuth();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -87,6 +168,15 @@ export default function AdminDashboard() {
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<number[]>([]);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+  const { data: categories = [], refetch: refetchCategories } = useQuery<Category[]>({
+    queryKey: ["/api/categories"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/categories");
+      if (!response.ok) throw new Error("Failed to fetch categories");
+      return response.json();
+    },
+  });
 
   const {
     data,
@@ -295,15 +385,6 @@ export default function AdminDashboard() {
     },
   });
 
-  const { data: categories = [], refetch: refetchCategories } = useQuery<Category[]>({
-    queryKey: ["/api/categories"],
-    queryFn: async () => {
-      const response = await apiRequest("GET", "/api/categories");
-      if (!response.ok) throw new Error("Failed to fetch categories");
-      return response.json();
-    },
-  });
-
   const createCategoryMutation = useMutation({
     mutationFn: async (data: { name: string; defaultPrice: number }) => {
       const response = await apiRequest("POST", "/api/categories", {
@@ -409,109 +490,16 @@ export default function AdminDashboard() {
     </>
   );
 
-const BulkCategoryActions = () => {
-  const queryClient = useQueryClient();
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
-  const updateProductCategoriesMutation = useMutation({
-    mutationFn: async ({ productIds, categoryId }: { productIds: number[], categoryId: number }) => {
-      const response = await fetch('/api/products/bulk-assign-category', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productIds, categoryId })
-      });
-      if (!response.ok) throw new Error('Failed to update categories');
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
-      toast({
-        title: "Success",
-        description: "Categories updated successfully",
-      });
-      setSelectedCategory(null);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  });
-
-  return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button variant="outline">
-          Update Categories
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Update Categories</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <Label>Select Category</Label>
-            <ScrollArea className="h-[200px] w-full rounded-md border p-4">
-              <div className="space-y-2">
-                {categories.map((category) => (
-                  <div key={category.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      checked={selectedCategory === category.id}
-                      onCheckedChange={(checked) => {
-                        setSelectedCategory(checked ? category.id : null);
-                      }}
-                    />
-                    <Label>{category.name}</Label>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button
-            onClick={() => {
-              if (!selectedCategory || selectedProducts.size === 0) return;
-              updateProductCategoriesMutation.mutate({
-                productIds: Array.from(selectedProducts),
-                categoryId: selectedCategory,
-              });
-            }}
-          >
-            Update Categories
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
-                productIds: Array.from(selectedProducts),
-                categoryId: selectedCategory,
-              });
-            }}
-          >
-            Update Categories
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-
-  const CategoryManagement: React.FC = () => {
+const CategoryManagement: React.FC = () => {
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const [formState, setFormState] = useState({ name: "", price: "0" });
-
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       setFormState(prev => ({ ...prev, name: e.target.value }));
     };
 
     const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value;
-      // Allow empty string or valid numbers
       if (value === "" || !isNaN(parseInt(value, 10))) {
         setFormState(prev => ({ ...prev, price: value }));
       }
@@ -564,7 +552,6 @@ const BulkCategoryActions = () => {
           defaultPrice: defaultPrice
         });
 
-        // Reset form only after successful creation
         setFormState({ name: "", price: "0" });
       } catch (error) {
         console.error('Error creating category:', error);
@@ -726,9 +713,9 @@ const BulkCategoryActions = () => {
                 </Button>
               </SheetTrigger>
               <SheetContent>
-                <SheetHeader2>
+                <SheetHeader>
                   <SheetTitle>Menu</SheetTitle>
-                </SheetHeader2>
+                </SheetHeader>
                 <div className="flex flex-col gap-4 mt-4">
                   <NavLinks />
                 </div>
@@ -968,7 +955,7 @@ const BulkCategoryActions = () => {
                           )}
                         </div>
                         <div className="mt-2 flex flex-wrap gap-1">
-                          {product.categories?.map(category => (
+                          {product.categories?.map((category: Category) => (
                             <Badge
                               key={category.id}
                               variant="secondary"
@@ -1019,14 +1006,11 @@ const BulkCategoryActions = () => {
                 ))}
               </div>
             ) : (
-              <Card>
-                <CardContent className="p-6 text-center text-muted-foreground">
-                  No products available.
-                </CardContent>
-              </Card>
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No products found</p>
+              </div>
             )}
-
-            <div ref={loadMoreRef} className="h20 flex items-center justify-center">
+            <div ref={loadMoreRef} className="flex justify-center mt-4">
               {isFetchingNextPage && (
                 <Loader2 className="w-6 h-6 animate-spin" />
               )}
@@ -1037,3 +1021,5 @@ const BulkCategoryActions = () => {
     </div>
   );
 }
+
+export default AdminDashboard;
