@@ -86,7 +86,7 @@ export default function AdminDashboard() {
   const [hideDetails, setHideDetails] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
   const [newCategoryName, setNewCategoryName] = useState("");
-  const [newCategoryPrice, setNewCategoryPrice] = useState<number>(0);
+  const [newCategoryPrice, setNewCategoryPrice] = useState<number | string>(0); // Changed to allow string
   const [categoryFilter, setCategoryFilter] = useState<number[]>([]);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
@@ -442,16 +442,11 @@ export default function AdminDashboard() {
 
   const CategoryManagement = () => {
     const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      setNewCategoryName(event.target.value.trimStart());
+      setNewCategoryName(event.target.value);
     };
 
     const handlePriceChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      const value = event.target.value;
-      // Allow empty field and validate on submit instead
-      const numericValue = value === '' ? 0 : parseFloat(value);
-      if (!isNaN(numericValue)) {
-        setNewCategoryPrice(numericValue);
-      }
+      setNewCategoryPrice(event.target.value === '' ? '' : Number(event.target.value));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -465,7 +460,7 @@ export default function AdminDashboard() {
         return;
       }
 
-      if (!newCategoryPrice || newCategoryPrice <= 0) {
+      if (!newCategoryPrice || (typeof newCategoryPrice === 'number' && newCategoryPrice <= 0) || (typeof newCategoryPrice === 'string' && parseFloat(newCategoryPrice) <=0)) {
         toast({
           title: "Validation Error",
           description: "Please provide a valid price greater than 0",
@@ -477,7 +472,7 @@ export default function AdminDashboard() {
       try {
         await createCategoryMutation.mutateAsync({
           name: newCategoryName.trim(),
-          defaultPrice: newCategoryPrice
+          defaultPrice: typeof newCategoryPrice === 'number' ? newCategoryPrice : parseFloat(newCategoryPrice)
         });
         setNewCategoryName("");
         setNewCategoryPrice(0);
@@ -522,7 +517,7 @@ export default function AdminDashboard() {
           </div>
           <Button
             type="submit"
-            disabled={!newCategoryName.trim() || newCategoryPrice <= 0 || createCategoryMutation.isPending}
+            disabled={!newCategoryName.trim() || (typeof newCategoryPrice === 'number' && newCategoryPrice <= 0) || (typeof newCategoryPrice === 'string' && parseFloat(newCategoryPrice) <=0) || createCategoryMutation.isPending}
           >
             {createCategoryMutation.isPending ? (
               <>
