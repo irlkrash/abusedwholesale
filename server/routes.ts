@@ -47,7 +47,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Convert price to number explicitly
       const categoryData = {
         name: req.body.name,
-        defaultPrice: parseFloat(req.body.defaultPrice)
+        defaultPrice: req.body.defaultPrice.toString()
       };
 
       const parsed = insertCategorySchema.safeParse(categoryData);
