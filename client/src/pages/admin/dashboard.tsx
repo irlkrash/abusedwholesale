@@ -492,8 +492,8 @@ export default function AdminDashboard() {
         }
 
         await createCategoryMutation.mutateAsync({
-          name,
-          defaultPrice: Math.floor(price) // Ensure integer
+          name: name.trim(),
+          defaultPrice: Number(Math.floor(price))
         });
 
         // Reset form only after successful creation
