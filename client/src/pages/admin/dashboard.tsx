@@ -306,8 +306,17 @@ export default function AdminDashboard() {
 
   const createCategoryMutation = useMutation({
     mutationFn: async (data: { name: string; defaultPrice: number }) => {
-      const res = await apiRequest("POST", "/api/categories", data);
-      return res.json();
+      const response = await apiRequest("POST", "/api/categories", {
+        name: data.name.trim(),
+        defaultPrice: Number(data.defaultPrice)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to create category');
+      }
+
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
@@ -315,9 +324,13 @@ export default function AdminDashboard() {
         title: "Category created",
         description: "New category has been added.",
       });
-      setNewCategoryName("");
-      setNewCategoryPrice("0");
-      refetchCategories();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -475,11 +488,11 @@ export default function AdminDashboard() {
         }
 
         await createCategoryMutation.mutateAsync({
-          name: name,
+          name,
           defaultPrice: price
         });
 
-        // Only clear form after successful creation
+        // Reset form only after successful creation
         setFormState({ name: "", price: "0" });
       } catch (error) {
         toast({
