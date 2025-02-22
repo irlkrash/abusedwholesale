@@ -331,7 +331,8 @@ export default function AdminDashboard() {
         status: error?.response?.status,
         data: error?.response?.data,
         message: error?.message,
-        formState
+        name: formState.name,
+        price: formState.price
       });
       const errorMessage = error?.response?.data?.message || error?.message || "Failed to create category";
       toast({
