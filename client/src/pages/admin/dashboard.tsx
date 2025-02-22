@@ -57,6 +57,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
+import { useQueryClient } from '@tanstack/react-query';
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -410,9 +411,8 @@ export default function AdminDashboard() {
     </>
   );
 
-  import { useQueryClient } from '@tanstack/react-query';
-
 const BulkCategoryActions = () => {
+  const queryClient = useQueryClient();
   const queryClient = useQueryClient();
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const updateProductCategoriesMutation = useMutation({
