@@ -179,11 +179,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const products = await storage.getProducts(offset, limit);
       console.log(`Found ${products.length} products`);
 
+      // For each product, calculate the total price based on its categories
+      const productsWithPrices = products.map(product => {
+        let totalPrice = 0;
+        if (product.categories && product.categories.length > 0) {
+          totalPrice = product.categories.reduce((sum, category) => sum + category.defaultPrice, 0);
+        }
+        return {
+          ...product,
+          price: totalPrice
+        };
+      });
+
       // Always return the same data structure
       res.json({
-        data: products || [],
-        nextPage: products && products.length === limit ? page + 1 : undefined,
-        lastPage: !products || products.length < limit
+        data: productsWithPrices || [],
+        nextPage: productsWithPrices && productsWithPrices.length === limit ? page + 1 : undefined,
+        lastPage: !productsWithPrices || productsWithPrices.length < limit
       });
     } catch (error) {
       console.error('Error fetching products:', error);

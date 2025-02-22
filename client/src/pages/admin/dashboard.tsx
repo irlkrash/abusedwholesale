@@ -309,7 +309,7 @@ export default function AdminDashboard() {
     mutationFn: async (data: { name: string; defaultPrice: number }) => {
       const response = await apiRequest("POST", "/api/categories", {
         name: data.name.trim(),
-        defaultPrice: Math.round(Number(data.defaultPrice)) //Corrected line
+        defaultPrice: Math.round(Number(data.defaultPrice))
       });
 
       if (!response.ok) {
@@ -477,7 +477,7 @@ export default function AdminDashboard() {
     const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value;
       // Allow empty string or valid numbers
-      if (value === "" || !isNaN(parseInt(value, 10))) { //Corrected parseInt and base 10
+      if (value === "" || !isNaN(parseInt(value, 10))) {
         setFormState(prev => ({ ...prev, price: value }));
       }
     };
@@ -494,7 +494,7 @@ export default function AdminDashboard() {
           price,
           rawPrice: formState.price,
           priceType: typeof price
-        }); //Corrected parseInt and base 10
+        });
 
         if (!name) {
           toast({
@@ -562,7 +562,7 @@ export default function AdminDashboard() {
               id="categoryPrice"
               type="number"
               min="0"
-              step="1" //Corrected step
+              step="1"
               value={formState.price}
               onChange={handlePriceChange}
               placeholder="Enter default price..."
@@ -591,7 +591,7 @@ export default function AdminDashboard() {
                 variant="secondary"
                 className="text-sm py-1 px-2"
               >
-                {category.name} (${category.defaultPrice}) {/*Corrected to remove toFixed*/}
+                {category.name} (${category.defaultPrice})
                 <Button
                   variant="ghost"
                   size="sm"
@@ -643,7 +643,7 @@ export default function AdminDashboard() {
                     }
                   }}
                 />
-                <Label>{category.name} (${category.defaultPrice})</Label> {/*Corrected to remove toFixed*/}
+                <Label>{category.name} (${category.defaultPrice})</Label>
               </div>
             ))}
           </div>
@@ -926,6 +926,22 @@ export default function AdminDashboard() {
                           >
                             {product.isAvailable ? "Available" : "Unavailable"}
                           </Badge>
+                          {product.price > 0 && (
+                            <Badge variant="outline">
+                              ${product.price}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {product.categories?.map(category => (
+                            <Badge
+                              key={category.id}
+                              variant="secondary"
+                              className="text-xs"
+                            >
+                              {category.name} (${category.defaultPrice})
+                            </Badge>
+                          ))}
                         </div>
                         <div className="mt-4 flex justify-between items-center">
                           <div className="flex gap-2">
