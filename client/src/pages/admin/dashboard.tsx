@@ -442,12 +442,15 @@ export default function AdminDashboard() {
 
   const CategoryManagement = () => {
     const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      setNewCategoryName(event.target.value);
+      event.preventDefault();
+      const value = event.target.value;
+      setNewCategoryName(value);
     };
 
     const handlePriceChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      // Allow any input, including partial numbers
-      setNewCategoryPrice(event.target.value);
+      event.preventDefault();
+      const value = event.target.value;
+      setNewCategoryPrice(value);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
