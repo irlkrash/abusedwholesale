@@ -446,6 +446,7 @@ export default function AdminDashboard() {
     };
 
     const handlePriceChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+      // Allow any input, including partial numbers
       setNewCategoryPrice(event.target.value);
     };
 
@@ -457,11 +458,21 @@ export default function AdminDashboard() {
         const price = parseFloat(newCategoryPrice);
 
         if (!name) {
-          throw new Error("Category name is required");
+          toast({
+            title: "Error",
+            description: "Category name is required",
+            variant: "destructive",
+          });
+          return;
         }
 
-        if (isNaN(price)) {
-          throw new Error("Please enter a valid price");
+        if (isNaN(price) || price < 0) {
+          toast({
+            title: "Error",
+            description: "Please enter a valid price (must be 0 or greater)",
+            variant: "destructive",
+          });
+          return;
         }
 
         await createCategoryMutation.mutateAsync({
@@ -471,7 +482,7 @@ export default function AdminDashboard() {
 
         // Only clear form after successful creation
         setNewCategoryName("");
-        setNewCategoryPrice("0");
+        setNewCategoryPrice("");
       } catch (error) {
         toast({
           title: "Error",
