@@ -86,7 +86,7 @@ export default function AdminDashboard() {
   const [hideDetails, setHideDetails] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
   const [newCategoryName, setNewCategoryName] = useState("");
-  const [newCategoryPrice, setNewCategoryPrice] = useState<number | string>(0); // Changed to allow string
+  const [newCategoryPrice, setNewCategoryPrice] = useState<string>("0"); 
   const [categoryFilter, setCategoryFilter] = useState<number[]>([]);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
@@ -318,7 +318,7 @@ export default function AdminDashboard() {
         description: "New category has been added.",
       });
       setNewCategoryName("");
-      setNewCategoryPrice(0);
+      setNewCategoryPrice("0");
       refetchCategories();
     },
   });
@@ -446,7 +446,7 @@ export default function AdminDashboard() {
     };
 
     const handlePriceChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      setNewCategoryPrice(event.target.value === '' ? '' : Number(event.target.value));
+      setNewCategoryPrice(event.target.value);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -460,7 +460,8 @@ export default function AdminDashboard() {
         return;
       }
 
-      if (!newCategoryPrice || (typeof newCategoryPrice === 'number' && newCategoryPrice <= 0) || (typeof newCategoryPrice === 'string' && parseFloat(newCategoryPrice) <=0)) {
+      const priceValue = parseFloat(newCategoryPrice);
+      if (isNaN(priceValue) || priceValue <= 0) {
         toast({
           title: "Validation Error",
           description: "Please provide a valid price greater than 0",
@@ -472,10 +473,10 @@ export default function AdminDashboard() {
       try {
         await createCategoryMutation.mutateAsync({
           name: newCategoryName.trim(),
-          defaultPrice: typeof newCategoryPrice === 'number' ? newCategoryPrice : parseFloat(newCategoryPrice)
+          defaultPrice: priceValue
         });
         setNewCategoryName("");
-        setNewCategoryPrice(0);
+        setNewCategoryPrice("");
       } catch (error) {
         toast({
           title: "Error",
@@ -498,7 +499,6 @@ export default function AdminDashboard() {
               onChange={handleNameChange}
               placeholder="Enter category name..."
               className="w-full"
-              autoComplete="off"
             />
           </div>
           <div className="space-y-2 flex-1">
@@ -508,16 +508,15 @@ export default function AdminDashboard() {
               type="number"
               min="0"
               step="0.01"
-              value={newCategoryPrice || ''}
+              value={newCategoryPrice}
               onChange={handlePriceChange}
               placeholder="Enter default price..."
               className="w-full"
-              autoComplete="off"
             />
           </div>
           <Button
             type="submit"
-            disabled={!newCategoryName.trim() || (typeof newCategoryPrice === 'number' && newCategoryPrice <= 0) || (typeof newCategoryPrice === 'string' && parseFloat(newCategoryPrice) <=0) || createCategoryMutation.isPending}
+            disabled={createCategoryMutation.isPending}
           >
             {createCategoryMutation.isPending ? (
               <>
