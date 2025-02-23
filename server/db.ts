@@ -12,29 +12,39 @@ if (!process.env.DATABASE_URL) {
 }
 
 console.log('Initializing database connection...');
-export const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? {
-    rejectUnauthorized: false,
-  } : false,
-  max: 10, // Reduce max connections to prevent overwhelming the database
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000, // Increase timeout for production
-  keepAlive: true,
-  keepAliveInitialDelayMillis: 1000,
-});
 
-// Add error handler for the pool
-pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
-  // Attempt to reconnect with exponential backoff
-  setTimeout(() => {
-    console.log('Attempting to reconnect to database...');
-    pool.connect()
-      .then(() => console.log('Successfully reconnected to database'))
-      .catch(error => console.error('Failed to reconnect:', error));
-  }, 5000);
-});
+// Implement retrying pool creation
+const createPool = (retries = 5, delay = 5000): Pool => {
+  const pool = new Pool({ 
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? {
+      rejectUnauthorized: false,
+    } : false,
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 1000,
+  });
+
+  pool.on('error', async (err) => {
+    console.error('Unexpected error on idle client', err);
+    if (retries > 0) {
+      console.log(`Attempting to reconnect... (${retries} retries left)`);
+      await pool.end();
+      setTimeout(() => {
+        createPool(retries - 1, delay * 1.5);
+      }, delay);
+    } else {
+      console.error('Max retries reached. Could not establish database connection.');
+      process.exit(1);
+    }
+  });
+
+  return pool;
+};
+
+export const pool = createPool();
 
 // Handle process termination
 process.on('SIGTERM', async () => {
