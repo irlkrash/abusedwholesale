@@ -257,6 +257,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(productId)) {
         return res.status(400).json({ message: "Invalid product ID" });
       }
+
+      console.log('Updating product categories:', {
+        productId,
+        body: req.body,
+        categories: req.body.categories
+      });
+
+      // Validate category IDs if present
+      if (req.body.categories) {
+        if (!Array.isArray(req.body.categories)) {
+          return res.status(400).json({ message: "Categories must be an array" });
+        }
+        for (const categoryId of req.body.categories) {
+          if (!Number.isInteger(categoryId)) {
+            return res.status(400).json({ message: "Invalid category ID format" });
+          }
+        }
+      }
+
       const product = await storage.updateProduct(productId, req.body);
       res.json(product);
     } catch (error) {
