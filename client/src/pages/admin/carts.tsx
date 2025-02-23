@@ -163,7 +163,6 @@ const AdminCarts = () => {
             sortedCarts.map((cart) => {
               // Calculate total price
               const cartTotal = cart.items.reduce((sum, item) => {
-                // Parse the price, ensuring it's a valid number
                 const price = typeof item.price === 'number' 
                   ? item.price 
                   : typeof item.price === 'string' 
