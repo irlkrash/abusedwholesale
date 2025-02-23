@@ -167,7 +167,7 @@ const AdminCarts = () => {
             sortedCarts.map((cart) => {
               // Calculate total price for this cart
               const cartTotal = cart.items.reduce((sum, item) => 
-                sum + Math.round(Number(item.price || 0)), 0
+                sum + Number(Number(item.price || 0).toFixed(2)), 0
               );
 
               return (
@@ -182,7 +182,7 @@ const AdminCarts = () => {
                           </span>
                         </div>
                         <CardDescription>
-                          Customer: {cart.customerName} | Total: ${cartTotal}
+                          Customer: {cart.customerName} | Total: ${cartTotal.toFixed(2)}
                         </CardDescription>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
@@ -241,7 +241,7 @@ const AdminCarts = () => {
                     <ScrollArea className="h-[300px]">
                       <div className="grid gap-4">
                         {cart.items.map((item, index) => {
-                          const itemPrice = Math.round(Number(item.price || 0));
+                          const itemPrice = Number(Number(item.price || 0).toFixed(2));
                           return (
                             <div
                               key={item.id}
@@ -261,7 +261,7 @@ const AdminCarts = () => {
                                     </div>
                                   )}
                                 </div>
-                                <span className="text-lg font-semibold">${itemPrice}</span>
+                                <span className="text-lg font-semibold">${itemPrice.toFixed(2)}</span>
                               </div>
                               <div className="text-sm text-muted-foreground">
                                 Status: {item.isAvailable ? 'Available' : 'Unavailable'}

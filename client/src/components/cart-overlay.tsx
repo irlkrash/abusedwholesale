@@ -35,7 +35,7 @@ export function CartOverlay({
 
   // Calculate total price based on item.price
   const totalPrice = items.reduce((sum, item) => {
-    return sum + Math.round(Number(item.price || 0));
+    return sum + Number(item.price || 0);
   }, 0);
 
   const handleSubmitCart = async () => {
@@ -58,7 +58,7 @@ export function CartOverlay({
         description: item.description,
         images: item.images,
         fullImages: item.fullImages || [],
-        price: Math.round(Number(item.price || 0)),
+        price: Number(Number(item.price || 0).toFixed(2)),
         isAvailable: item.isAvailable,
         createdAt: new Date().toISOString()
       }));
@@ -107,13 +107,13 @@ export function CartOverlay({
         <SheetHeader>
           <SheetTitle>Your Cart</SheetTitle>
           <SheetDescription>
-            Total Price: ${totalPrice}
+            Total Price: ${totalPrice.toFixed(2)}
           </SheetDescription>
         </SheetHeader>
 
         <ScrollArea className="h-[50vh] my-4">
           {items.map((item) => {
-            const formattedPrice = Math.round(Number(item.price || 0));
+            const formattedPrice = Number(item.price || 0).toFixed(2);
 
             return (
               <div
