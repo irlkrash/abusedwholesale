@@ -208,34 +208,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update GET /api/products endpoint
+  // Update GET /api/products to handle category filtering and pricing
   app.get("/api/products", async (req, res) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 12;
-      const categoryId = req.query.categoryId;
+      const categoryId = req.query.categoryId ? 
+        Array.isArray(req.query.categoryId) ? 
+          req.query.categoryId.map(id => parseInt(id as string)) :
+          [parseInt(req.query.categoryId as string)] 
+        : undefined;
       const offset = (page - 1) * limit;
 
-      // Convert categoryId to array of numbers
-      let categoryIds: number[] | undefined;
-      if (categoryId) {
-        if (Array.isArray(categoryId)) {
-          categoryIds = categoryId.map(id => parseInt(id as string)).filter(id => !isNaN(id));
-        } else {
-          const parsedId = parseInt(categoryId as string);
-          categoryIds = !isNaN(parsedId) ? [parsedId] : undefined;
-        }
-      }
-
-      console.log(`Fetching products with params:`, {
-        page,
-        limit,
-        categoryIds,
-        offset
-      });
-
-      const products = await storage.getProducts(offset, limit, categoryIds);
-      console.log(`Found ${products.length} products in categories:`, categoryIds);
+      console.log(`Fetching products page ${page} with limit ${limit}, categoryId: ${categoryId}`);
+      const products = await storage.getProducts(offset, limit, categoryId);
+      console.log(`Found ${products.length} products in categories:`, categoryId);
 
       res.json({
         data: products || [],

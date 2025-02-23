@@ -51,32 +51,14 @@ export class DatabaseStorage implements IStorage {
       errorLog: console.error,
     });
 
-    // Create session store table if it doesn't exist with retry logic
-    const createSessionTable = async (retries = 5) => {
-      try {
-        await pool.query(`
-          CREATE TABLE IF NOT EXISTS "session_store" (
-            "sid" varchar NOT NULL COLLATE "default" PRIMARY KEY NOT DEFERRABLE INITIALLY IMMEDIATE,
-            "sess" json NOT NULL,
-            "expire" timestamp(6) NOT NULL
-          )
-        `);
-        console.log('Session table created or verified successfully');
-      } catch (err) {
-        console.error('Error creating session table:', err);
-        if (retries > 0) {
-          console.log(`Retrying... (${retries} attempts left)`);
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          return createSessionTable(retries - 1);
-        }
-        throw err;
-      }
-    };
-    
-    createSessionTable().catch(err => {
-      console.error('Failed to create session table after all retries:', err);
-      process.exit(1);
-    });
+    // Create session store table if it doesn't exist
+    pool.query(`
+      CREATE TABLE IF NOT EXISTS "session_store" (
+        "sid" varchar NOT NULL COLLATE "default" PRIMARY KEY NOT DEFERRABLE INITIALLY IMMEDIATE,
+        "sess" json NOT NULL,
+        "expire" timestamp(6) NOT NULL
+      )
+    `).catch(err => console.error('Error creating session table:', err));
   }
 
   async getUsers(): Promise<User[]> {
@@ -110,13 +92,12 @@ export class DatabaseStorage implements IStorage {
 
   async getProducts(pageOffset = 0, pageLimit = 12, categoryIds?: number[]): Promise<Product[]> {
     try {
-      console.log(`Fetching products with offset: ${pageOffset}, limit: ${pageLimit}, categories:`, categoryIds);
+      console.log(`Fetching products with offset: ${pageOffset}, limit: ${pageLimit}, categories: ${categoryIds}`);
 
       const limit = Math.max(1, Math.min(100, pageLimit));
-      const offset = Math.max(0, pageOffset);
 
-      // Build initial query for products
-      let productsQuery = db
+      // Build the base query
+      let query = db
         .select({
           id: productsTable.id,
           name: productsTable.name,
@@ -128,68 +109,55 @@ export class DatabaseStorage implements IStorage {
           isAvailable: productsTable.isAvailable,
           createdAt: productsTable.createdAt,
           updatedAt: productsTable.updatedAt,
+          categories: categoriesTable,
         })
-        .from(productsTable);
-
-      // Add category filtering if provided
-      if (categoryIds && categoryIds.length > 0) {
-        console.log('Applying category filters:', categoryIds);
-        productsQuery = productsQuery
-          .innerJoin(
-            productCategories,
-            eq(productsTable.id, productCategories.productId)
-          )
-          .where(inArray(productCategories.categoryId, categoryIds))
-          .distinct()
-          .orderBy(desc(productsTable.createdAt))
-          .offset(offset)
-          .limit(limit);
-      } else {
-        // If no category filter, just apply pagination
-        productsQuery = productsQuery
-          .orderBy(desc(productsTable.createdAt))
-          .offset(offset)
-          .limit(limit);
-      }
-
-      // Execute the query and get products
-      const products = await productsQuery;
-      console.log(`Retrieved ${products.length} products`);
-
-      // Get all product IDs from the result
-      const productIds = products.map(p => p.id);
-
-      // Fetch categories for all products in a single query
-      const categoriesForProducts = await db
-        .select({
-          productId: productCategories.productId,
-          category: categoriesTable,
-        })
-        .from(productCategories)
-        .innerJoin(
+        .from(productsTable)
+        .leftJoin(
+          productCategories,
+          eq(productsTable.id, productCategories.productId)
+        )
+        .leftJoin(
           categoriesTable,
           eq(productCategories.categoryId, categoriesTable.id)
-        )
-        .where(inArray(productCategories.productId, productIds));
+        );
 
-      // Group categories by product
-      const categoryMap = new Map<number, Category[]>();
-      categoriesForProducts.forEach(({ productId, category }) => {
-        if (!categoryMap.has(productId)) {
-          categoryMap.set(productId, []);
+      // Add category filter if categoryIds is provided
+      if (categoryIds && categoryIds.length > 0) {
+        // Use a subquery to filter products by category
+        const productsInCategories = db
+          .select({ productId: productCategories.productId })
+          .from(productCategories)
+          .where(inArray(productCategories.categoryId, categoryIds));
+
+        query = query.where(inArray(productsTable.id, productsInCategories));
+      }
+
+      const result = await query
+        .orderBy(desc(productsTable.createdAt))
+        .offset(pageOffset)
+        .limit(limit);
+
+      // Group the results by product
+      const productsMap = new Map<number, Product & { categories: Category[] }>();
+
+      result.forEach((row) => {
+        const { categories, ...product } = row;
+        if (!productsMap.has(product.id)) {
+          productsMap.set(product.id, {
+            ...product,
+            categories: [],
+          });
         }
-        categoryMap.get(productId)!.push(category);
+
+        if (categories) {
+          const existingProduct = productsMap.get(product.id)!;
+          if (!existingProduct.categories.some(c => c.id === categories.id)) {
+            existingProduct.categories.push(categories);
+          }
+        }
       });
 
-      // Combine products with their categories
-      const productsWithCategories = products.map(product => ({
-        ...product,
-        categories: categoryMap.get(product.id) || [],
-      }));
-
-      console.log(`Successfully mapped categories to ${productsWithCategories.length} products`);
-      return productsWithCategories;
-
+      return Array.from(productsMap.values());
     } catch (error) {
       console.error('Error in getProducts:', error);
       throw error;

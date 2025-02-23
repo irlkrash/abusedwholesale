@@ -21,7 +21,6 @@ CREATE TABLE "categories" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
-	"category_price" decimal(10,2),
 	CONSTRAINT "categories_name_unique" UNIQUE("name")
 );
 --> statement-breakpoint
@@ -47,11 +46,8 @@ CREATE TABLE "products" (
 	"description" text NOT NULL,
 	"images" text[] NOT NULL,
 	"fullImages" text[] DEFAULT '{}' NOT NULL,
-	"custom_price" decimal(10,2),
-	"category_price" decimal(10,2),
 	"is_available" boolean DEFAULT true NOT NULL,
-	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL
+	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "users" (
