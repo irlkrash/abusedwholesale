@@ -62,7 +62,7 @@ export default function HomePage() {
         // Add category filter parameters
         if (selectedCategories.size > 0) {
           Array.from(selectedCategories).forEach(categoryId => 
-            queryParams.append('categories', categoryId.toString())
+            queryParams.append('categoryId', categoryId.toString())
           );
         }
 

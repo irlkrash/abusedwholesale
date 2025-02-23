@@ -213,12 +213,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 12;
-      const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string) : undefined;
+      const categoryId = req.query.categoryId ? 
+        Array.isArray(req.query.categoryId) ? 
+          req.query.categoryId.map(id => parseInt(id as string)) :
+          [parseInt(req.query.categoryId as string)] 
+        : undefined;
       const offset = (page - 1) * limit;
 
       console.log(`Fetching products page ${page} with limit ${limit}, categoryId: ${categoryId}`);
-      const products = await storage.getProducts(offset, limit, categoryId ? [categoryId] : undefined);
-      console.log(`Found ${products.length} products`);
+      const products = await storage.getProducts(offset, limit, categoryId);
+      console.log(`Found ${products.length} products in categories:`, categoryId);
 
       // For each product, calculate the final price based on categories or custom override
       const productsWithPrices = products.map(product => {
