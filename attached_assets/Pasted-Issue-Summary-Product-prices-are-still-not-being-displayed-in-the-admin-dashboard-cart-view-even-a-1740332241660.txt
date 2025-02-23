@@ -1,0 +1,36 @@
+Issue Summary:
+Product prices are still not being displayed in the admin dashboard cart view, even after fixing cart submissions.
+The total price is incorrect because individual product prices are missing.
+Expected Behavior:
+Each submitted cart should store and display the correct product prices in the admin dashboard.
+The total price should be accurately calculated based on the stored prices.
+Prices should be retrieved from the database and displayed in the admin cart view.
+Debugging & Fixes Needed:
+1. Verify That Product Prices Are Being Stored in the Database
+When a cart is submitted, the product price at that time should be saved to ensure accuracy.
+If the database only stores productId but not price, the admin dashboard will not have price data to display.
+✅ Debugging Steps:
+
+Run a database query to check if product prices are stored with each cart entry.
+If prices are missing, ensure that the backend correctly saves product prices when inserting the cart data.
+2. Ensure That the API Returns Product Prices When Fetching Submitted Carts
+The API response for /api/admin/carts should include stored product prices.
+If the response does not include prices, the frontend cannot display them in the admin dashboard.
+✅ Debugging Steps:
+
+Log the API response in DevTools (Network tab > Fetch/XHR) to check if product prices are returned.
+If the API response is missing prices, update the backend query to include stored prices.
+3. Ensure the Frontend Uses the Correct Price Field
+The admin dashboard cart view should map the correct price field from the API response.
+If the frontend expects product.price but the API returns stored_price, it may result in missing prices.
+✅ Debugging Steps:
+
+Log the cart data received by the frontend (console.log(cartData)).
+Ensure the frontend extracts and displays the correct price field from the API response.
+4. Ensure Total Price Is Calculated Correctly
+The total price should be calculated using stored product prices, not live product prices from the catalog.
+Ensure that the total updates dynamically based on the retrieved prices.
+✅ Debugging Steps:
+
+Log total price calculations in the frontend to ensure the correct price field is used.
+If the total remains 0, update the calculation to use stored product prices instead of defaulting to 0.

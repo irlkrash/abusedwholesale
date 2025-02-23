@@ -26,6 +26,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(req.user);
   });
 
+  // Cart routes
+  app.post("/api/carts", async (req, res) => {
+    try {
+      console.log('Creating new cart with data:', req.body);
+      const parsed = insertCartSchema.safeParse(req.body);
+      if (!parsed.success) {
+        console.error('Cart validation failed:', parsed.error);
+        return res.status(400).json({
+          message: "Invalid cart data",
+          errors: parsed.error.errors
+        });
+      }
+
+      // Ensure each item has a valid price formatted to 2 decimal places
+      const cartItems = parsed.data.items.map(item => ({
+        ...item,
+        price: Number(Number(item.price || 0).toFixed(2)) // Format price to 2 decimal places
+      }));
+
+      const cart = await storage.createCart({
+        customerName: parsed.data.customerName,
+        items: cartItems
+      });
+
+      console.log('Cart created successfully:', cart);
+      res.status(201).json(cart);
+
+    } catch (error) {
+      console.error('Error creating cart:', error);
+      res.status(500).json({ 
+        message: "Failed to create cart",
+        error: error instanceof Error ? error.message : "Unknown error occurred"
+      });
+    }
+  });
+
+  app.get("/api/carts", requireAdmin, async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+      console.log(`Fetching carts with limit ${limit}...`);
+
+      const carts = await storage.getCarts(limit);
+      console.log(`Successfully retrieved ${carts.length} carts with data:`, carts);
+
+      res.json({
+        data: carts,
+        count: carts.length
+      });
+    } catch (error) {
+      console.error('Error fetching carts:', error);
+      res.status(500).json({ 
+        message: "Failed to fetch carts",
+        error: error instanceof Error ? error.message : "Unknown error occurred"
+      });
+    }
+  });
+
+
   // Category routes
   app.get("/api/categories", async (req, res) => {
     try {
@@ -289,62 +347,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Error deleting product:', error);
       res.status(500).json({ 
         message: "Failed to delete product",
-        error: error instanceof Error ? error.message : "Unknown error occurred"
-      });
-    }
-  });
-
-  // Cart routes
-  app.get("/api/carts", requireAdmin, async (req, res) => {
-    try {
-      const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
-      console.log(`Fetching carts with limit ${limit}...`);
-
-      const carts = await storage.getCarts(limit);
-      console.log(`Successfully retrieved ${carts.length} carts`);
-
-      res.json({
-        data: carts,
-        count: carts.length
-      });
-    } catch (error) {
-      console.error('Error fetching carts:', error);
-      res.status(500).json({ 
-        message: "Failed to fetch carts",
-        error: error instanceof Error ? error.message : "Unknown error occurred"
-      });
-    }
-  });
-
-  app.post("/api/carts", async (req, res) => {
-    try {
-      console.log('Creating new cart with data:', req.body);
-      const parsed = insertCartSchema.safeParse(req.body);
-      if (!parsed.success) {
-        console.error('Cart validation failed:', parsed.error);
-        return res.status(400).json({
-          message: "Invalid cart data",
-          errors: parsed.error.errors
-        });
-      }
-
-      // Ensure each item has a valid price formatted to 2 decimal places
-      const cartItems = parsed.data.items.map(item => ({
-        ...item,
-        price: Number(Number(item.price || 0).toFixed(2)) // Format price to 2 decimal places
-      }));
-
-      const cart = await storage.createCart({
-        customerName: parsed.data.customerName,
-        items: cartItems
-      });
-
-      console.log('Cart created successfully:', cart);
-      res.status(201).json(cart);
-    } catch (error) {
-      console.error('Error creating cart:', error);
-      res.status(500).json({ 
-        message: "Failed to create cart",
         error: error instanceof Error ? error.message : "Unknown error occurred"
       });
     }
