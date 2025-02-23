@@ -163,10 +163,10 @@ const AdminCarts = () => {
             sortedCarts.map((cart) => {
               // Calculate total price with better price handling
               const cartTotal = cart.items.reduce((sum, item) => {
-                const itemPrice = Number(item.price || 0);
+                const itemPrice = Math.round(Number(item.price || 0));
                 return sum + itemPrice;
               }, 0);
-              const formattedTotal = cartTotal.toFixed(2);
+              const formattedTotal = cartTotal.toString();
 
               return (
                 <Card key={cart.id} className="overflow-hidden">
@@ -240,8 +240,8 @@ const AdminCarts = () => {
                       <div className="grid gap-4">
                         {cart.items.map((item, index) => {
                           // Format price consistently with 2 decimal places
-                          const itemPrice = Number(item.price || 0);
-                          const formattedPrice = itemPrice.toFixed(2);
+                          const itemPrice = Math.round(Number(item.price || 0));
+                          const formattedPrice = itemPrice.toString();
 
                           return (
                             <div
