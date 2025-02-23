@@ -51,16 +51,24 @@ export function CartOverlay({
     try {
       setIsSubmitting(true);
 
-      // Simplify the cart items to only include necessary fields
+      // Create cart items with all required fields from the schema
       const cartItems = items.map(item => ({
         productId: item.productId,
-        price: Math.round(Number(item.price || 0))  // Ensure price is a number
+        name: item.name,
+        description: item.description,
+        images: item.images,
+        fullImages: item.fullImages || [],
+        price: Math.round(Number(item.price || 0)),
+        isAvailable: item.isAvailable,
+        createdAt: new Date().toISOString()
       }));
 
       const payload = {
         customerName: customerName.trim(),
         items: cartItems
       };
+
+      console.log('Submitting cart with payload:', payload);
 
       const response = await apiRequest("POST", "/api/carts", payload);
 
