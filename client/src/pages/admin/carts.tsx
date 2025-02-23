@@ -163,14 +163,10 @@ const AdminCarts = () => {
             sortedCarts.map((cart) => {
               // Calculate total price with better price handling
               const cartTotal = cart.items.reduce((sum, item) => {
-                // Get the item price, ensuring it's a valid number
-                const itemPrice = typeof item.price === 'number'
-                  ? item.price
-                  : typeof item.price === 'string'
-                    ? parseFloat(item.price)
-                    : 0;
+                const itemPrice = Number(item.price || 0);
                 return sum + itemPrice;
               }, 0);
+              const formattedTotal = cartTotal.toFixed(2);
 
               return (
                 <Card key={cart.id} className="overflow-hidden">
@@ -243,12 +239,9 @@ const AdminCarts = () => {
                     <ScrollArea className="h-[300px]">
                       <div className="grid gap-4">
                         {cart.items.map((item, index) => {
-                          // Better price handling for individual items
-                          const itemPrice = typeof item.price === 'number'
-                            ? item.price
-                            : typeof item.price === 'string'
-                              ? parseFloat(item.price)
-                              : 0;
+                          // Format price consistently with 2 decimal places
+                          const itemPrice = Number(item.price || 0);
+                          const formattedPrice = itemPrice.toFixed(2);
 
                           return (
                             <div
