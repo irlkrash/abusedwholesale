@@ -769,15 +769,34 @@ function AdminDashboard() {
     );
   };
 
-  // Assumed ProductCard component -  replace with your actual component
+  // Updated ProductCard component
   const ProductCard = ({ product, onAddToCart, priority, showDetails }: { product: Product; onAddToCart: () => void; priority: boolean; showDetails: boolean }) => {
     return (
-      <Card className="overflow-hidden">
+      <Card 
+        className={`overflow-hidden transition-all ${
+          selectedProducts.has(product.id) ? 'ring-2 ring-primary' : ''
+        }`}
+      >
         <CardContent className="p-0">
-          <div className="relative">
+          <div 
+            className="relative cursor-pointer group"
+            onClick={() => toggleSelection(product.id)}
+          >
+            <div className={`absolute inset-0 z-10 transition-colors ${
+              selectedProducts.has(product.id) 
+                ? 'bg-primary/10' 
+                : 'bg-transparent group-hover:bg-primary/5'
+            }`}>
+              <div className="absolute top-2 left-2">
+                {selectedProducts.has(product.id) ? (
+                  <CheckSquare className="h-5 w-5 text-primary" />
+                ) : (
+                  <Square className="h-5 w-5 text-primary/50 group-hover:text-primary" />
+                )}
+              </div>
+            </div>
             <ProductCarousel
               images={product.images}
-              fullImages={product.fullImages}
               className="aspect-square object-cover rounded-t-lg"
             />
           </div>
@@ -798,6 +817,42 @@ function AdminDashboard() {
                     ? `$${product.categoryPrice} (Category)`
                     : 'No price set'}
               </Badge>
+            </div>
+            <div className="mt-4">
+              <Dialog
+                open={editingProduct?.id === product.id}
+                onOpenChange={(open) => !open && setEditingProduct(null)}
+              >
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2 w-full"
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent triggering selection
+                      setEditingProduct(product);
+                    }}
+                  >
+                    <Edit className="h-4 w-4" />
+                    Edit
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Edit Product</DialogTitle>
+                  </DialogHeader>
+                  <ProductForm
+                    initialData={product}
+                    onSubmit={(data) =>
+                      updateProductMutation.mutate({
+                        id: product.id,
+                        data,
+                      })
+                    }
+                    isLoading={updateProductMutation.isPending}
+                  />
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </CardContent>
@@ -1036,7 +1091,7 @@ function AdminDashboard() {
                     product={product}
                     onAddToCart={() => {}}
                     priority={index < 8}
-                    showDetails={true}
+                    showDetails={!hideDetails}
                   />
                 ))}
               </div>
