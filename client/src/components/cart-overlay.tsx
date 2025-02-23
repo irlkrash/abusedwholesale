@@ -5,7 +5,6 @@ import {
   SheetTitle,
   SheetDescription,
   SheetFooter,
-  SheetClose,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -34,13 +33,10 @@ export function CartOverlay({
   const [customerName, setCustomerName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Calculate total price by summing the effective prices of all items
+  // Calculate total price based on item.price
   const totalPrice = items.reduce((sum, item) => {
-    const itemPrice = item.customPrice ?? 
-      (item.categories?.length 
-        ? Math.min(...item.categories.map(cat => Number(cat.defaultPrice)))
-        : 0);
-    return sum + Math.round(Number(itemPrice));
+    // Convert price string to number and round it
+    return sum + Math.round(Number(item.price || 0));
   }, 0);
 
   const handleSubmitCart = async () => {
@@ -62,7 +58,8 @@ export function CartOverlay({
         description: item.description || 'No description available',
         images: Array.isArray(item.images) ? item.images : [],
         fullImages: Array.isArray(item.fullImages) ? item.fullImages : [],
-        isAvailable: item.isAvailable !== false
+        isAvailable: item.isAvailable !== false,
+        price: item.price
       }));
 
       const payload = {
@@ -110,11 +107,7 @@ export function CartOverlay({
 
         <ScrollArea className="h-[50vh] my-4">
           {items.map((item) => {
-            const itemPrice = item.customPrice ?? 
-              (item.categories?.length 
-                ? Math.min(...item.categories.map(cat => Number(cat.defaultPrice)))
-                : 0);
-            const formattedPrice = Math.round(Number(itemPrice));
+            const formattedPrice = Math.round(Number(item.price || 0));
 
             return (
               <div

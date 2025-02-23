@@ -115,6 +115,12 @@ export default function HomePage() {
       return;
     }
 
+    // Calculate the effective price (custom price or lowest category price)
+    const effectivePrice = product.customPrice ?? 
+      (product.categories?.length 
+        ? Math.min(...product.categories.map(cat => Number(cat.defaultPrice)))
+        : 0);
+
     const cartItem: CartItem = {
       productId: product.id,
       name: product.name,
@@ -122,6 +128,7 @@ export default function HomePage() {
       images: product.images,
       fullImages: product.fullImages || [],
       isAvailable: product.isAvailable,
+      price: String(Math.round(Number(effectivePrice))), // Convert to string after rounding
       createdAt: new Date().toISOString()
     };
 
