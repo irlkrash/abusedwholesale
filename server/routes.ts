@@ -224,27 +224,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const products = await storage.getProducts(offset, limit, categoryId);
       console.log(`Found ${products.length} products in categories:`, categoryId);
 
-      // For each product, calculate the final price based on categories or custom override
-      const productsWithPrices = products.map(product => {
-        let finalPrice = product.customPrice || 0;
-
-        // If no custom price is set, sum up the category default prices
-        if (!product.customPrice && product.categories && product.categories.length > 0) {
-          finalPrice = product.categories.reduce((sum, category) => sum + category.defaultPrice, 0);
-        }
-
-        return {
-          ...product,
-          price: finalPrice,
-          // Include categories for filtering UI
-          categories: product.categories || []
-        };
-      });
-
       res.json({
-        data: productsWithPrices || [],
-        nextPage: productsWithPrices && productsWithPrices.length === limit ? page + 1 : undefined,
-        lastPage: !productsWithPrices || productsWithPrices.length < limit
+        data: products || [],
+        nextPage: products && products.length === limit ? page + 1 : undefined,
+        lastPage: !products || products.length < limit
       });
     } catch (error) {
       console.error('Error fetching products:', error);

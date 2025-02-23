@@ -178,7 +178,7 @@ function AdminDashboard() {
   const [categoryFilter, setCategoryFilter] = useState<number[]>([]);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
-  const { data: categories = [], refetch: refetchCategories } = useQuery<(Category & { productCount: number })[]>({ // Updated line
+  const { data: categories = [], refetch: refetchCategories } = useQuery<(Category & { productCount: number })[]>({
     queryKey: ["/api/categories"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/categories");
@@ -201,12 +201,14 @@ function AdminDashboard() {
       try {
         const queryParams = new URLSearchParams({
           page: pageParam.toString(),
-          limit: '12',
-          sort: `createdAt:${sortOrder}`
+          limit: '12'
         });
 
+        // Add category filter parameters
         if (categoryFilter.length > 0) {
-          categoryFilter.forEach(id => queryParams.append('categories', id.toString()));
+          categoryFilter.forEach(categoryId => 
+            queryParams.append('categoryId', categoryId.toString())
+          );
         }
 
         const response = await apiRequest(
@@ -688,7 +690,7 @@ function AdminDashboard() {
                     queryClient.invalidateQueries({ queryKey: ["/api/products", categoryFilter, sortOrder] });
                   }}
                 />
-                <Label>{category.name} ({category.productCount})</Label> {/* Updated line */}
+                <Label>{category.name} ({category.productCount})</Label>
               </div>
             ))}
           </div>
