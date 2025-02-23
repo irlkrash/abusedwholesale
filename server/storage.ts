@@ -505,16 +505,50 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addProductCategories(productId: number, categoryIds: number[]): Promise<void> {
+    const client = await pool.connect();
     try {
-      const values = categoryIds.map(categoryId => ({
-        productId,
-        categoryId,
-      }));
+      await client.query('BEGIN');
 
-      await db.insert(productCategories).values(values);
+      // First remove existing categories
+      await db
+        .delete(productCategories)
+        .where(eq(productCategories.productId, productId));
+
+      // Then add new categories if any are provided
+      if (categoryIds.length > 0) {
+        const values = categoryIds.map(categoryId => ({
+          productId,
+          categoryId,
+        }));
+
+        await db.insert(productCategories).values(values);
+      }
+
+      // Update the product's category price
+      const categoryPrices = await db
+        .select({ defaultPrice: categoriesTable.defaultPrice })
+        .from(categoriesTable)
+        .where(inArray(categoriesTable.id, categoryIds));
+
+      const categoryPrice = categoryPrices.length > 0
+        ? Math.max(...categoryPrices.map(c => Number(c.defaultPrice)))
+        : null;
+
+      await db
+        .update(productsTable)
+        .set({
+          categoryPrice,
+          updatedAt: new Date()
+        })
+        .where(eq(productsTable.id, productId));
+
+      await client.query('COMMIT');
     } catch (error) {
+      await client.query('ROLLBACK');
       console.error('Error in addProductCategories:', error);
       throw error;
+    } finally {
+      client.release();
     }
   }
 

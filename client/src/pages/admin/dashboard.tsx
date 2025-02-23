@@ -90,7 +90,10 @@ const BulkCategoryActions = ({ categories, selectedProducts }: { categories: Cat
       return response.json();
     },
     onSuccess: () => {
+      // Invalidate both products and categories queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+
       toast({
         title: "Success",
         description: "Categories updated successfully",
@@ -110,7 +113,7 @@ const BulkCategoryActions = ({ categories, selectedProducts }: { categories: Cat
     <Dialog>
       <DialogTrigger asChild>
         <Button variant="outline">
-          Update Categories
+          Update Categories ({selectedProducts.size} selected)
         </Button>
       </DialogTrigger>
       <DialogContent>
@@ -130,7 +133,7 @@ const BulkCategoryActions = ({ categories, selectedProducts }: { categories: Cat
                         setSelectedCategory(checked ? category.id : null);
                       }}
                     />
-                    <Label>{category.name}</Label>
+                    <Label>{category.name} (${category.defaultPrice})</Label>
                   </div>
                 ))}
               </div>
@@ -146,8 +149,16 @@ const BulkCategoryActions = ({ categories, selectedProducts }: { categories: Cat
                 categoryId: selectedCategory,
               });
             }}
+            disabled={updateCategoriesMutation.isPending || !selectedCategory}
           >
-            Update Categories
+            {updateCategoriesMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Updating...
+              </>
+            ) : (
+              'Update Categories'
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
