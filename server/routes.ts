@@ -328,10 +328,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Ensure each item has a valid price
+      // Ensure each item has a valid price formatted to 2 decimal places
       const cartItems = parsed.data.items.map(item => ({
         ...item,
-        price: Math.round(Number(item.price || 0)), // Ensure price is a number and rounded
+        price: Number(Number(item.price || 0).toFixed(2)) // Format price to 2 decimal places
       }));
 
       const cart = await storage.createCart({

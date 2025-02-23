@@ -24,7 +24,7 @@ export const products = pgTable("products", {
   images: text("images").array().notNull(),
   fullImages: text("fullImages").array().notNull().default([]),
   customPrice: decimal("custom_price", { precision: 10, scale: 2 }),
-  categoryPrice: decimal("category_price", { precision: 10, scale: 2 }), // Added to track category-based price
+  categoryPrice: decimal("category_price", { precision: 10, scale: 2 }), 
   isAvailable: boolean("is_available").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -60,7 +60,7 @@ export const cartItems = pgTable("cart_items", {
   description: text("description").notNull(),
   images: text("images").array().notNull(),
   fullImages: text("full_images").array().notNull().default([]),
-  price: decimal("price", { precision: 10, scale: 2 }).notNull().default("0"),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   isAvailable: boolean("is_available").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => ({
@@ -140,7 +140,7 @@ export const cartItemSchema = z.object({
   description: z.string(),
   images: z.array(z.string()),
   fullImages: z.array(z.string()).optional(),
-  price: z.number().min(0, "Price must be non-negative").transform(val => Math.round(val)),
+  price: z.number().min(0, "Price must be non-negative").transform(val => Number(val.toFixed(2))),
   isAvailable: z.boolean().optional(),
   createdAt: z.string().or(z.date()).optional()
 });
