@@ -277,7 +277,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const product = await storage.updateProduct(productId, req.body);
-      res.json(product);
+      // Fetch updated product with categories
+      const updatedProduct = await storage.getProduct(productId);
+      res.json(updatedProduct);
     } catch (error) {
       console.error('Error updating product:', error);
       res.status(500).json({ 

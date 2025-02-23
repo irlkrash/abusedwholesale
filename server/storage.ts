@@ -230,29 +230,26 @@ export class DatabaseStorage implements IStorage {
         .where(eq(productsTable.id, id))
         .returning();
 
-      if (categoryIds !== undefined) {
-        // Start a transaction for category updates
-        await db.transaction(async (tx) => {
-          // Remove existing categories
-          await tx
-            .delete(productCategories)
-            .where(eq(productCategories.productId, id));
-
-          if (categoryIds.length > 0) {
-            // Add new categories
-            const categoryEntries = categoryIds.map(categoryId => ({
-              productId: id,
-              categoryId,
-            }));
-
-            await tx
-              .insert(productCategories)
-              .values(categoryEntries);
-          }
-        });
-      }
-
       await client.query('COMMIT');
+
+      if (categoryIds !== undefined) {
+        // Remove existing categories first
+        await db
+          .delete(productCategories)
+          .where(eq(productCategories.productId, id));
+
+        if (categoryIds.length > 0) {
+          // Add new categories
+          const categoryEntries = categoryIds.map(categoryId => ({
+            productId: id,
+            categoryId,
+          }));
+
+          await db
+            .insert(productCategories)
+            .values(categoryEntries);
+        }
+      }
 
       // Fetch updated product with categories
       return this.getProduct(id) as Promise<Product>;
