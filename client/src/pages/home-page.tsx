@@ -8,6 +8,9 @@ import { Menu, ShoppingCart, LogIn, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sheet,
   SheetContent,
@@ -15,10 +18,10 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Card, CardContent } from "@/components/ui/card";
-import { apiRequest } from "@/lib/queryClient";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Card,
+  CardContent,
+} from "@/components/ui/card";
 
 export default function HomePage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -52,23 +55,31 @@ export default function HomePage() {
       try {
         const queryParams = new URLSearchParams({
           page: pageParam.toString(),
-          limit: '12',
-          sort: 'createdAt:desc'
+          limit: '12'
         });
 
+        // Add category filter parameters
         if (selectedCategories.size > 0) {
-          queryParams.append('categories', Array.from(selectedCategories).join(','));
+          Array.from(selectedCategories).forEach(categoryId => 
+            queryParams.append('categories', categoryId.toString())
+          );
         }
 
         const response = await apiRequest(
           "GET",
           `/api/products?${queryParams.toString()}`
         );
+
         if (!response.ok) {
           throw new Error('Failed to fetch products');
         }
+
         const data = await response.json();
-        return data;
+        return {
+          data: data.data,
+          nextPage: data.data.length === 12 ? pageParam + 1 : undefined,
+          lastPage: data.data.length < 12
+        };
       } catch (err) {
         console.error("Failed to fetch products:", err);
         throw err;
@@ -78,7 +89,7 @@ export default function HomePage() {
     getNextPageParam: (lastPage) => lastPage.nextPage,
   });
 
-  // Safely extract products with null checks and ensure they are flattened correctly
+  // Safely extract products with null checks
   const allProducts = data?.pages?.flatMap(page => page.data ?? []) ?? [];
 
   const toggleCategory = (categoryId: number) => {
@@ -89,6 +100,10 @@ export default function HomePage() {
       } else {
         newSet.add(categoryId);
       }
+      // Invalidate queries to trigger a refetch with new filters
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/products", Array.from(newSet)] 
+      });
       return newSet;
     });
   };
@@ -110,7 +125,7 @@ export default function HomePage() {
       images: product.images,
       fullImages: product.fullImages || [],
       isAvailable: product.isAvailable,
-      createdAt: new Date().toISOString() 
+      createdAt: new Date().toISOString()
     };
 
     setCartItems(prev => [...prev, cartItem]);
