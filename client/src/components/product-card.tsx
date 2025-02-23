@@ -23,6 +23,9 @@ export function ProductCard({ product, onAddToCart, priority = false, showDetail
       ? Math.min(...product.categories.map(cat => Number(cat.defaultPrice)))
       : 0);
 
+  // Format price as whole number
+  const formattedPrice = Math.round(Number(effectivePrice));
+
   return (
     <Card className="overflow-hidden transition-shadow hover:shadow-lg">
       <CardContent className="p-0">
@@ -45,7 +48,7 @@ export function ProductCard({ product, onAddToCart, priority = false, showDetail
             </>
           )}
           <div className="mt-2">
-            <span className="text-lg font-bold">${effectivePrice}</span>
+            <span className="text-lg font-bold">${formattedPrice}</span>
           </div>
           {product.categories && product.categories.length > 0 && (
             <div className="mt-2">
