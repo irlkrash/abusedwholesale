@@ -128,10 +128,10 @@ export const insertProductSchema = createInsertSchema(products).pick({
   description: true,
   images: true,
   fullImages: true,
-  customPrice: true,
   isAvailable: true,
 }).extend({
   categories: z.array(z.number()).optional(),
+  customPrice: z.number().nullable().optional(),
 });
 
 export const cartItemSchema = z.object({

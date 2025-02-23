@@ -17,68 +17,6 @@ import { useCallback, useState, useRef } from "react";
 import { ImagePlus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-// Helper function for enhanced image compression
-async function compressImage(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.src = URL.createObjectURL(file);
-
-    img.onload = () => {
-      URL.revokeObjectURL(img.src);
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-
-      if (!ctx) {
-        reject(new Error('Could not get canvas context'));
-        return;
-      }
-
-      // Calculate dimensions while maintaining aspect ratio
-      let { width, height } = img;
-      const maxDimension = 800; // Reduced from 1200 for thumbnails
-
-      if (width > height) {
-        if (width > maxDimension) {
-          height = Math.round((height * maxDimension) / width);
-          width = maxDimension;
-        }
-      } else {
-        if (height > maxDimension) {
-          width = Math.round((width * maxDimension) / height);
-          height = maxDimension;
-        }
-      }
-
-      // Set canvas size
-      canvas.width = width;
-      canvas.height = height;
-
-      // Apply smooth scaling
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-
-      // Draw with white background to handle transparency properly
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, width, height);
-
-      // Draw image with better quality
-      ctx.drawImage(img, 0, 0, width, height);
-
-      // Convert to JPEG with 70% quality (increased from 50%)
-      resolve(canvas.toDataURL('image/jpeg', 0.7));
-    };
-
-    img.onerror = () => reject(new Error('Failed to load image'));
-  });
-}
 
 interface ProductFormProps {
   onSubmit: (data: any) => void;
@@ -89,7 +27,7 @@ interface ProductFormProps {
     images?: string[];
     isAvailable?: boolean;
     categoryIds?: number[];
-    customPrice?: number;
+    customPrice?: number | null;
   };
 }
 
@@ -111,6 +49,11 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
     },
   });
 
+  // Convert initialData.customPrice to number if it's a string or null
+  const initialCustomPrice = typeof initialData?.customPrice === 'string' 
+    ? parseFloat(initialData.customPrice) 
+    : initialData?.customPrice ?? undefined;
+
   const form = useForm({
     resolver: zodResolver(insertProductSchema),
     defaultValues: {
@@ -119,7 +62,7 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
       images: initialData?.images || [],
       isAvailable: initialData?.isAvailable ?? true,
       categoryIds: initialData?.categoryIds || [],
-      customPrice: initialData?.customPrice || undefined,
+      customPrice: initialCustomPrice,
     },
   });
 
@@ -250,7 +193,10 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
                   step="0.01" 
                   {...field} 
                   value={field.value ?? ''} 
-                  onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    field.onChange(value ? parseFloat(value) : null);
+                  }}
                   placeholder="Use category default if not set"
                 />
               </FormControl>
@@ -354,4 +300,58 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
       </form>
     </Form>
   );
+}
+
+async function compressImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(img.src);
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      if (!ctx) {
+        reject(new Error('Could not get canvas context'));
+        return;
+      }
+
+      // Calculate dimensions while maintaining aspect ratio
+      let { width, height } = img;
+      const maxDimension = 800; // Reduced from 1200 for thumbnails
+
+      if (width > height) {
+        if (width > maxDimension) {
+          height = Math.round((height * maxDimension) / width);
+          width = maxDimension;
+        }
+      } else {
+        if (height > maxDimension) {
+          width = Math.round((width * maxDimension) / height);
+          height = maxDimension;
+        }
+      }
+
+      // Set canvas size
+      canvas.width = width;
+      canvas.height = height;
+
+      // Apply smooth scaling
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
+      // Draw with white background to handle transparency properly
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, width, height);
+
+      // Draw image with better quality
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Convert to JPEG with 70% quality (increased from 50%)
+      resolve(canvas.toDataURL('image/jpeg', 0.7));
+    };
+
+    img.onerror = () => reject(new Error('Failed to load image'));
+  });
 }
