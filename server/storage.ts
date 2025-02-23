@@ -51,14 +51,32 @@ export class DatabaseStorage implements IStorage {
       errorLog: console.error,
     });
 
-    // Create session store table if it doesn't exist
-    pool.query(`
-      CREATE TABLE IF NOT EXISTS "session_store" (
-        "sid" varchar NOT NULL COLLATE "default" PRIMARY KEY NOT DEFERRABLE INITIALLY IMMEDIATE,
-        "sess" json NOT NULL,
-        "expire" timestamp(6) NOT NULL
-      )
-    `).catch(err => console.error('Error creating session table:', err));
+    // Create session store table if it doesn't exist with retry logic
+    const createSessionTable = async (retries = 5) => {
+      try {
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS "session_store" (
+            "sid" varchar NOT NULL COLLATE "default" PRIMARY KEY NOT DEFERRABLE INITIALLY IMMEDIATE,
+            "sess" json NOT NULL,
+            "expire" timestamp(6) NOT NULL
+          )
+        `);
+        console.log('Session table created or verified successfully');
+      } catch (err) {
+        console.error('Error creating session table:', err);
+        if (retries > 0) {
+          console.log(`Retrying... (${retries} attempts left)`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return createSessionTable(retries - 1);
+        }
+        throw err;
+      }
+    };
+    
+    createSessionTable().catch(err => {
+      console.error('Failed to create session table after all retries:', err);
+      process.exit(1);
+    });
   }
 
   async getUsers(): Promise<User[]> {
