@@ -284,6 +284,33 @@ export class DatabaseStorage implements IStorage {
           await db
             .insert(productCategories)
             .values(categoryEntries);
+            
+          // Get category price
+          const [category] = await db
+            .select()
+            .from(categoriesTable)
+            .where(eq(categoriesTable.id, categoryIds[0]));
+            
+          if (category) {
+            // Update product with category price if no custom price is set
+            await db
+              .update(productsTable)
+              .set({
+                categoryPrice: category.defaultPrice,
+                customPrice: productUpdates.customPrice || null,
+                updatedAt: new Date()
+              })
+              .where(eq(productsTable.id, id));
+          }
+        } else {
+          // Clear category price if no categories
+          await db
+            .update(productsTable)
+            .set({
+              categoryPrice: null,
+              updatedAt: new Date()
+            })
+            .where(eq(productsTable.id, id));
         }
       }
 
