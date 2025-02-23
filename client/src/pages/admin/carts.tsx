@@ -144,11 +144,7 @@ const AdminCarts = () => {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Link href="/">
-              <img
-                src="/assets/logo.png"
-                alt="Abused Goods Logo"
-                className="h-12 cursor-pointer"
-              />
+              <img src="/assets/logo.png" alt="Abused Goods Logo" className="h-12 cursor-pointer" />
             </Link>
             <span className="text-lg font-medium">Cart Management</span>
           </div>
@@ -165,10 +161,16 @@ const AdminCarts = () => {
         <div className="space-y-6">
           {sortedCarts.length > 0 ? (
             sortedCarts.map((cart) => {
-              // Calculate total price for this cart
-              const cartTotal = cart.items.reduce((sum, item) => 
-                sum + (Number(item.price) || 0), 0
-              );
+              // Calculate total price with better price handling
+              const cartTotal = cart.items.reduce((sum, item) => {
+                // Get the item price, ensuring it's a valid number
+                const itemPrice = typeof item.price === 'number'
+                  ? item.price
+                  : typeof item.price === 'string'
+                    ? parseFloat(item.price)
+                    : 0;
+                return sum + itemPrice;
+              }, 0);
 
               return (
                 <Card key={cart.id} className="overflow-hidden">
@@ -241,7 +243,13 @@ const AdminCarts = () => {
                     <ScrollArea className="h-[300px]">
                       <div className="grid gap-4">
                         {cart.items.map((item, index) => {
-                          const itemPrice = Number(Number(item.price || 0).toFixed(2));
+                          // Better price handling for individual items
+                          const itemPrice = typeof item.price === 'number'
+                            ? item.price
+                            : typeof item.price === 'string'
+                              ? parseFloat(item.price)
+                              : 0;
+
                           return (
                             <div
                               key={item.id}
@@ -261,7 +269,10 @@ const AdminCarts = () => {
                                     </div>
                                   )}
                                 </div>
-                                <span className="text-lg font-semibold">${itemPrice}</span>
+                                <div className="space-y-1">
+                                  <h3 className="font-medium">{item.name}</h3>
+                                  <span className="text-lg font-semibold">${itemPrice.toFixed(2)}</span>
+                                </div>
                               </div>
                               <div className="text-sm text-muted-foreground">
                                 Status: {item.isAvailable ? 'Available' : 'Unavailable'}
