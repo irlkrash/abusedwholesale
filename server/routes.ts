@@ -29,7 +29,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Category routes
   app.get("/api/categories", async (req, res) => {
     try {
-      const categories = await storage.getCategories();
+      const categories = await storage.getCategoriesWithCounts();
       res.json(categories);
     } catch (error) {
       console.error('Error fetching categories:', error);
