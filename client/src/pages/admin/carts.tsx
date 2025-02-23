@@ -240,11 +240,7 @@ const AdminCarts = () => {
                     <ScrollArea className="h-[300px]">
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {cart.items.map((item, index) => {
-                          const price = typeof item.price === 'number'
-                            ? item.price
-                            : typeof item.price === 'string'
-                              ? parseFloat(item.price)
-                              : 0;
+                          const price = item.price;
 
                           return (
                             <div

@@ -41,13 +41,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Ensure each item has a valid price stored as a number with 2 decimal precision
       const cartItems = parsed.data.items.map(item => {
-        const price = Number(item.price || 0);
+        const price = typeof item.price === 'number' ? item.price : Number(item.price);
         if (isNaN(price)) {
           throw new Error(`Invalid price for item: ${item.name}`);
         }
         return {
           ...item,
-          price: Number(price.toFixed(2)) // Store as number with 2 decimal precision
+          price // Preserve original price precision
         };
       });
 
