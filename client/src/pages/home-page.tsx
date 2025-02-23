@@ -31,8 +31,8 @@ export default function HomePage() {
   const { toast } = useToast();
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  // Fetch categories
-  const { data: categories = [] } = useQuery<Category[]>({
+  // Update categories query to get counts
+  const { data: categories = [] } = useQuery<(Category & { productCount: number })[]>({
     queryKey: ["/api/categories"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/categories");
@@ -61,7 +61,7 @@ export default function HomePage() {
 
         // Add category filter parameters
         if (selectedCategories.size > 0) {
-          Array.from(selectedCategories).forEach(categoryId => 
+          Array.from(selectedCategories).forEach(categoryId =>
             queryParams.append('categoryId', categoryId.toString())
           );
         }
@@ -139,9 +139,9 @@ export default function HomePage() {
           void fetchNextPage();
         }
       },
-      { 
+      {
         threshold: 0.1,
-        rootMargin: '100px' 
+        rootMargin: '100px'
       }
     );
 
@@ -249,7 +249,7 @@ export default function HomePage() {
                     className="cursor-pointer"
                     onClick={() => toggleCategory(category.id)}
                   >
-                    {category.name}
+                    {category.name} ({category.productCount})
                   </Badge>
                 ))}
               </div>
@@ -303,7 +303,7 @@ export default function HomePage() {
         ) : (
           <Card>
             <CardContent className="p-6 text-center text-muted-foreground">
-              {selectedCategories.size > 0 
+              {selectedCategories.size > 0
                 ? "No products found in the selected categories."
                 : "No products available."}
             </CardContent>

@@ -2,7 +2,7 @@ import { InsertUser, User, Product, Cart, InsertCart, Category, InsertCategory, 
 import { users, products as productsTable, carts as cartsTable, categories as categoriesTable, productCategories } from "@shared/schema";
 import session from "express-session";
 import { db, pool } from "./db";
-import { eq, desc, and, inArray } from "drizzle-orm";
+import { eq, desc, and, inArray, sql } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 
 const PostgresSessionStore = connectPg(session);
@@ -30,6 +30,7 @@ export interface IStorage {
   addProductCategories(productId: number, categoryIds: number[]): Promise<void>;
   removeProductCategories(productId: number, categoryIds: number[]): Promise<void>;
   getProductCategories(productId: number): Promise<Category[]>;
+  getCategoriesWithCounts(): Promise<(Category & { productCount: number })[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -631,6 +632,33 @@ export class DatabaseStorage implements IStorage {
       throw error;
     } finally {
       client.release();
+    }
+  }
+  async getCategoriesWithCounts(): Promise<(Category & { productCount: number })[]> {
+    try {
+      const categoriesWithCounts = await db
+        .select({
+          id: categoriesTable.id,
+          name: categoriesTable.name,
+          defaultPrice: categoriesTable.defaultPrice,
+          createdAt: categoriesTable.createdAt,
+          productCount: sql<number>`count(${productCategories.productId})::int`,
+        })
+        .from(categoriesTable)
+        .leftJoin(
+          productCategories,
+          eq(categoriesTable.id, productCategories.categoryId)
+        )
+        .groupBy(categoriesTable.id)
+        .orderBy(desc(categoriesTable.createdAt));
+
+      return categoriesWithCounts.map(category => ({
+        ...category,
+        productCount: category.productCount || 0
+      }));
+    } catch (error) {
+      console.error('Error in getCategoriesWithCounts:', error);
+      throw error;
     }
   }
 }
