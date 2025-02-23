@@ -289,6 +289,7 @@ export default function HomePage() {
                     product={product}
                     onAddToCart={() => handleAddToCart(product)}
                     priority={index < 8}
+                    showDetails={false}
                   />
                 )
               ))}

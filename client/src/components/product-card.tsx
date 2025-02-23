@@ -10,9 +10,10 @@ interface ProductCardProps {
   product: Product;
   onAddToCart: () => void;
   priority?: boolean;
+  showDetails?: boolean;
 }
 
-export function ProductCard({ product, onAddToCart, priority = false }: ProductCardProps) {
+export function ProductCard({ product, onAddToCart, priority = false, showDetails = false }: ProductCardProps) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedFullImage, setSelectedFullImage] = useState<string | null>(null);
 
@@ -37,10 +38,14 @@ export function ProductCard({ product, onAddToCart, priority = false }: ProductC
           />
         </div>
         <div className="p-4">
-          <h3 className="font-semibold text-lg">{product.name}</h3>
-          <p className="text-muted-foreground text-sm mt-1">{product.description}</p>
+          {showDetails && (
+            <>
+              <h3 className="font-semibold text-lg">{product.name}</h3>
+              <p className="text-muted-foreground text-sm mt-1">{product.description}</p>
+            </>
+          )}
           <div className="mt-2">
-            <span className="text-lg font-bold">${effectivePrice.toFixed(2)}</span>
+            <span className="text-lg font-bold">${effectivePrice}</span>
           </div>
           {product.categories && product.categories.length > 0 && (
             <div className="mt-2">

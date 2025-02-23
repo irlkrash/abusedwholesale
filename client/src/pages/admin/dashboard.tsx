@@ -206,7 +206,7 @@ function AdminDashboard() {
 
         // Add category filter parameters
         if (categoryFilter.length > 0) {
-          categoryFilter.forEach(categoryId => 
+          categoryFilter.forEach(categoryId =>
             queryParams.append('categoryId', categoryId.toString())
           );
         }
@@ -769,6 +769,43 @@ function AdminDashboard() {
     );
   };
 
+  // Assumed ProductCard component -  replace with your actual component
+  const ProductCard = ({ product, onAddToCart, priority, showDetails }: { product: Product; onAddToCart: () => void; priority: boolean; showDetails: boolean }) => {
+    return (
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          <div className="relative">
+            <ProductCarousel
+              images={product.images}
+              fullImages={product.fullImages}
+              className="aspect-square object-cover rounded-t-lg"
+            />
+          </div>
+          <div className="p-4">
+            <h3 className="text-lg font-semibold mb-2">{product.name}</h3>
+            <p className="text-sm text-muted-foreground mb-2" style={{ display: !showDetails ? 'none' : 'block' }}>
+              {product.description}
+            </p>
+            <ProductCategories product={product} />
+            <div className="mt-4 flex items-center gap-2 text-sm">
+              <Badge variant={product.isAvailable ? "default" : "secondary"}>
+                {product.isAvailable ? "Available" : "Unavailable"}
+              </Badge>
+              <Badge variant="outline">
+                {product.customPrice
+                  ? `$${product.customPrice} (Custom)`
+                  : product.categoryPrice
+                    ? `$${product.categoryPrice} (Category)`
+                    : 'No price set'}
+              </Badge>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
@@ -968,8 +1005,7 @@ function AdminDashboard() {
                 </DialogHeader>
                 <ProductForm
                   onSubmit={(data) => createProductMutation.mutate(data)}
-                  isLoading={createProductMutation.isPending}
-                />
+                  isLoading={createProductMutation.isPending}                />
               </DialogContent>
             </Dialog>
           </div>
@@ -993,90 +1029,15 @@ function AdminDashboard() {
             ) : isError ? (
               <div>Error: {error?.message}</div>
             ) : products.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {products.map((product, index) => (
-                  <Card
-                    key={product.id}
-                    className={`overflow-hidden ${
-                      selectedProducts.has(product.id) ? 'ring-2 ring-primary' : ''
-                    }`}
-                  >
-                    <CardContent className="p-0">
-                      <div className="relative">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-sm"
-                          onClick={() => toggleSelection(product.id)}
-                        >
-                          {selectedProducts.has(product.id) ? (
-                            <CheckSquare className="h-4 w4" />
-                          ) : (
-                            <Square className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <ProductCarousel
-                          images={product.images}
-                          fullImages={product.fullImages}
-                          className="aspect-square object-cover rounded-t-lg"
-                        />
-                      </div>
-                      <div className="p-4">
-                        <h3 className="text-lg font-semibold mb-2">{product.name}</h3>
-                        <p className="text-sm text-muted-foreground mb-2" style={{ display: hideDetails ? 'none' : 'block' }}>
-                          {product.description}
-                        </p>
-                        <ProductCategories product={product} />
-                        <div className="mt-4 flex items-center gap-2 text-sm">
-                          <Badge variant={product.isAvailable ? "default" : "secondary"}>
-                            {product.isAvailable ? "Available" : "Unavailable"}
-                          </Badge>
-                          <Badge variant="outline">
-                            {product.customPrice
-                              ? `$${product.customPrice} (Custom)`
-                              : product.categoryPrice
-                                ? `$${product.categoryPrice} (Category)`
-                                : 'No price set'}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="mt4 flex justify-between items-center">
-                        <div className="flex gap-2">
-                          <Dialog
-                            open={editingProduct?.id === product.id}
-                            onOpenChange={(open) => !open && setEditingProduct(null)}
-                          >
-                            <DialogTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex items-center gap-2"
-                                onClick={() => setEditingProduct(product)}
-                              >
-                                <Edit className="h-4 w-4" />
-                                Edit
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-2xl">
-                              <DialogHeader>
-                                <DialogTitle>Edit Product</DialogTitle>
-                              </DialogHeader>
-                              <ProductForm
-                                initialData={product}
-                                onSubmit={(data) =>
-                                  updateProductMutation.mutate({
-                                    id: product.id,
-                                    data,
-                                  })
-                                }
-                                isLoading={updateProductMutation.isPending}
-                              />
-                            </DialogContent>
-                          </Dialog>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <ProductCard
+                    key={`${product.id}-${index}`}
+                    product={product}
+                    onAddToCart={() => {}}
+                    priority={index < 8}
+                    showDetails={true}
+                  />
                 ))}
               </div>
             ) : (
