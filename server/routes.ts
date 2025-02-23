@@ -321,11 +321,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Creating new cart with data:', req.body);
       const parsed = insertCartSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json(parsed.error);
+        console.error('Cart validation failed:', parsed.error);
+        return res.status(400).json({
+          message: "Invalid cart data",
+          errors: parsed.error.errors
+        });
       }
 
-      const cart = await storage.createCart(parsed.data);
-      console.log('Cart created successfully:', cart.id);
+      // Ensure each item has a valid price
+      const cartItems = parsed.data.items.map(item => ({
+        ...item,
+        price: Math.round(Number(item.price || 0)), // Ensure price is a number and rounded
+      }));
+
+      const cart = await storage.createCart({
+        customerName: parsed.data.customerName,
+        items: cartItems
+      });
+
+      console.log('Cart created successfully:', cart);
       res.status(201).json(cart);
     } catch (error) {
       console.error('Error creating cart:', error);
