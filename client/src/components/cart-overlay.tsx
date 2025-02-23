@@ -35,7 +35,6 @@ export function CartOverlay({
 
   // Calculate total price based on item.price
   const totalPrice = items.reduce((sum, item) => {
-    // Convert price string to number and round it
     return sum + Math.round(Number(item.price || 0));
   }, 0);
 
@@ -52,26 +51,22 @@ export function CartOverlay({
     try {
       setIsSubmitting(true);
 
+      // Simplify the cart items to only include necessary fields
       const cartItems = items.map(item => ({
         productId: item.productId,
-        name: item.name || 'Untitled Product',
-        description: item.description || 'No description available',
-        images: Array.isArray(item.images) ? item.images : [],
-        fullImages: Array.isArray(item.fullImages) ? item.fullImages : [],
-        isAvailable: item.isAvailable !== false,
-        price: item.price
+        price: Math.round(Number(item.price || 0))  // Ensure price is a number
       }));
 
       const payload = {
-        customerName,
+        customerName: customerName.trim(),
         items: cartItems
       };
 
       const response = await apiRequest("POST", "/api/carts", payload);
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Failed to submit cart');
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to submit cart');
       }
 
       toast({
