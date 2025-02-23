@@ -332,17 +332,9 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
                   variant={selectedCategories.includes(category.id) ? "default" : "outline"}
                   onClick={() => {
                     const newCategories = selectedCategories.includes(category.id)
-                      ? selectedCategories.filter((id) => id !== category.id)
-                      : [...selectedCategories, category.id];
+                      ? []  // Deselect if already selected
+                      : [category.id];  // Select only this category
                     setSelectedCategories(newCategories);
-
-                    // Set category price if only one category is selected
-                    if (newCategories.length === 1) {
-                      const selectedCategory = categories.find(c => c.id === newCategories[0]);
-                      if (selectedCategory) {
-                        form.setValue('customPrice', selectedCategory.defaultPrice);
-                      }
-                    }
                   }}
                   className="h-8"
                 >
