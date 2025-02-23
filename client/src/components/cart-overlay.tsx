@@ -12,7 +12,7 @@ import { CartItem } from "@shared/schema";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface CartOverlayProps {
   isOpen: boolean;
@@ -76,6 +76,9 @@ export function CartOverlay({
         const error = await response.json();
         throw new Error(error.message || 'Failed to submit cart');
       }
+
+      // Invalidate carts query to refresh admin dashboard
+      queryClient.invalidateQueries({ queryKey: ["/api/carts"] });
 
       toast({
         title: "Cart submitted successfully!",

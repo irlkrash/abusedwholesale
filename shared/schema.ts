@@ -140,7 +140,7 @@ export const cartItemSchema = z.object({
   description: z.string(),
   images: z.array(z.string()),
   fullImages: z.array(z.string()).optional(),
-  price: z.number().min(0, "Price must be non-negative"),
+  price: z.number().min(0, "Price must be non-negative").transform(val => Math.round(val)),
   isAvailable: z.boolean().optional(),
   createdAt: z.string().or(z.date()).optional()
 });
