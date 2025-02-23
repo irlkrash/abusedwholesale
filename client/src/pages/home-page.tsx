@@ -249,7 +249,7 @@ export default function HomePage() {
                     className="cursor-pointer"
                     onClick={() => toggleCategory(category.id)}
                   >
-                    {category.name} ({category.productCount || 0})
+                    {category.name}
                   </Badge>
                 ))}
               </div>

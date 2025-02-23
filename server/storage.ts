@@ -586,15 +586,6 @@ export class DatabaseStorage implements IStorage {
 
     return result.map(r => r.category);
   }
-
-  async getProductCountForCategory(categoryId: number): Promise<number> {
-    const result = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(productCategories)
-      .where(eq(productCategories.categoryId, categoryId));
-    
-    return result[0]?.count || 0;
-  }
   async updateCart(id: number, updates: Partial<Cart>): Promise<Cart> {
     const client = await pool.connect();
     try {

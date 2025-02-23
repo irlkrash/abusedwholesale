@@ -634,7 +634,7 @@ function AdminDashboard() {
                 variant="secondary"
                 className="text-sm py-1 px-2"
               >
-                {category.name} ({category.productCount || 0}) (${category.defaultPrice})
+                {category.name} (${category.defaultPrice})
                 <Button
                   variant="ghost"
                   size="sm"
@@ -688,7 +688,7 @@ function AdminDashboard() {
                     queryClient.invalidateQueries({ queryKey: ["/api/products", categoryFilter, sortOrder] });
                   }}
                 />
-                <Label>{category.name} ({category.productCount || 0}) (${category.defaultPrice})</Label>
+                <Label>{category.name} (${category.defaultPrice})</Label>
               </div>
             ))}
           </div>
@@ -1017,7 +1017,7 @@ function AdminDashboard() {
                           images={product.images}
                           fullImages={product.fullImages}
                           className="aspect-square object-cover rounded-t-lg"
-                        />                        />
+                        />
                       </div>
                       <div className="p-4">
                         <h3 className="text-lg font-semibold mb-2">{product.name}</h3>
