@@ -684,6 +684,8 @@ function AdminDashboard() {
                         prev.filter(id => id !== category.id)
                       );
                     }
+                    // Invalidate the query to trigger a refetch with the new filters
+                    queryClient.invalidateQueries({ queryKey: ["/api/products", categoryFilter, sortOrder] });
                   }}
                 />
                 <Label>{category.name} (${category.defaultPrice})</Label>
@@ -694,7 +696,11 @@ function AdminDashboard() {
         {categoryFilter.length > 0 && (
           <Button
             variant="outline"
-            onClick={() => setCategoryFilter([])}
+            onClick={() => {
+              setCategoryFilter([]);
+              // Invalidate the query when clearing filters
+              queryClient.invalidateQueries({ queryKey: ["/api/products", categoryFilter, sortOrder] });
+            }}
             className="w-full"
           >
             Clear Filters

@@ -120,11 +120,9 @@ export class DatabaseStorage implements IStorage {
 
       // Add category filter if categoryIds is provided
       if (categoryIds && categoryIds.length > 0) {
-        if (Array.isArray(categoryIds)) {
-          query = query.where(inArray(productCategories.categoryId, categoryIds));
-        } else {
-          query = query.where(eq(productCategories.categoryId, categoryIds));
-        }
+        query = query
+          .where(inArray(productCategories.categoryId, categoryIds))
+          .distinct();
       }
 
       const result = await query
