@@ -48,7 +48,8 @@ export default function HomePage() {
     isFetchingNextPage,
     isLoading,
     isError,
-    error
+    error,
+    refetch
   } = useInfiniteQuery({
     queryKey: ["/api/products", Array.from(selectedCategories)],
     queryFn: async ({ pageParam = 1 }) => {
@@ -76,9 +77,9 @@ export default function HomePage() {
 
         const data = await response.json();
         return {
-          data: data.data,
-          nextPage: data.data.length === 12 ? pageParam + 1 : undefined,
-          lastPage: data.data.length < 12
+          data: Array.isArray(data.data) ? data.data : [],
+          nextPage: data.data && data.data.length === 12 ? pageParam + 1 : undefined,
+          lastPage: !data.data || data.data.length < 12
         };
       } catch (err) {
         console.error("Failed to fetch products:", err);
@@ -100,9 +101,9 @@ export default function HomePage() {
       } else {
         newSet.add(categoryId);
       }
-      // Invalidate queries to trigger a refetch with new filters
+      // Invalidate and refetch when categories change
       queryClient.invalidateQueries({ 
-        queryKey: ["/api/products", Array.from(newSet)] 
+        queryKey: ["/api/products", Array.from(newSet)]
       });
       return newSet;
     });
@@ -160,6 +161,11 @@ export default function HomePage() {
       observer.disconnect();
     };
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Effect to refetch when categories change
+  useEffect(() => {
+    refetch();
+  }, [selectedCategories, refetch]);
 
   const NavMenu = () => (
     <>
@@ -301,7 +307,9 @@ export default function HomePage() {
         ) : (
           <Card>
             <CardContent className="p-6 text-center text-muted-foreground">
-              No products available.
+              {selectedCategories.size > 0 
+                ? "No products found in the selected categories."
+                : "No products available."}
             </CardContent>
           </Card>
         )}
