@@ -96,7 +96,16 @@ export class DatabaseStorage implements IStorage {
       const limit = Math.max(1, Math.min(100, pageLimit));
       let query = db
         .select({
-          product: productsTable,
+          id: productsTable.id,
+          name: productsTable.name,
+          description: productsTable.description,
+          images: productsTable.images,
+          fullImages: productsTable.fullImages,
+          customPrice: productsTable.customPrice,
+          categoryPrice: productsTable.categoryPrice,
+          isAvailable: productsTable.isAvailable,
+          createdAt: productsTable.createdAt,
+          updatedAt: productsTable.updatedAt,
           categories: categoriesTable,
         })
         .from(productsTable)
@@ -126,7 +135,8 @@ export class DatabaseStorage implements IStorage {
       // Group the results by product
       const productsMap = new Map<number, Product & { categories: Category[] }>();
 
-      result.forEach(({ product, categories }) => {
+      result.forEach((row) => {
+        const { categories, ...product } = row;
         if (!productsMap.has(product.id)) {
           productsMap.set(product.id, {
             ...product,

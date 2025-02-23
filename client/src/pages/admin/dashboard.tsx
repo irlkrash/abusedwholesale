@@ -73,7 +73,7 @@ interface ProductsResponse {
   lastPage: boolean;
 }
 
-const BulkCategoryActions = () => {
+const BulkCategoryActions = ({ categories, selectedProducts }: { categories: Category[]; selectedProducts: Set<number> }) => {
   const { toast } = useToast();
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
 
@@ -502,7 +502,7 @@ function AdminDashboard() {
     </>
   );
 
-const CategoryManagement: React.FC = () => {
+  const CategoryManagement: React.FC = () => {
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const [formState, setFormState] = useState({ name: "", price: "0" });
@@ -733,6 +733,57 @@ const CategoryManagement: React.FC = () => {
   const [newCategoryPrice, setNewCategoryPrice] = useState("0");
 
 
+  const ProductCategories = ({ product }: { product: Product }) => {
+    return (
+      <div className="space-y-2">
+        <Label>Categories</Label>
+        <ScrollArea className="h-[100px] w-full rounded-md border p-2">
+          <div className="space-y-1">
+            {categories.map((category) => {
+              const isSelected = product.categories?.some(c => c.id === category.id);
+              return (
+                <div key={category.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={async () => {
+                      try {
+                        const currentCategories = product.categories?.map(c => c.id) || [];
+                        let updatedCategories: number[];
+
+                        if (isSelected) {
+                          updatedCategories = currentCategories.filter(id => id !== category.id);
+                        } else {
+                          updatedCategories = [...currentCategories, category.id];
+                        }
+
+                        await updateProductMutation.mutateAsync({
+                          id: product.id,
+                          data: {
+                            categories: updatedCategories
+                          }
+                        });
+                      } catch (error) {
+                        console.error('Failed to update category:', error);
+                        toast({
+                          title: "Error",
+                          description: "Failed to update category",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                  />
+                  <Label className="text-sm">
+                    {category.name} (${category.defaultPrice})
+                  </Label>
+                </div>
+              );
+            })}
+          </div>
+        </ScrollArea>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
@@ -916,7 +967,7 @@ const CategoryManagement: React.FC = () => {
                 >
                   {hideDetails ? "Show Details" : "Hide Details"}
                 </Button>
-                <BulkCategoryActions/>
+                <BulkCategoryActions categories={categories} selectedProducts={selectedProducts} />
               </>
             )}
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -970,7 +1021,7 @@ const CategoryManagement: React.FC = () => {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-sm"
+                          className="absolute                        top-2 left-2 z-10 bg-background/80 backdrop-blur-sm"
                           onClick={() => toggleSelection(product.id)}
                         >
                           {selectedProducts.has(product.id) ? (
@@ -981,7 +1032,8 @@ const CategoryManagement: React.FC = () => {
                         </Button>
                         <ProductCarousel
                           images={product.images}
-                          priority={index < 4}
+                          fullImages={product.fullImages}
+                          className="aspect-square object-cover rounded-t-lg"
                         />
                       </div>
                       <div className="p-4">
@@ -989,34 +1041,18 @@ const CategoryManagement: React.FC = () => {
                         <p className="text-sm text-muted-foreground mb-2" style={{ display: hideDetails ? 'none' : 'block' }}>
                           {product.description}
                         </p>
-                        <div className="flex flex-wrap gap-2 mb-2">
-                          {product.categories?.map((category) => (
-                            <Badge
-                              key={category.id}
-                              variant="secondary"
-                              className="text-xs"
-                            >
-                              {category.name} (${category.defaultPrice})
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="ml-2"
-                                onClick={() => handleProductCategoryUpdate(product, category.id)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                            </Badge>
-                          ))}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <span>Price:</span>
-                          {product.customPrice ? (
-                            <span>${product.customPrice}</span>
-                          ) : product.categoryPrice ? (
-                            <span>${product.categoryPrice} (Category Price)</span>
-                          ) : (
-                            <span>No price set</span>
-                          )}
+                        <ProductCategories product={product} />
+                        <div className="mt-4 flex items-center gap-2 text-sm">
+                          <Badge variant={product.isAvailable ? "default" : "secondary"}>
+                            {product.isAvailable ? "Available" : "Unavailable"}
+                          </Badge>
+                          <Badge variant="outline">
+                            {product.customPrice
+                              ? `$${product.customPrice} (Custom)`
+                              : product.categoryPrice
+                                ? `$${product.categoryPrice} (Category)`
+                                : 'No price set'}
+                          </Badge>
                         </div>
                       </div>
                       <div className="mt4 flex justify-between items-center">
