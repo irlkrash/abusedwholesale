@@ -221,22 +221,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const offset = (page - 1) * limit;
 
       console.log(`Fetching products page ${page} with limit ${limit}, categoryId: ${categoryId}`);
-      
-      if (isNaN(page) || isNaN(limit)) {
-        return res.status(400).json({ message: "Invalid pagination parameters" });
-      }
-
       const products = await storage.getProducts(offset, limit, categoryId);
-      console.log(`Found ${products?.length ?? 0} products in categories:`, categoryId);
-
-      if (!products) {
-        return res.status(500).json({ message: "Failed to fetch products from storage" });
-      }
+      console.log(`Found ${products.length} products in categories:`, categoryId);
 
       res.json({
-        data: products,
-        nextPage: products.length === limit ? page + 1 : undefined,
-        lastPage: products.length < limit
+        data: products || [],
+        nextPage: products && products.length === limit ? page + 1 : undefined,
+        lastPage: !products || products.length < limit
       });
     } catch (error) {
       console.error('Error fetching products:', error);
