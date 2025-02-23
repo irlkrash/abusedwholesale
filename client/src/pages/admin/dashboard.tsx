@@ -1014,7 +1014,7 @@ function AdminDashboard() {
                           )}
                         </Button>
                         <ProductCarousel
-                          images={product.images}
+                                                    images={product.images}
                           fullImages={product.fullImages}
                           className="aspect-square object-cover rounded-t-lg"
                         />                        />
