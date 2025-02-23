@@ -24,7 +24,7 @@ export function ProductCard({ product, onAddToCart, priority = false, showDetail
       : 0);
 
   // Format price as whole number
-  const formattedPrice = Math.round(Number(effectivePrice));
+  const formattedPrice = Math.floor(Number(effectivePrice));
 
   return (
     <Card className="overflow-hidden transition-shadow hover:shadow-lg">
