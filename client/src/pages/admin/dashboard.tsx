@@ -92,8 +92,6 @@ const BulkCategoryActions = ({ categories, selectedProducts }: { categories: Cat
     onSuccess: () => {
       // Invalidate both products and categories queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
-
       toast({
         title: "Success",
         description: "Categories updated successfully",
@@ -748,49 +746,17 @@ function AdminDashboard() {
     return (
       <div className="space-y-2">
         <Label>Categories</Label>
-        <ScrollArea className="h-[100px] w-full rounded-md border p-2">
-          <div className="space-y-1">
-            {categories.map((category) => {
-              const isSelected = product.categories?.some(c => c.id === category.id);
-              return (
-                <div key={category.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={isSelected}
-                    onCheckedChange={async () => {
-                      try {
-                        const currentCategories = product.categories?.map(c => c.id) || [];
-                        let updatedCategories: number[];
-
-                        if (isSelected) {
-                          updatedCategories = currentCategories.filter(id => id !== category.id);
-                        } else {
-                          updatedCategories = [...currentCategories, category.id];
-                        }
-
-                        await updateProductMutation.mutateAsync({
-                          id: product.id,
-                          data: {
-                            categories: updatedCategories
-                          }
-                        });
-                      } catch (error) {
-                        console.error('Failed to update category:', error);
-                        toast({
-                          title: "Error",
-                          description: "Failed to update category",
-                          variant: "destructive",
-                        });
-                      }
-                    }}
-                  />
-                  <Label className="text-sm">
-                    {category.name} (${category.defaultPrice})
-                  </Label>
-                </div>
-              );
-            })}
-          </div>
-        </ScrollArea>
+        <div className="flex flex-wrap gap-2">
+          {product.categories?.map((category) => (
+            <Badge
+              key={category.id}
+              variant="secondary"
+              className="text-sm py-1 px-2"
+            >
+              {category.name} (${category.defaultPrice})
+            </Badge>
+          ))}
+        </div>
       </div>
     );
   };
@@ -1032,7 +998,7 @@ function AdminDashboard() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="absolute                        top-2 left-2 z-10 bg-background/80 backdrop-blur-sm"
+                          className="absolute top-2 left-2 z-10 bg-background/80 backdrop-blur-sm"
                           onClick={() => toggleSelection(product.id)}
                         >
                           {selectedProducts.has(product.id) ? (
