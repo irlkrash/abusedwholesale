@@ -290,7 +290,12 @@ function AdminDashboard() {
 
   const updateProductMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      console.log('Updating product:', { id, data });
       const res = await apiRequest("PATCH", `/api/products/${id}`, data);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to update product');
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -300,6 +305,13 @@ function AdminDashboard() {
         description: "The product has been updated.",
       });
       setEditingProduct(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error updating product",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -686,6 +698,38 @@ const CategoryManagement: React.FC = () => {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryPrice, setNewCategoryPrice] = useState("0");
 
+  const handleProductCategoryUpdate = async (product: Product, categoryId: number) => {
+    try {
+      // Get current categories
+      const currentCategories = product.categories || [];
+      const updatedCategories = currentCategories.map(c => c.id);
+
+      // If category exists, remove it, otherwise add it
+      const categoryIndex = updatedCategories.indexOf(categoryId);
+      if (categoryIndex > -1) {
+        updatedCategories.splice(categoryIndex, 1);
+      } else {
+        updatedCategories.push(categoryId);
+      }
+
+      // Update the product with new categories
+      await updateProductMutation.mutateAsync({
+        id: product.id,
+        data: {
+          categories: updatedCategories
+        }
+      });
+    } catch (error) {
+      console.error('Failed to update product categories:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update product categories",
+        variant: "destructive",
+      });
+    }
+  };
+
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
@@ -962,10 +1006,18 @@ const CategoryManagement: React.FC = () => {
                               className="text-xs"
                             >
                               {category.name} (${category.defaultPrice})
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="ml-2"
+                                onClick={() => handleProductCategoryUpdate(product, category.id)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
                             </Badge>
                           ))}
                         </div>
-                        <div className="mt-4 flex justify-between items-center">
+                        <div className="mt4 flex justify-between items-center">
                           <div className="flex gap-2">
                             <Dialog
                               open={editingProduct?.id === product.id}

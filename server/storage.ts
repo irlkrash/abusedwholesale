@@ -217,6 +217,7 @@ export class DatabaseStorage implements IStorage {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
+      console.log('Updating product with data:', { id, updates });
 
       const { categories: categoryIds, ...productUpdates } = updates;
 
@@ -230,9 +231,14 @@ export class DatabaseStorage implements IStorage {
         .where(eq(productsTable.id, id))
         .returning();
 
-      await client.query('COMMIT');
+      if (!product) {
+        throw new Error('Product not found');
+      }
 
+      // If categoryIds is defined (even if empty array), update categories
       if (categoryIds !== undefined) {
+        console.log('Updating product categories:', categoryIds);
+
         // Remove existing categories first
         await db
           .delete(productCategories)
@@ -251,8 +257,17 @@ export class DatabaseStorage implements IStorage {
         }
       }
 
+      await client.query('COMMIT');
+
       // Fetch updated product with categories
-      return this.getProduct(id) as Promise<Product>;
+      const updatedProduct = await this.getProduct(id);
+      if (!updatedProduct) {
+        throw new Error('Failed to fetch updated product');
+      }
+
+      console.log('Successfully updated product with categories:', updatedProduct);
+      return updatedProduct;
+
     } catch (error) {
       await client.query('ROLLBACK');
       console.error(`Database error in updateProduct(${id}):`, error);
