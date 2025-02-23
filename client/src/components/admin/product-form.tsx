@@ -335,11 +335,6 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
                       ? []  // Deselect if already selected
                       : [category.id];  // Select only this category
                     setSelectedCategories(newCategories);
-                    
-                    // Set category price when selecting a category
-                    if (category.id && !selectedCategories.includes(category.id)) {
-                      form.setValue('customPrice', category.defaultPrice);
-                    }
                   }}
                   className="h-8"
                 >
