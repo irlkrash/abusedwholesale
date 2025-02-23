@@ -161,26 +161,27 @@ const AdminCarts = () => {
         <div className="space-y-6">
           {sortedCarts.length > 0 ? (
             sortedCarts.map((cart) => {
-              // Calculate total price with better price handling
+              // Calculate total price
               const cartTotal = cart.items.reduce((sum, item) => {
-                const itemPrice = Math.round(Number(item.price || 0));
-                return sum + itemPrice;
+                // Parse the price, ensuring it's a valid number
+                const price = typeof item.price === 'number' 
+                  ? item.price 
+                  : typeof item.price === 'string' 
+                    ? parseFloat(item.price) 
+                    : 0;
+                return sum + price;
               }, 0);
-              const formattedTotal = cartTotal.toString();
 
               return (
                 <Card key={cart.id} className="overflow-hidden">
                   <CardHeader className="space-y-0 pb-4">
                     <div className="flex flex-wrap justify-between items-center gap-4">
                       <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <CardTitle className="text-xl">Cart #{cart.id}</CardTitle>
-                          <span className="text-sm text-muted-foreground">
-                            {format(new Date(cart.createdAt), "PPp")}
-                          </span>
-                        </div>
+                        <CardTitle className="text-xl">
+                          Cart #{cart.id} - ${cartTotal.toFixed(2)}
+                        </CardTitle>
                         <CardDescription>
-                          Customer: {cart.customerName} | Total: ${cartTotal.toFixed(2)}
+                          {format(new Date(cart.createdAt), "PPp")}
                         </CardDescription>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
@@ -237,38 +238,37 @@ const AdminCarts = () => {
                   </CardHeader>
                   <CardContent>
                     <ScrollArea className="h-[300px]">
-                      <div className="grid gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {cart.items.map((item, index) => {
-                          // Format price consistently with 2 decimal places
-                          const itemPrice = Math.round(Number(item.price || 0));
-                          const formattedPrice = itemPrice.toString();
+                          const price = typeof item.price === 'number'
+                            ? item.price
+                            : typeof item.price === 'string'
+                              ? parseFloat(item.price)
+                              : 0;
 
                           return (
                             <div
                               key={item.id}
-                              className="flex items-center justify-between p-4 rounded-lg border hover:bg-accent/50 transition-colors"
+                              className="flex flex-col p-4 rounded-lg border hover:bg-accent/50 transition-colors"
                             >
-                              <div className="flex items-center gap-4">
-                                <div className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted">
-                                  {item.images && item.images.length > 0 ? (
-                                    <ProductCarousel
-                                      images={item.images}
-                                      onImageClick={(image) => setSelectedImage(image)}
-                                      priority={index < 2}
-                                    />
-                                  ) : (
-                                    <div className="flex items-center justify-center w-full h-full bg-muted">
-                                      <span className="text-xs text-muted-foreground">No image</span>
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="space-y-1">
-                                  <h3 className="font-medium">{item.name}</h3>
-                                  <span className="text-lg font-semibold">${itemPrice.toFixed(2)}</span>
-                                </div>
+                              <div className="relative w-full aspect-square mb-4 overflow-hidden rounded-md border bg-muted">
+                                {item.images && item.images.length > 0 ? (
+                                  <ProductCarousel
+                                    images={item.images}
+                                    onImageClick={(image) => setSelectedImage(image)}
+                                    priority={index < 6}
+                                  />
+                                ) : (
+                                  <div className="flex items-center justify-center w-full h-full bg-muted">
+                                    <span className="text-xs text-muted-foreground">No image</span>
+                                  </div>
+                                )}
                               </div>
-                              <div className="text-sm text-muted-foreground">
-                                Status: {item.isAvailable ? 'Available' : 'Unavailable'}
+                              <div className="flex justify-between items-center">
+                                <span className="text-lg font-semibold">${price.toFixed(2)}</span>
+                                <span className="text-sm text-muted-foreground">
+                                  {item.isAvailable ? 'Available' : 'Unavailable'}
+                                </span>
                               </div>
                             </div>
                           );
