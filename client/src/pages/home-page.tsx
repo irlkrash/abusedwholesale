@@ -128,7 +128,7 @@ export default function HomePage() {
       images: product.images,
       fullImages: product.fullImages || [],
       isAvailable: product.isAvailable,
-      price: String(Math.round(Number(effectivePrice))), // Convert to string after rounding
+      price: String(Number(effectivePrice)),
       createdAt: new Date().toISOString()
     };
 

@@ -113,7 +113,7 @@ export function CartOverlay({
 
         <ScrollArea className="h-[50vh] my-4">
           {items.map((item) => {
-            const formattedPrice = Number(item.price || 0).toFixed(2);
+            const formattedPrice = Number(item.price || 0);
 
             return (
               <div

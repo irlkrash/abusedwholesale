@@ -167,7 +167,7 @@ const AdminCarts = () => {
             sortedCarts.map((cart) => {
               // Calculate total price for this cart
               const cartTotal = cart.items.reduce((sum, item) => 
-                sum + Number(Number(item.price || 0).toFixed(2)), 0
+                sum + (Number(item.price) || 0), 0
               );
 
               return (
@@ -261,7 +261,7 @@ const AdminCarts = () => {
                                     </div>
                                   )}
                                 </div>
-                                <span className="text-lg font-semibold">${itemPrice.toFixed(2)}</span>
+                                <span className="text-lg font-semibold">${itemPrice}</span>
                               </div>
                               <div className="text-sm text-muted-foreground">
                                 Status: {item.isAvailable ? 'Available' : 'Unavailable'}
