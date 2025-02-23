@@ -329,7 +329,17 @@ export class DatabaseStorage implements IStorage {
       const cartsWithItems = await Promise.all(
         carts.map(async (cart) => {
           const items = await db
-            .select()
+            .select({
+              id: cartItems.id,
+              productId: cartItems.productId,
+              name: cartItems.name,
+              description: cartItems.description,
+              images: cartItems.images,
+              fullImages: cartItems.fullImages,
+              price: cartItems.price,
+              isAvailable: cartItems.isAvailable,
+              createdAt: cartItems.createdAt,
+            })
             .from(cartItems)
             .where(eq(cartItems.cartId, cart.id));
 
