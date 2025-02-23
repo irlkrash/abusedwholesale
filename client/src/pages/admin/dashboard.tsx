@@ -178,7 +178,7 @@ function AdminDashboard() {
   const [categoryFilter, setCategoryFilter] = useState<number[]>([]);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
-  const { data: categories = [], refetch: refetchCategories } = useQuery<Category[]>({
+  const { data: categories = [], refetch: refetchCategories } = useQuery<(Category & { productCount: number })[]>({ // Updated line
     queryKey: ["/api/categories"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/categories");
@@ -688,7 +688,7 @@ function AdminDashboard() {
                     queryClient.invalidateQueries({ queryKey: ["/api/products", categoryFilter, sortOrder] });
                   }}
                 />
-                <Label>{category.name} (${category.defaultPrice})</Label>
+                <Label>{category.name} ({category.productCount})</Label> {/* Updated line */}
               </div>
             ))}
           </div>
@@ -1008,7 +1008,7 @@ function AdminDashboard() {
                           onClick={() => toggleSelection(product.id)}
                         >
                           {selectedProducts.has(product.id) ? (
-                            <CheckSquare className="h-4 w-4" />
+                            <CheckSquare className="h-4 w4" />
                           ) : (
                             <Square className="h-4 w-4" />
                           )}
