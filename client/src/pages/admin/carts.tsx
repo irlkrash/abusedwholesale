@@ -1,5 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useState } from "react";
+import { ImageViewer } from "@/components/image-viewer";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Cart } from "@shared/schema";
 import { Button } from "@/components/ui/button";
@@ -7,11 +8,13 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Link } from "wouter";
 import { ArrowLeft, Trash2, Loader2, AlertCircle } from "lucide-react";
+import { ProductCarousel } from "@/components/product-carousel";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from "@/components/ui/card";
 import {
   AlertDialog,
@@ -25,10 +28,12 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const AdminCarts = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const { data: carts = [], isLoading: cartsLoading, error: cartsError } = useQuery<Cart[]>({
     queryKey: ["/api/carts"],
@@ -61,6 +66,28 @@ const AdminCarts = () => {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to delete cart",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const makeItemsUnavailableMutation = useMutation({
+    mutationFn: async (cartId: number) => {
+      const response = await apiRequest("POST", `/api/carts/${cartId}/make-items-unavailable`);
+      if (!response.ok) throw new Error('Failed to update items');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/carts"] });
+      toast({
+        title: "Items marked unavailable",
+        description: "All items in the cart have been marked as unavailable.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update items. Please try again.",
         variant: "destructive",
       });
     },
@@ -138,63 +165,112 @@ const AdminCarts = () => {
         <div className="space-y-6">
           {sortedCarts.length > 0 ? (
             sortedCarts.map((cart) => {
+              // Calculate total price for this cart
               const cartTotal = cart.items.reduce((sum, item) => 
                 sum + Math.round(Number(item.price || 0)), 0
               );
 
               return (
                 <Card key={cart.id} className="overflow-hidden">
-                  <CardHeader className="pb-4">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <CardTitle className="text-xl">Cart #{cart.id}</CardTitle>
-                        <div className="text-sm text-muted-foreground mt-1">
-                          Customer: {cart.customerName} | {format(new Date(cart.createdAt), "PPp")}
+                  <CardHeader className="space-y-0 pb-4">
+                    <div className="flex flex-wrap justify-between items-center gap-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <CardTitle className="text-xl">Cart #{cart.id}</CardTitle>
+                          <span className="text-sm text-muted-foreground">
+                            {format(new Date(cart.createdAt), "PPp")}
+                          </span>
                         </div>
+                        <CardDescription>
+                          Customer: {cart.customerName} | Total: ${cartTotal}
+                        </CardDescription>
                       </div>
-                      <div className="text-xl font-bold">
-                        Total: ${cartTotal}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline" size="sm">
+                              Make Unavailable
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Make Items Unavailable</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will mark all items in this cart as unavailable in the store.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => makeItemsUnavailableMutation.mutate(cart.id)}
+                              >
+                                Confirm
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="sm">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Cart</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete this cart?
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteCartMutation.mutate(cart.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="destructive" size="sm">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Cart</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete this cart?
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => deleteCartMutation.mutate(cart.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-2">
-                      {cart.items.map((item) => {
-                        const itemPrice = Math.round(Number(item.price || 0));
-                        return (
-                          <div
-                            key={item.id}
-                            className="flex justify-between items-center p-2 rounded-lg border"
-                          >
-                            <div className="font-semibold">${itemPrice}</div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                    <ScrollArea className="h-[300px]">
+                      <div className="grid gap-4">
+                        {cart.items.map((item, index) => {
+                          const itemPrice = Math.round(Number(item.price || 0));
+                          return (
+                            <div
+                              key={item.id}
+                              className="flex items-center justify-between p-4 rounded-lg border hover:bg-accent/50 transition-colors"
+                            >
+                              <div className="flex items-center gap-4">
+                                <div className="relative w-24 h-24 overflow-hidden rounded-md border bg-muted">
+                                  {item.images && item.images.length > 0 ? (
+                                    <ProductCarousel
+                                      images={item.images}
+                                      onImageClick={(image) => setSelectedImage(image)}
+                                      priority={index < 2}
+                                    />
+                                  ) : (
+                                    <div className="flex items-center justify-center w-full h-full bg-muted">
+                                      <span className="text-xs text-muted-foreground">No image</span>
+                                    </div>
+                                  )}
+                                </div>
+                                <span className="text-lg font-semibold">${itemPrice}</span>
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                Status: {item.isAvailable ? 'Available' : 'Unavailable'}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </ScrollArea>
                   </CardContent>
                 </Card>
               );
@@ -208,6 +284,15 @@ const AdminCarts = () => {
           )}
         </div>
       </main>
+
+      {selectedImage && (
+        <ImageViewer
+          src={selectedImage}
+          alt="Product image"
+          isOpen={!!selectedImage}
+          onOpenChange={(open) => !open && setSelectedImage(null)}
+        />
+      )}
     </div>
   );
 };
