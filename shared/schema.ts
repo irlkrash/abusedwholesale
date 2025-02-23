@@ -24,8 +24,10 @@ export const products = pgTable("products", {
   images: text("images").array().notNull(),
   fullImages: text("fullImages").array().notNull().default([]),
   customPrice: decimal("custom_price", { precision: 10, scale: 2 }),
+  categoryPrice: decimal("category_price", { precision: 10, scale: 2 }), // Added to track category-based price
   isAvailable: boolean("is_available").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
   nameIdx: index("name_idx").on(table.name),
   availabilityIdx: index("availability_idx").on(table.isAvailable),

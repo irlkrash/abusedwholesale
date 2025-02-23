@@ -220,12 +220,27 @@ export class DatabaseStorage implements IStorage {
       console.log('Updating product with data:', { id, updates });
 
       const { categories: categoryIds, ...productUpdates } = updates;
+      let categoryPrice = null;
 
-      // Update product details
+      // If categories are being updated, calculate the new category price
+      if (categoryIds !== undefined && categoryIds.length > 0) {
+        // Get the highest default price from assigned categories
+        const categoryPrices = await db
+          .select({ defaultPrice: categoriesTable.defaultPrice })
+          .from(categoriesTable)
+          .where(inArray(categoriesTable.id, categoryIds));
+
+        if (categoryPrices.length > 0) {
+          categoryPrice = Math.max(...categoryPrices.map(c => Number(c.defaultPrice)));
+        }
+      }
+
+      // Update product details including the new category price
       const [product] = await db
         .update(productsTable)
         .set({
           ...productUpdates,
+          categoryPrice: categoryPrice,
           updatedAt: new Date(),
         })
         .where(eq(productsTable.id, id))
@@ -235,7 +250,7 @@ export class DatabaseStorage implements IStorage {
         throw new Error('Product not found');
       }
 
-      // If categoryIds is defined (even if empty array), update categories
+      // Update category assignments if provided
       if (categoryIds !== undefined) {
         console.log('Updating product categories:', categoryIds);
 
@@ -265,7 +280,7 @@ export class DatabaseStorage implements IStorage {
         throw new Error('Failed to fetch updated product');
       }
 
-      console.log('Successfully updated product with categories:', updatedProduct);
+      console.log('Successfully updated product with categories and prices:', updatedProduct);
       return updatedProduct;
 
     } catch (error) {

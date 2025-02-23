@@ -695,9 +695,6 @@ const CategoryManagement: React.FC = () => {
     );
   };
 
-  const [newCategoryName, setNewCategoryName] = useState("");
-  const [newCategoryPrice, setNewCategoryPrice] = useState("0");
-
   const handleProductCategoryUpdate = async (product: Product, categoryId: number) => {
     try {
       // Get current categories
@@ -719,6 +716,9 @@ const CategoryManagement: React.FC = () => {
           categories: updatedCategories
         }
       });
+
+      // Invalidate the products query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
     } catch (error) {
       console.error('Failed to update product categories:', error);
       toast({
@@ -728,6 +728,9 @@ const CategoryManagement: React.FC = () => {
       });
     }
   };
+
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryPrice, setNewCategoryPrice] = useState("0");
 
 
   return (
@@ -982,24 +985,12 @@ const CategoryManagement: React.FC = () => {
                         />
                       </div>
                       <div className="p-4">
-                        <h3 className="text-lg font-semibold">{product.name}</h3>
-                        <p className="text-sm text-muted-foreground mt-2" style={{ display: hideDetails ? 'none' : 'block' }}>
+                        <h3 className="text-lg font-semibold mb-2">{product.name}</h3>
+                        <p className="text-sm text-muted-foreground mb-2" style={{ display: hideDetails ? 'none' : 'block' }}>
                           {product.description}
                         </p>
-                        <div className="flex items-center gap-2 mt-4">
-                          <Badge
-                            variant={product.isAvailable ? "default" : "secondary"}
-                          >
-                            {product.isAvailable ? "Available" : "Unavailable"}
-                          </Badge>
-                          {product.price > 0 && (
-                            <Badge variant="outline">
-                              ${product.price}
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {product.categories?.map((category: Category) => (
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {product.categories?.map((category) => (
                             <Badge
                               key={category.id}
                               variant="secondary"
@@ -1017,40 +1008,50 @@ const CategoryManagement: React.FC = () => {
                             </Badge>
                           ))}
                         </div>
-                        <div className="mt4 flex justify-between items-center">
-                          <div className="flex gap-2">
-                            <Dialog
-                              open={editingProduct?.id === product.id}
-                              onOpenChange={(open) => !open && setEditingProduct(null)}
-                            >
-                              <DialogTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="flex items-center gap-2"
-                                  onClick={() => setEditingProduct(product)}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                  Edit
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-2xl">
-                                <DialogHeader>
-                                  <DialogTitle>Edit Product</DialogTitle>
-                                </DialogHeader>
-                                <ProductForm
-                                  initialData={product}
-                                  onSubmit={(data) =>
-                                    updateProductMutation.mutate({
-                                      id: product.id,
-                                      data,
-                                    })
-                                  }
-                                  isLoading={updateProductMutation.isPending}
-                                />
-                              </DialogContent>
-                            </Dialog>
-                          </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <span>Price:</span>
+                          {product.customPrice ? (
+                            <span>${product.customPrice}</span>
+                          ) : product.categoryPrice ? (
+                            <span>${product.categoryPrice} (Category Price)</span>
+                          ) : (
+                            <span>No price set</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="mt4 flex justify-between items-center">
+                        <div className="flex gap-2">
+                          <Dialog
+                            open={editingProduct?.id === product.id}
+                            onOpenChange={(open) => !open && setEditingProduct(null)}
+                          >
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex items-center gap-2"
+                                onClick={() => setEditingProduct(product)}
+                              >
+                                <Edit className="h-4 w-4" />
+                                Edit
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-2xl">
+                              <DialogHeader>
+                                <DialogTitle>Edit Product</DialogTitle>
+                              </DialogHeader>
+                              <ProductForm
+                                initialData={product}
+                                onSubmit={(data) =>
+                                  updateProductMutation.mutate({
+                                    id: product.id,
+                                    data,
+                                  })
+                                }
+                                isLoading={updateProductMutation.isPending}
+                              />
+                            </DialogContent>
+                          </Dialog>
                         </div>
                       </div>
                     </CardContent>
