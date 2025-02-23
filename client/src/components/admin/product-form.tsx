@@ -331,11 +331,18 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
                   type="button"
                   variant={selectedCategories.includes(category.id) ? "default" : "outline"}
                   onClick={() => {
-                    setSelectedCategories((prev) =>
-                      prev.includes(category.id)
-                        ? prev.filter((id) => id !== category.id)
-                        : [...prev, category.id]
-                    );
+                    const newCategories = selectedCategories.includes(category.id)
+                      ? selectedCategories.filter((id) => id !== category.id)
+                      : [...selectedCategories, category.id];
+                    setSelectedCategories(newCategories);
+
+                    // Set category price if only one category is selected
+                    if (newCategories.length === 1) {
+                      const selectedCategory = categories.find(c => c.id === newCategories[0]);
+                      if (selectedCategory) {
+                        form.setValue('customPrice', selectedCategory.defaultPrice);
+                      }
+                    }
                   }}
                   className="h-8"
                 >
