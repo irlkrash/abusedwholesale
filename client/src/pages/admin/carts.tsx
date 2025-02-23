@@ -173,7 +173,7 @@ const AdminCarts = () => {
                     <div className="flex flex-wrap justify-between items-center gap-4">
                       <div className="space-y-1">
                         <CardTitle className="text-xl">
-                          Cart #{cart.id} - ${cartTotal.toFixed(2)}
+                          Cart #{cart.id} - ${cartTotal}
                         </CardTitle>
                         <CardDescription>
                           {format(new Date(cart.createdAt), "PPp")}
@@ -235,7 +235,7 @@ const AdminCarts = () => {
                     <ScrollArea className="h-[300px]">
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {cart.items.map((item, index) => {
-                          const price = Math.floor(Number(item.price));
+                          const price = typeof item.price === 'number' ? Math.floor(item.price) : 0;
 
                           return (
                             <div
@@ -256,7 +256,7 @@ const AdminCarts = () => {
                                 )}
                               </div>
                               <div className="flex justify-between items-center">
-                                <span className="text-lg font-semibold">${price.toFixed(2)}</span>
+                                <span className="text-lg font-semibold">${price}</span>
                                 <span className="text-sm text-muted-foreground">
                                   {item.isAvailable ? 'Available' : 'Unavailable'}
                                 </span>
