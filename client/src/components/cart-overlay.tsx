@@ -32,8 +32,16 @@ export function CartOverlay({
 }: CartOverlayProps) {
   const { toast } = useToast();
   const [customerName, setCustomerName] = useState("");
-  
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Calculate total price by summing the effective prices of all items
+  const totalPrice = items.reduce((sum, item) => {
+    const itemPrice = item.customPrice ?? 
+      (item.categories?.length 
+        ? Math.min(...item.categories.map(cat => Number(cat.defaultPrice)))
+        : 0);
+    return sum + Math.round(Number(itemPrice));
+  }, 0);
 
   const handleSubmitCart = async () => {
     if (!customerName || items.length === 0) {
@@ -48,8 +56,6 @@ export function CartOverlay({
     try {
       setIsSubmitting(true);
 
-      // Prepare cart items with required fields
-      // Ensure we send the current item data
       const cartItems = items.map(item => ({
         productId: item.productId,
         name: item.name || 'Untitled Product',
@@ -64,18 +70,12 @@ export function CartOverlay({
         items: cartItems
       };
 
-      console.log('Submitting cart with payload:', payload);
-
       const response = await apiRequest("POST", "/api/carts", payload);
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Cart submission failed:', errorText);
         throw new Error(errorText || 'Failed to submit cart');
       }
-
-      const result = await response.json();
-      console.log('Cart submission successful:', result);
 
       toast({
         title: "Cart submitted successfully!",
@@ -85,7 +85,7 @@ export function CartOverlay({
       onClearCart();
       onOpenChange(false);
       setCustomerName("");
-      
+
     } catch (error) {
       console.error('Cart submission error:', error);
       toast({
@@ -104,36 +104,41 @@ export function CartOverlay({
         <SheetHeader>
           <SheetTitle>Your Cart</SheetTitle>
           <SheetDescription>
-            Review your selected items before submitting.
+            Total Price: ${totalPrice}
           </SheetDescription>
         </SheetHeader>
 
         <ScrollArea className="h-[50vh] my-4">
-          {items.map((item) => (
-            <div
-              key={item.productId}
-              className="flex items-center justify-between py-4 border-b"
-            >
-              <div className="flex items-center gap-4">
-                <img
-                  src={item.images[0]}
-                  alt={item.name}
-                  className="w-16 h-16 object-cover rounded"
-                />
-                <div>
-                  <h4 className="font-medium">{item.name}</h4>
-                  <p className="text-sm text-muted-foreground">{item.description}</p>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onRemoveItem(item.productId)}
+          {items.map((item) => {
+            const itemPrice = item.customPrice ?? 
+              (item.categories?.length 
+                ? Math.min(...item.categories.map(cat => Number(cat.defaultPrice)))
+                : 0);
+            const formattedPrice = Math.round(Number(itemPrice));
+
+            return (
+              <div
+                key={item.productId}
+                className="flex items-center justify-between py-4 border-b"
               >
-                Remove
-              </Button>
-            </div>
-          ))}
+                <div className="flex items-center gap-4">
+                  <img
+                    src={item.images[0]}
+                    alt="Product thumbnail"
+                    className="w-16 h-16 object-cover rounded"
+                  />
+                  <span className="text-lg font-semibold">${formattedPrice}</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onRemoveItem(item.productId)}
+                >
+                  Remove
+                </Button>
+              </div>
+            );
+          })}
         </ScrollArea>
 
         <div className="space-y-4 mt-4">
@@ -143,7 +148,6 @@ export function CartOverlay({
             onChange={(e) => setCustomerName(e.target.value)}
             required
           />
-          
         </div>
 
         <SheetFooter className="mt-4">
