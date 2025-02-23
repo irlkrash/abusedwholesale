@@ -161,14 +161,9 @@ const AdminCarts = () => {
         <div className="space-y-6">
           {sortedCarts.length > 0 ? (
             sortedCarts.map((cart) => {
-              // Calculate total price
+              // Calculate total price from integer prices
               const cartTotal = cart.items.reduce((sum, item) => {
-                // Parse the price, ensuring it's a valid number
-                const price = typeof item.price === 'number' 
-                  ? item.price 
-                  : typeof item.price === 'string' 
-                    ? parseFloat(item.price) 
-                    : 0;
+                const price = typeof item.price === 'number' ? Math.floor(item.price) : 0;
                 return sum + price;
               }, 0);
 
