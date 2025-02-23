@@ -395,9 +395,7 @@ export class DatabaseStorage implements IStorage {
         throw new Error('Failed to create cart');
       }
 
-      console.log('Created cart:', cart);
-
-      // 2. Insert cart items
+      // 2. Insert cart items with proper price handling
       const itemsToInsert = insertCart.items.map(item => ({
         cartId: cart.id,
         productId: item.productId,
@@ -405,6 +403,7 @@ export class DatabaseStorage implements IStorage {
         description: item.description || '',
         images: Array.isArray(item.images) ? item.images : [],
         fullImages: Array.isArray(item.fullImages) ? item.fullImages : [],
+        price: typeof item.price === 'number' ? Math.floor(item.price) : 0,
         isAvailable: item.isAvailable !== false,
         createdAt: new Date()
       }));
@@ -414,8 +413,6 @@ export class DatabaseStorage implements IStorage {
         .insert(cartItems)
         .values(itemsToInsert)
         .returning();
-
-      console.log('Inserted cart items:', items);
 
       await client.query('COMMIT');
 
