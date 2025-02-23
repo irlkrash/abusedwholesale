@@ -71,28 +71,6 @@ const AdminCarts = () => {
     },
   });
 
-  const makeItemsUnavailableMutation = useMutation({
-    mutationFn: async (cartId: number) => {
-      const response = await apiRequest("POST", `/api/carts/${cartId}/make-items-unavailable`);
-      if (!response.ok) throw new Error('Failed to update items');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/carts"] });
-      toast({
-        title: "Items marked unavailable",
-        description: "All items in the cart have been marked as unavailable.",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to update items. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
   if (!user) {
     return null;
   }
@@ -114,22 +92,6 @@ const AdminCarts = () => {
         <Button onClick={() => window.location.reload()} variant="outline">
           Retry
         </Button>
-      </div>
-    );
-  }
-
-  if (!user.isAdmin) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4 p-4">
-        <AlertCircle className="w-12 h-12 text-destructive" />
-        <h2 className="text-xl font-semibold">Access Denied</h2>
-        <p className="text-muted-foreground">You need admin privileges to view this page.</p>
-        <Link href="/">
-          <Button variant="outline" className="flex items-center gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Home
-          </Button>
-        </Link>
       </div>
     );
   }
@@ -161,10 +123,10 @@ const AdminCarts = () => {
         <div className="space-y-6">
           {sortedCarts.length > 0 ? (
             sortedCarts.map((cart) => {
-              // Calculate total price from integer prices
+              // Calculate total price from stored prices
               const cartTotal = cart.items.reduce((sum, item) => {
-                const price = typeof item.price === 'number' ? Math.floor(item.price) : 0;
-                return sum + price;
+                const itemPrice = typeof item.price === 'number' ? Math.floor(item.price) : 0;
+                return sum + itemPrice;
               }, 0);
 
               return (
@@ -235,7 +197,7 @@ const AdminCarts = () => {
                     <ScrollArea className="h-[300px]">
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {cart.items.map((item, index) => {
-                          const price = typeof item.price === 'number' ? Math.floor(item.price) : 0;
+                          const itemPrice = typeof item.price === 'number' ? Math.floor(item.price) : 0;
 
                           return (
                             <div
@@ -256,7 +218,7 @@ const AdminCarts = () => {
                                 )}
                               </div>
                               <div className="flex justify-between items-center">
-                                <span className="text-lg font-semibold">${price}</span>
+                                <span className="text-lg font-semibold">${itemPrice}</span>
                                 <span className="text-sm text-muted-foreground">
                                   {item.isAvailable ? 'Available' : 'Unavailable'}
                                 </span>

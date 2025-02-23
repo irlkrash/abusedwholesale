@@ -331,6 +331,7 @@ export class DatabaseStorage implements IStorage {
           const items = await db
             .select({
               id: cartItems.id,
+              cartId: cartItems.cartId,
               productId: cartItems.productId,
               name: cartItems.name,
               description: cartItems.description,
