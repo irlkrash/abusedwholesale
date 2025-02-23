@@ -94,6 +94,8 @@ export class DatabaseStorage implements IStorage {
       console.log(`Fetching products with offset: ${pageOffset}, limit: ${pageLimit}, categories: ${categoryIds}`);
 
       const limit = Math.max(1, Math.min(100, pageLimit));
+
+      // Build the base query
       let query = db
         .select({
           id: productsTable.id,
@@ -120,9 +122,13 @@ export class DatabaseStorage implements IStorage {
 
       // Add category filter if categoryIds is provided
       if (categoryIds && categoryIds.length > 0) {
-        query = query
-          .where(inArray(productCategories.categoryId, categoryIds))
-          .distinct();
+        // Use a subquery to filter products by category
+        const productsInCategories = db
+          .select({ productId: productCategories.productId })
+          .from(productCategories)
+          .where(inArray(productCategories.categoryId, categoryIds));
+
+        query = query.where(inArray(productsTable.id, productsInCategories));
       }
 
       const result = await query

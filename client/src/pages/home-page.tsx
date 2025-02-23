@@ -101,10 +101,6 @@ export default function HomePage() {
       } else {
         newSet.add(categoryId);
       }
-      // Invalidate and refetch when categories change
-      queryClient.invalidateQueries({ 
-        queryKey: ["/api/products", Array.from(newSet)]
-      });
       return newSet;
     });
   };
@@ -164,7 +160,7 @@ export default function HomePage() {
 
   // Effect to refetch when categories change
   useEffect(() => {
-    refetch();
+    void refetch();
   }, [selectedCategories, refetch]);
 
   const NavMenu = () => (
