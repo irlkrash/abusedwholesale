@@ -31,6 +31,7 @@ export interface IStorage {
   removeProductCategories(productId: number, categoryIds: number[]): Promise<void>;
   getProductCategories(productId: number): Promise<Category[]>;
   getCategoriesWithCounts(): Promise<(Category & { productCount: number })[]>;
+  addBulkProductCategories(productIds: number[], categoryIds: number[]): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -518,56 +519,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addProductCategories(productId: number, categoryIds: number[]): Promise<void> {
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-
-      // First remove existing categories for this product
-      await db
-        .delete(productCategories)
-        .where(eq(productCategories.productId, productId));
-
-      // Then add new categories if any are provided
-      if (categoryIds.length > 0) {
-        // Create all category assignments in a single batch
-        const values = categoryIds.map(categoryId => ({
-          productId,
-          categoryId,
-        }));
-
-        await db
-          .insert(productCategories)
-          .values(values)
-          .onConflictDoNothing();
-
-        // Get the highest default price from the assigned categories
-        const categoryPrices = await db
-          .select({ defaultPrice: categoriesTable.defaultPrice })
-          .from(categoriesTable)
-          .where(inArray(categoriesTable.id, categoryIds));
-
-        const categoryPrice = categoryPrices.length > 0
-          ? Math.max(...categoryPrices.map(c => Number(c.defaultPrice)))
-          : null;
-
-        // Update the product's category price
-        await db
-          .update(productsTable)
-          .set({
-            categoryPrice,
-            updatedAt: new Date()
-          })
-          .where(eq(productsTable.id, productId));
-      }
-
-      await client.query('COMMIT');
-    } catch (error) {
-      await client.query('ROLLBACK');
-      console.error('Error in addProductCategories:', error);
-      throw error;
-    } finally {
-      client.release();
-    }
+    // For single product updates, use the bulk method
+    await this.addBulkProductCategories([productId], categoryIds);
   }
 
   async removeProductCategories(productId: number, categoryIds: number[]): Promise<void> {
@@ -672,6 +625,69 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error in getCategoriesWithCounts:', error);
       throw error;
+    }
+  }
+  async addBulkProductCategories(productIds: number[], categoryIds: number[]): Promise<void> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Process in smaller batches to avoid timeout
+      const batchSize = 10;
+      for (let i = 0; i < productIds.length; i += batchSize) {
+        const batchProductIds = productIds.slice(i, i + batchSize);
+
+        // Remove existing categories for this batch
+        await db
+          .delete(productCategories)
+          .where(inArray(productCategories.productId, batchProductIds));
+
+        // Create category assignments for all products in batch
+        const values = batchProductIds.flatMap(productId =>
+          categoryIds.map(categoryId => ({
+            productId,
+            categoryId,
+          }))
+        );
+
+        if (values.length > 0) {
+          await db
+            .insert(productCategories)
+            .values(values)
+            .onConflictDoNothing();
+        }
+      }
+
+      // Get category prices once for all categories
+      const categoryPrices = await db
+        .select({ defaultPrice: categoriesTable.defaultPrice })
+        .from(categoriesTable)
+        .where(inArray(categoriesTable.id, categoryIds));
+
+      const maxCategoryPrice = categoryPrices.length > 0
+        ? Math.max(...categoryPrices.map(c => Number(c.defaultPrice)))
+        : null;
+
+      // Update all products' category prices in batches
+      for (let i = 0; i < productIds.length; i += batchSize) {
+        const batchProductIds = productIds.slice(i, i + batchSize);
+
+        await db
+          .update(productsTable)
+          .set({
+            categoryPrice: maxCategoryPrice,
+            updatedAt: new Date()
+          })
+          .where(inArray(productsTable.id, batchProductIds));
+      }
+
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error('Error in addBulkProductCategories:', error);
+      throw error;
+    } finally {
+      client.release();
     }
   }
 }
