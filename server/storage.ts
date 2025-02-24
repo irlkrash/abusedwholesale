@@ -522,38 +522,43 @@ export class DatabaseStorage implements IStorage {
     try {
       await client.query('BEGIN');
 
-      // First remove existing categories
+      // First remove existing categories for this product
       await db
         .delete(productCategories)
         .where(eq(productCategories.productId, productId));
 
       // Then add new categories if any are provided
       if (categoryIds.length > 0) {
+        // Create all category assignments in a single batch
         const values = categoryIds.map(categoryId => ({
           productId,
           categoryId,
         }));
 
-        await db.insert(productCategories).values(values);
+        await db
+          .insert(productCategories)
+          .values(values)
+          .onConflictDoNothing();
+
+        // Get the highest default price from the assigned categories
+        const categoryPrices = await db
+          .select({ defaultPrice: categoriesTable.defaultPrice })
+          .from(categoriesTable)
+          .where(inArray(categoriesTable.id, categoryIds));
+
+        const categoryPrice = categoryPrices.length > 0
+          ? Math.max(...categoryPrices.map(c => Number(c.defaultPrice)))
+          : null;
+
+        // Update the product's category price
+        await db
+          .update(productsTable)
+          .set({
+            categoryPrice,
+            updatedAt: new Date()
+          })
+          .where(eq(productsTable.id, productId));
       }
-
-      // Update the product's category price
-      const categoryPrices = await db
-        .select({ defaultPrice: categoriesTable.defaultPrice })
-        .from(categoriesTable)
-        .where(inArray(categoriesTable.id, categoryIds));
-
-      const categoryPrice = categoryPrices.length > 0
-        ? Math.max(...categoryPrices.map(c => Number(c.defaultPrice)))
-        : null;
-
-      await db
-        .update(productsTable)
-        .set({
-          categoryPrice,
-          updatedAt: new Date()
-        })
-        .where(eq(productsTable.id, productId));
 
       await client.query('COMMIT');
     } catch (error) {
