@@ -1,12 +1,14 @@
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { ImagePlus, Loader2 } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
-// Helper function for image compression
+// Helper function for image compression remains unchanged
 async function compressImage(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -61,6 +63,17 @@ async function compressImage(file: File): Promise<string> {
 export function BulkUpload() {
   const { toast } = useToast();
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+
+  // Add categories query
+  const { data: categories = [] } = useQuery({
+    queryKey: ["/api/categories"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/categories");
+      if (!response.ok) throw new Error("Failed to fetch categories");
+      return response.json();
+    },
+  });
 
   const bulkUploadMutation = useMutation({
     mutationFn: async (files: File[]) => {
@@ -69,12 +82,15 @@ export function BulkUpload() {
           return new Promise(async (resolve) => {
             try {
               const imageData = await compressImage(file);
-              const res = await apiRequest("POST", "/api/products", {
+              const productData = {
                 name: file.name.split('.')[0],
                 description: `Product created from ${file.name}`,
                 images: [imageData],
                 isAvailable: true,
-              });
+                categories: selectedCategory ? [parseInt(selectedCategory)] : [],
+              };
+
+              const res = await apiRequest("POST", "/api/products", productData);
               resolve(await res.json());
             } catch (error) {
               console.error("Failed to process image:", error);
@@ -97,6 +113,7 @@ export function BulkUpload() {
         description: `Created ${products.length} new products`,
       });
       setUploadedFiles([]);
+      setSelectedCategory("");
     },
     onError: (error: Error) => {
       toast({
@@ -138,14 +155,38 @@ export function BulkUpload() {
                 Select Images
               </Button>
             </div>
-            <Button
-              onClick={handleUpload}
-              disabled={uploadedFiles.length === 0 || bulkUploadMutation.isPending}
-              className="flex items-center gap-2"
-            >
-              {bulkUploadMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Create {uploadedFiles.length} Products
-            </Button>
+            {uploadedFiles.length > 0 && (
+              <div className="flex items-center gap-4 flex-1">
+                <div className="flex-1">
+                  <Label htmlFor="category-select" className="text-sm font-medium mb-1 block">
+                    Assign Category (Optional)
+                  </Label>
+                  <Select
+                    value={selectedCategory}
+                    onValueChange={setSelectedCategory}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id.toString()}>
+                          {category.name} (${category.defaultPrice})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  onClick={handleUpload}
+                  disabled={bulkUploadMutation.isPending}
+                  className="flex items-center gap-2 mt-6"
+                >
+                  {bulkUploadMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Create {uploadedFiles.length} Products
+                </Button>
+              </div>
+            )}
           </div>
 
           {uploadedFiles.length > 0 && (
