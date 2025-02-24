@@ -324,6 +324,9 @@ function AdminDashboard() {
         variant: "destructive",
       });
     },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+    }
   });
 
   const toggleAvailabilityMutation = useMutation({
@@ -715,10 +718,10 @@ function AdminDashboard() {
   const handleProductCategoryUpdate = async (product: Product, categoryId: number) => {
     try {
       console.log('Toggling category:', categoryId);
-      
+
       // Get current categories
       const currentCategories = product.categories?.map(c => c.id) || [];
-      
+
       // Toggle category
       let newCategories: number[];
       if (currentCategories.includes(categoryId)) {
@@ -726,7 +729,7 @@ function AdminDashboard() {
       } else {
         newCategories = [...currentCategories, categoryId];
       }
-      
+
       console.log('New category selection:', newCategories);
 
       // Update the product
@@ -740,7 +743,7 @@ function AdminDashboard() {
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
-      
+
     } catch (error) {
       console.error('Failed to update product categories:', error);
       toast({
