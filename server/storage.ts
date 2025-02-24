@@ -632,30 +632,57 @@ export class DatabaseStorage implements IStorage {
     try {
       await client.query('BEGIN');
 
-      // Process in smaller batches to avoid timeout
-      const batchSize = 10;
+      console.log('Starting bulk category assignment for products:', productIds, 'categories:', categoryIds);
+
+      // Use smaller batch size to avoid timeouts
+      const batchSize = 5;
+      const maxRetries = 3;
+      const failedUpdates: number[] = [];
+
+      // Process in smaller batches with retry logic
       for (let i = 0; i < productIds.length; i += batchSize) {
         const batchProductIds = productIds.slice(i, i + batchSize);
+        let retryCount = 0;
+        let batchSuccess = false;
 
-        // Remove existing categories for this batch
-        await db
-          .delete(productCategories)
-          .where(inArray(productCategories.productId, batchProductIds));
+        while (!batchSuccess && retryCount < maxRetries) {
+          try {
+            // Remove existing categories for this batch
+            await db
+              .delete(productCategories)
+              .where(inArray(productCategories.productId, batchProductIds));
 
-        // Create category assignments for all products in batch
-        const values = batchProductIds.flatMap(productId =>
-          categoryIds.map(categoryId => ({
-            productId,
-            categoryId,
-          }))
-        );
+            // Create category assignments for all products in batch
+            const values = batchProductIds.flatMap(productId =>
+              categoryIds.map(categoryId => ({
+                productId,
+                categoryId,
+              }))
+            );
 
-        if (values.length > 0) {
-          await db
-            .insert(productCategories)
-            .values(values)
-            .onConflictDoNothing();
+            if (values.length > 0) {
+              await db
+                .insert(productCategories)
+                .values(values)
+                .onConflictDoNothing();
+            }
+
+            batchSuccess = true;
+            console.log(`Successfully assigned categories to batch:`, batchProductIds);
+          } catch (error) {
+            retryCount++;
+            console.error(`Failed attempt ${retryCount} for batch:`, batchProductIds, error);
+            if (retryCount === maxRetries) {
+              failedUpdates.push(...batchProductIds);
+            }
+            // Short delay before retry
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
         }
+      }
+
+      if (failedUpdates.length > 0) {
+        throw new Error(`Failed to update products: ${failedUpdates.join(', ')}`);
       }
 
       // Get category prices once for all categories
@@ -668,20 +695,37 @@ export class DatabaseStorage implements IStorage {
         ? Math.max(...categoryPrices.map(c => Number(c.defaultPrice)))
         : null;
 
-      // Update all products' category prices in batches
+      // Update product prices in smaller batches
       for (let i = 0; i < productIds.length; i += batchSize) {
         const batchProductIds = productIds.slice(i, i + batchSize);
+        let retryCount = 0;
+        let batchSuccess = false;
 
-        await db
-          .update(productsTable)
-          .set({
-            categoryPrice: maxCategoryPrice,
-            updatedAt: new Date()
-          })
-          .where(inArray(productsTable.id, batchProductIds));
+        while (!batchSuccess && retryCount < maxRetries) {
+          try {
+            await db
+              .update(productsTable)
+              .set({
+                categoryPrice: maxCategoryPrice,
+                updatedAt: new Date()
+              })
+              .where(inArray(productsTable.id, batchProductIds));
+
+            batchSuccess = true;
+            console.log(`Successfully updated prices for batch:`, batchProductIds);
+          } catch (error) {
+            retryCount++;
+            console.error(`Failed price update attempt ${retryCount} for batch:`, batchProductIds, error);
+            if (retryCount === maxRetries) {
+              failedUpdates.push(...batchProductIds);
+            }
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
       }
 
       await client.query('COMMIT');
+      console.log('Successfully completed bulk category assignment');
     } catch (error) {
       await client.query('ROLLBACK');
       console.error('Error in addBulkProductCategories:', error);
