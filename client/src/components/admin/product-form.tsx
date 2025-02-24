@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { useCallback, useState, useRef } from "react";
+import { useCallback, useState, useRef, useEffect } from "react";
 import { ImagePlus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
@@ -40,6 +40,7 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
     initialData?.categoryIds || []
   );
 
+  // Add categories query
   const { data: categories = [] } = useQuery({
     queryKey: ["/api/categories"],
     queryFn: async () => {
@@ -49,6 +50,20 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
     },
   });
 
+  // Effect to update form when categories change
+  useEffect(() => {
+    if (selectedCategories.length > 0 && categories.length > 0) {
+      // Find highest default price among selected categories
+      const selectedCategoryPrices = categories
+        .filter(cat => selectedCategories.includes(cat.id))
+        .map(cat => cat.defaultPrice);
+
+      const maxDefaultPrice = Math.max(...selectedCategoryPrices);
+      if (!form.getValues().customPrice) {
+        form.setValue('customPrice', maxDefaultPrice);
+      }
+    }
+  }, [selectedCategories, categories]);
 
   const form = useForm({
     resolver: zodResolver(insertProductSchema),
@@ -273,7 +288,7 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
         <FormItem>
           <FormLabel>Categories</FormLabel>
           <div className="flex flex-wrap gap-2">
-            {categories.map((category: any) => (
+            {categories.map((category) => (
               <div key={category.id} className="flex items-center space-x-2 bg-secondary p-2 rounded-lg">
                 <Button
                   type="button"
