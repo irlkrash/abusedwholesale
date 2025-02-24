@@ -49,10 +49,6 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
     },
   });
 
-  // Convert initialData.customPrice to number if it's a string or null
-  const initialCustomPrice = typeof initialData?.customPrice === 'string' 
-    ? parseFloat(initialData.customPrice) 
-    : initialData?.customPrice ?? undefined;
 
   const form = useForm({
     resolver: zodResolver(insertProductSchema),
@@ -62,7 +58,7 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
       images: initialData?.images || [],
       isAvailable: initialData?.isAvailable ?? true,
       categoryIds: initialData?.categoryIds || [],
-      customPrice: initialCustomPrice,
+      customPrice: initialData?.customPrice ?? null,
     },
   });
 
@@ -147,7 +143,13 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
   };
 
   const handleSubmit = (data: any) => {
-    onSubmit({ ...data, categoryIds: selectedCategories });
+    const formData = {
+      ...data,
+      categoryIds: selectedCategories,
+      customPrice: data.customPrice !== '' ? parseInt(data.customPrice, 10) : null,
+    };
+    console.log('Submitting form with data:', formData);
+    onSubmit(formData);
   };
 
   return (
