@@ -49,7 +49,6 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
     },
   });
 
-
   const form = useForm({
     resolver: zodResolver(insertProductSchema),
     defaultValues: {
@@ -146,7 +145,10 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
     const formData = {
       ...data,
       categoryIds: selectedCategories,
-      customPrice: data.customPrice !== '' ? parseInt(data.customPrice, 10) : null,
+      // Only include customPrice if it's explicitly set
+      customPrice: data.customPrice !== '' && data.customPrice !== null 
+        ? parseInt(data.customPrice, 10) 
+        : null,
     };
     console.log('Submitting form with data:', formData);
     onSubmit(formData);
@@ -300,7 +302,7 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
           </div>
         </FormItem>
 
-        <Button type="submit" className="w-full" disabled={isLoading || isCompressing}>
+        <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? (initialData ? "Updating..." : "Creating...") : (initialData ? "Update Product" : "Create Product")}
         </Button>
       </form>
