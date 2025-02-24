@@ -10,6 +10,16 @@ deploymentTarget = "cloudrun"
 build = ["sh", "-c", "npm run build"]
 run = ["sh", "-c", "NODE_ENV=production node --max-old-space-size=512 dist/index.js"]
 
+[[deployment.responseHeaders]]
+path = "/assets/*"
+name = "Cache-Control"
+value = "public, max-age=86400"
+
+[[deployment.responseHeaders]]
+path = "/assets/*.png"
+name = "Content-Type"
+value = "image/png"
+
 [[ports]]
 localPort = 3000
 externalPort = 3000
