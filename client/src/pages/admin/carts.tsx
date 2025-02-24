@@ -141,30 +141,55 @@ const AdminCarts = () => {
                           {format(new Date(cart.createdAt), "PPp")}
                         </CardDescription>
                       </div>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="destructive" size="sm">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Cart</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete this cart?
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => deleteCartMutation.mutate(cart.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline"
+                          onClick={() => {
+                            apiRequest("POST", `/api/carts/${cart.id}/make-items-unavailable`)
+                              .then(() => {
+                                queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+                                queryClient.invalidateQueries({ queryKey: ["/api/carts"] });
+                                toast({
+                                  title: "Products Updated",
+                                  description: "All products in this cart have been marked as unavailable",
+                                });
+                              })
+                              .catch(() => {
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to update products",
+                                  variant: "destructive",
+                                });
+                              });
+                          }}
+                        >
+                          Make Unavailable
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="sm">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Cart</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete this cart?
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteCartMutation.mutate(cart.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="p-4">
