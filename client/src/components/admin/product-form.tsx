@@ -13,10 +13,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { useCallback, useState, useRef } from "react";
 import { ImagePlus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { useCallback, useState, useRef, useEffect } from "react";
 
 interface ProductFormProps {
   onSubmit: (data: any) => void;
@@ -60,6 +60,12 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
       customPrice: initialData?.customPrice ?? null,
     },
   });
+
+  useEffect(() => {
+    if (initialData?.categoryIds) {
+      setSelectedCategories(initialData.categoryIds);
+    }
+  }, [initialData?.categoryIds]);
 
   const handleImageUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -145,7 +151,6 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
     const formData = {
       ...data,
       categoryIds: selectedCategories,
-      // Only include customPrice if it's explicitly set
       customPrice: data.customPrice !== '' && data.customPrice !== null 
         ? parseInt(data.customPrice, 10) 
         : null,
