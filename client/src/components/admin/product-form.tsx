@@ -34,11 +34,9 @@ interface ProductFormProps {
 export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormProps) {
   const { toast } = useToast();
   const [uploadedImages, setUploadedImages] = useState<string[]>(initialData?.images || []);
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
   const [isCompressing, setIsCompressing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedCategories, setSelectedCategories] = useState<number[]>(
-    initialData?.categoryIds || []
-  );
 
   const { data: categories = [] } = useQuery({
     queryKey: ["/api/categories"],
@@ -56,16 +54,17 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
       description: initialData?.description || "",
       images: initialData?.images || [],
       isAvailable: initialData?.isAvailable ?? true,
-      categoryIds: initialData?.categoryIds || [],
       customPrice: initialData?.customPrice ?? null,
     },
   });
 
+  // Initialize selectedCategories when initialData changes
   useEffect(() => {
     if (initialData?.categoryIds) {
+      console.log('Setting initial categories:', initialData.categoryIds);
       setSelectedCategories(initialData.categoryIds);
     }
-  }, [initialData?.categoryIds]);
+  }, [initialData]);
 
   const handleImageUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -286,13 +285,14 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
                   type="button"
                   variant={selectedCategories.includes(category.id) ? "default" : "outline"}
                   onClick={() => {
+                    console.log('Toggling category:', category.id);
                     setSelectedCategories(prev => {
                       const isSelected = prev.includes(category.id);
-                      if (isSelected) {
-                        return prev.filter(id => id !== category.id);
-                      } else {
-                        return [...prev, category.id];
-                      }
+                      const newSelection = isSelected
+                        ? prev.filter(id => id !== category.id)
+                        : [...prev, category.id];
+                      console.log('New category selection:', newSelection);
+                      return newSelection;
                     });
                   }}
                   className="h-8"
