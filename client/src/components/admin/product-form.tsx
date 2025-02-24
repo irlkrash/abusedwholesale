@@ -190,12 +190,12 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
               <FormControl>
                 <Input 
                   type="number" 
-                  step="0.01" 
+                  step="1" 
                   {...field} 
                   value={field.value ?? ''} 
                   onChange={(e) => {
                     const value = e.target.value;
-                    field.onChange(value ? parseFloat(value) : null);
+                    field.onChange(value ? parseInt(value, 10) : null);
                   }}
                   placeholder="Use category default if not set"
                 />
@@ -277,10 +277,14 @@ export function ProductForm({ onSubmit, isLoading, initialData }: ProductFormPro
                   type="button"
                   variant={selectedCategories.includes(category.id) ? "default" : "outline"}
                   onClick={() => {
-                    const newCategories = selectedCategories.includes(category.id)
-                      ? []  // Deselect if already selected
-                      : [category.id];  // Select only this category
-                    setSelectedCategories(newCategories);
+                    setSelectedCategories(prev => {
+                      const isSelected = prev.includes(category.id);
+                      if (isSelected) {
+                        return prev.filter(id => id !== category.id);
+                      } else {
+                        return [...prev, category.id];
+                      }
+                    });
                   }}
                   className="h-8"
                 >
@@ -317,9 +321,8 @@ async function compressImage(file: File): Promise<string> {
         return;
       }
 
-      // Calculate dimensions while maintaining aspect ratio
       let { width, height } = img;
-      const maxDimension = 800; // Reduced from 1200 for thumbnails
+      const maxDimension = 800;
 
       if (width > height) {
         if (width > maxDimension) {
@@ -333,22 +336,17 @@ async function compressImage(file: File): Promise<string> {
         }
       }
 
-      // Set canvas size
       canvas.width = width;
       canvas.height = height;
 
-      // Apply smooth scaling
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
 
-      // Draw with white background to handle transparency properly
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, width, height);
 
-      // Draw image with better quality
       ctx.drawImage(img, 0, 0, width, height);
 
-      // Convert to JPEG with 70% quality (increased from 50%)
       resolve(canvas.toDataURL('image/jpeg', 0.7));
     };
 
