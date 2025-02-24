@@ -714,28 +714,33 @@ function AdminDashboard() {
 
   const handleProductCategoryUpdate = async (product: Product, categoryId: number) => {
     try {
+      console.log('Toggling category:', categoryId);
+      
       // Get current categories
-      const currentCategories = product.categories || [];
-      const updatedCategories = currentCategories.map(c => c.id);
-
-      // If category exists, remove it, otherwise add it
-      const categoryIndex = updatedCategories.indexOf(categoryId);
-      if (categoryIndex > -1) {
-        updatedCategories.splice(categoryIndex, 1);
+      const currentCategories = product.categories?.map(c => c.id) || [];
+      
+      // Toggle category
+      let newCategories: number[];
+      if (currentCategories.includes(categoryId)) {
+        newCategories = currentCategories.filter(id => id !== categoryId);
       } else {
-        updatedCategories.push(categoryId);
+        newCategories = [...currentCategories, categoryId];
       }
+      
+      console.log('New category selection:', newCategories);
 
-      // Update the product with new categories
+      // Update the product
       await updateProductMutation.mutateAsync({
         id: product.id,
         data: {
-          categories: updatedCategories
+          categoryIds: newCategories
         }
       });
 
-      // Invalidate the products query to refresh the list
+      // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      
     } catch (error) {
       console.error('Failed to update product categories:', error);
       toast({

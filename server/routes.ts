@@ -327,22 +327,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Handle category updates if present
-      if (req.body.categories) {
+      // Handle category updates
+      const categories = req.body.categories || req.body.categoryIds;
+      if (categories) {
+        console.log('Updating product categories:', {productId, categories});
+        
         // Remove existing categories first
         const existingCategories = await storage.getProductCategories(productId);
         if (existingCategories.length > 0) {
           await storage.removeProductCategories(productId, existingCategories.map(c => c.id));
         }
         
-        // Add new categories
-        if (req.body.categories.length > 0) {
-          await storage.addProductCategories(productId, req.body.categories);
+        // Add new categories if any are selected
+        if (categories.length > 0) {
+          await storage.addProductCategories(productId, categories);
         }
       }
 
-      // Update other product fields
-      const product = await storage.updateProduct(productId, req.body);
+      // Update other product fields excluding category fields
+      const {categories: _, categoryIds: __, ...updateFields} = req.body;
+      const product = await storage.updateProduct(productId, updateFields);
       
       // Fetch updated product with categories
       const updatedProduct = await storage.getProduct(productId);
