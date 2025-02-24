@@ -247,13 +247,13 @@ export default function HomePage() {
         {categories.length > 0 && (
           <div className="mb-8">
             <h2 className="text-lg font-semibold mb-4">Categories</h2>
-            <ScrollArea className="w-full whitespace-nowrap">
-              <div className="flex gap-2 pb-4">
+            <ScrollArea className="w-full">
+              <div className="flex flex-wrap gap-2 pb-4">
                 {categories.map((category) => (
                   <Badge
                     key={category.id}
                     variant={selectedCategories.has(category.id) ? "default" : "secondary"}
-                    className="cursor-pointer"
+                    className="cursor-pointer whitespace-nowrap"
                     onClick={() => toggleCategory(category.id)}
                   >
                     {category.name} ({category.productCount})
