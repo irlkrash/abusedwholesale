@@ -160,7 +160,7 @@ const AdminCarts = () => {
                               duration: 30000, // 30 seconds
                             });
                             
-                            apiRequest("POST", `/api/carts/${cart.id}/make-items-unavailable`, {}, 60000) // 60 second timeout
+                            apiRequest("POST", `/api/carts/${cart.id}/make-items-unavailable`, {}, 120000) // 2 minute timeout
                               .then(async (response) => {
                                 // Dismiss the loading toast
                                 toast.dismiss(loadingToast);
@@ -177,10 +177,22 @@ const AdminCarts = () => {
                                 queryClient.invalidateQueries({ queryKey: ["/api/carts"] });
                                 
                                 // Show success message with details
-                                toast({
-                                  title: "Products Updated",
-                                  description: `${data.updatedProducts.length} products marked as unavailable`,
-                                });
+                                const failedCount = data.failedProducts ? data.failedProducts.length : 0;
+                                const successCount = data.updatedProducts ? data.updatedProducts.length : 0;
+                                
+                                if (failedCount > 0) {
+                                  toast({
+                                    title: "Products Updated",
+                                    description: `${successCount} products marked as unavailable. ${failedCount} products failed to update.`,
+                                    variant: "default",
+                                    duration: 5000,
+                                  });
+                                } else {
+                                  toast({
+                                    title: "Products Updated",
+                                    description: `${successCount} products marked as unavailable`,
+                                  });
+                                }
                               })
                               .catch((error) => {
                                 toast({

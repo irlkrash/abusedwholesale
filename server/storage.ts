@@ -749,73 +749,97 @@ export class DatabaseStorage implements IStorage {
         throw new Error("Cart not found");
       }
 
-      // Process items in larger batches for efficiency
-      const batchSize = 25; // Increased batch size from 5
+      // Increase batch size for better throughput
+      const batchSize = 50;
       const maxRetries = 3;
       const failedUpdates: number[] = [];
       const totalItems = cart.items.length;
       
       console.log(`Refreshing availability for ${totalItems} items in cart ${cartId}`);
 
-      // Group items into batches
+      // First, fetch all product availability statuses in bulk to minimize database calls
+      const productIds = cart.items.map(item => item.productId);
+      
+      // Split into reasonable chunks for bulk query
+      const productChunkSize = 100;
+      const productAvailability = new Map<number, boolean>();
+      
+      for (let i = 0; i < productIds.length; i += productChunkSize) {
+        const chunkIds = productIds.slice(i, i + productChunkSize);
+        
+        try {
+          // Get availability status for multiple products at once
+          const products = await db
+            .select({ id: productsTable.id, isAvailable: productsTable.isAvailable })
+            .from(productsTable)
+            .where(inArray(productsTable.id, chunkIds));
+            
+          // Store in map for quick lookup
+          products.forEach(product => {
+            productAvailability.set(product.id, !!product.isAvailable);
+          });
+        } catch (error) {
+          console.error(`Error fetching product availability for batch:`, error);
+        }
+      }
+
+      // Now process cart items with the pre-fetched availability info
       for (let i = 0; i < totalItems; i += batchSize) {
         const batchItems = cart.items.slice(i, i + batchSize);
         console.log(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(totalItems/batchSize)} with ${batchItems.length} items`);
 
-        // Process items in parallel within each batch for better performance
-        const batchPromises = batchItems.map(async (item) => {
-          let retryCount = 0;
-          let success = false;
+        // Process items in smaller parallel batches to prevent overwhelming the DB
+        const parallelBatchSize = 10;
+        for (let j = 0; j < batchItems.length; j += parallelBatchSize) {
+          const parallelBatch = batchItems.slice(j, j + parallelBatchSize);
+          
+          const batchPromises = parallelBatch.map(async (item) => {
+            let retryCount = 0;
+            let success = false;
 
-          while (!success && retryCount < maxRetries) {
-            try {
-              // Get the current product data
-              const product = await this.getProduct(item.productId);
+            while (!success && retryCount < maxRetries) {
+              try {
+                // Use pre-fetched product availability when possible
+                let isAvailable = false;
+                
+                if (productAvailability.has(item.productId)) {
+                  isAvailable = productAvailability.get(item.productId) || false;
+                } else {
+                  // Fall back to individual query if not in our map
+                  const product = await this.getProduct(item.productId);
+                  isAvailable = product ? !!product.isAvailable : false;
+                }
 
-              // If product doesn't exist, mark it as unavailable without retrying
-              if (!product) {
-                console.log(`Product ${item.productId} not found, marking as unavailable`);
+                // Update the cart item's isAvailable field
                 await db.update(cartItems)
-                  .set({ isAvailable: false })
+                  .set({ isAvailable })
                   .where(eq(cartItems.id, item.id));
+
+                success = true;
+                console.log(`Successfully updated cart item ${item.id} availability to ${isAvailable}`);
                 return { id: item.id, success: true };
-              }
+              } catch (error) {
+                retryCount++;
+                console.error(`Failed attempt ${retryCount} for item ${item.id}:`, error);
 
-              // Update the cart item's isAvailable field in the database
-              await db.update(cartItems)
-                .set({ isAvailable: product.isAvailable })
-                .where(eq(cartItems.id, item.id));
-
-              success = true;
-              console.log(`Successfully updated cart item ${item.id} availability to ${product.isAvailable}`);
-              return { id: item.id, success: true };
-            } catch (error) {
-              retryCount++;
-              console.error(`Failed attempt ${retryCount} for item ${item.id}:`, error);
-
-              if (retryCount === maxRetries) {
-                return { id: item.id, success: false };
-              } else {
-                // Short delay before retry, increasing with each retry
-                await new Promise(resolve => setTimeout(resolve, retryCount * 500)); // Reduced delay
+                if (retryCount === maxRetries) {
+                  return { id: item.id, success: false };
+                } else {
+                  // Short delay with exponential backoff
+                  await new Promise(resolve => setTimeout(resolve, 300 * Math.pow(2, retryCount - 1)));
+                }
               }
             }
-          }
+            
+            return { id: item.id, success: false };
+          });
           
-          // If we get here, all retries failed
-          return { id: item.id, success: false };
-        });
-        
-        // Wait for all items in the batch to complete
-        const batchResults = await Promise.all(batchPromises);
-        
-        // Track failed updates
-        const batchFailures = batchResults.filter(result => !result.success);
-        failedUpdates.push(...batchFailures.map(failure => failure.id));
-        
-        // Add a small delay between batches to prevent database overload
-        if (i + batchSize < totalItems) {
-          await new Promise(resolve => setTimeout(resolve, 200));
+          // Wait for this smaller parallel batch to complete
+          const batchResults = await Promise.all(batchPromises);
+          
+          // Track failed updates
+          const batchFailures = batchResults.filter(result => !result.success);
+          failedUpdates.push(...batchFailures.map(failure => failure.id));
         }
       }
 

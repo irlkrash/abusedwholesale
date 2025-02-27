@@ -424,19 +424,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const productIds = cartItems.map(item => item.productId);
       console.log(`Updating availability for ${productIds.length} products: ${productIds.join(', ')}`);
 
-      // Process in batches to avoid any potential timeout issues
-      const batchSize = 25; // Increased from previous small batches
+      // Use larger batch size to process more items at once
+      const batchSize = 50;
       const results = [];
-      const timeoutMs = 30000; // 30 second timeout per batch
+      const maxRetries = 3;
+      const timeoutMs = 15000; // 15 second timeout per product update (shorter but more focused)
       
-      // Process batches sequentially to reduce DB load
+      // Process batches sequentially with better error handling
       for (let i = 0; i < productIds.length; i += batchSize) {
         const batchProductIds = productIds.slice(i, i + batchSize);
         console.log(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(productIds.length/batchSize)} with ${batchProductIds.length} products`);
         
-        // Process each batch with a timeout
-        const batchResults = await Promise.all(
-          batchProductIds.map(async (productId) => {
+        // Use a more reliable approach with retries for each product
+        for (const productId of batchProductIds) {
+          let retryCount = 0;
+          let success = false;
+          
+          while (!success && retryCount < maxRetries) {
             try {
               // Create a promise that times out after specified milliseconds
               const updateWithTimeout = Promise.race([
@@ -448,34 +452,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               const updated = await updateWithTimeout;
               console.log(`Successfully updated product ${productId} to unavailable`);
-              return { productId, success: true, product: updated };
+              results.push({ productId, success: true, product: updated });
+              success = true;
             } catch (error) {
-              console.error(`Failed to update product ${productId}:`, error);
-              return { productId, success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+              retryCount++;
+              console.error(`Failed attempt ${retryCount} for product ${productId}:`, error);
+              
+              if (retryCount >= maxRetries) {
+                results.push({ 
+                  productId, 
+                  success: false, 
+                  error: error instanceof Error ? error.message : 'Unknown error' 
+                });
+              } else {
+                // Exponential backoff for retries
+                await new Promise(resolve => setTimeout(resolve, 500 * retryCount));
+              }
             }
-          })
-        );
-        
-        results.push(...batchResults);
-        
-        // Short delay between batches to avoid overwhelming the database
-        if (i + batchSize < productIds.length) {
-          await new Promise(resolve => setTimeout(resolve, 200));
+          }
         }
+        
+        // No delay between batches - process continuously
       }
 
       const successfulUpdates = results.filter(update => update.success);
       const failedUpdates = results.filter(update => !update.success);
 
-      // Also update availability in cart_items to maintain consistency
-      try {
-        // This will update the cart item records to reflect availability
-        await storage.refreshCartItems(cartId);
-        console.log(`Successfully refreshed availability status for all cart items in cart ${cartId}`);
-      } catch (refreshError) {
-        console.error('Error refreshing cart items:', refreshError);
-      }
+      // Update cart items in background
+      // Don't wait for this to complete before sending response
+      (async () => {
+        try {
+          await storage.refreshCartItems(cartId);
+          console.log(`Successfully refreshed availability status for all cart items in cart ${cartId}`);
+        } catch (refreshError) {
+          console.error('Error refreshing cart items:', refreshError);
+        }
+      })();
 
+      // Return results immediately
       res.json({
         message: `Successfully updated ${successfulUpdates.length} products${failedUpdates.length > 0 ? `, failed to update ${failedUpdates.length} products` : ''}`,
         updatedProducts: successfulUpdates.map(u => u.product),
