@@ -627,6 +627,7 @@ export class DatabaseStorage implements IStorage {
       throw error;
     }
   }
+  
   async addBulkProductCategories(productIds: number[], categoryIds: number[]): Promise<void> {
     const client = await pool.connect();
     try {
@@ -734,9 +735,8 @@ export class DatabaseStorage implements IStorage {
       client.release();
     }
   }
-}
 
-async refreshCartItems(cartId: number): Promise<void> {
+  async refreshCartItems(cartId: number): Promise<void> {
     try {
       // Get the current cart with items
       const cart = await this.getCart(cartId);
