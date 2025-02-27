@@ -634,11 +634,18 @@ export class DatabaseStorage implements IStorage {
    */
   async addBulkProductCategories(productIds: number[], categoryIds: number[]): Promise<void> {
     console.log(`Adding categories ${categoryIds.join(',')} to products ${productIds.join(',')}`);
+    const client = await pool.connect();
 
     try {
+      await client.query('BEGIN');
+
       // First, get category information to access defaultPrice
-      const categoryPromises = categoryIds.map(id => this.getCategory(id));
-      const categories = await Promise.all(categoryPromises);
+      const categories = await Promise.all(categoryIds.map(id => this.getCategory(id)));
+      const validCategories = categories.filter((c): c is Category => c !== null);
+
+      if (validCategories.length === 0) {
+        throw new Error("No valid categories found");
+      }
 
       // Create an array of rows to insert for all product-category combinations
       const values = [];
@@ -648,33 +655,48 @@ export class DatabaseStorage implements IStorage {
         }
       }
 
-      // Insert all rows in a single transaction for better performance
-      await this.db.transaction(async (tx) => {
-        await tx.insert(productCategories).values(values);
+      // Remove existing category assignments for these products
+      await db.delete(productCategories)
+        .where(inArray(productCategories.productId, productIds));
 
-        // For each product, verify if a custom price exists
-        // If not, apply the category's default price
-        for (const productId of productIds) {
-          // Get current product to check for custom price
-          const product = await this.getProduct(productId);
+      // Insert new category assignments
+      if (values.length > 0) {
+        await db.insert(productCategories)
+          .values(values);
+      }
 
-          // If no custom price is set, update the product with the category's default price
-          if (!product.customPrice && categories.length > 0) {
-            // Find the lowest category price
-            const lowestCategoryPrice = Math.min(...categories.map(c => c.defaultPrice));
+      // For each product, verify if a custom price exists
+      // If not, apply the category's default price
+      for (const productId of productIds) {
+        // Get current product to check for custom price
+        const [product] = await db
+          .select()
+          .from(productsTable)
+          .where(eq(productsTable.id, productId));
 
-            // Update the product with the category's default price
-            await tx.update(productsTable)
-              .set({ categoryPrice: lowestCategoryPrice })
-              .where(eq(productsTable.id, productId));
-          }
+        if (!product) continue;
+
+        // If no custom price is set, update with highest category price
+        if (!product.customPrice) {
+          const highestCategoryPrice = Math.max(...validCategories.map(c => c.defaultPrice));
+
+          await db.update(productsTable)
+            .set({ 
+              categoryPrice: highestCategoryPrice,
+              updatedAt: new Date()
+            })
+            .where(eq(productsTable.id, productId));
         }
-      });
+      }
 
+      await client.query('COMMIT');
       console.log(`Successfully added categories to ${productIds.length} products`);
     } catch (error) {
+      await client.query('ROLLBACK');
       console.error('Error adding bulk categories:', error);
       throw error;
+    } finally {
+      client.release();
     }
   }
 

@@ -240,35 +240,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { productIds, categoryId } = req.body;
       console.log('Bulk assigning category:', { productIds, categoryId });
 
+      // Validate input
       if (!Array.isArray(productIds) || !productIds.length || typeof categoryId !== 'number') {
         return res.status(400).json({ message: "Invalid request format" });
       }
 
+      // Validate product IDs are numbers
+      if (!productIds.every(id => typeof id === 'number')) {
+        return res.status(400).json({ message: "All product IDs must be numbers" });
+      }
+
       console.log(`Bulk assigning category ${categoryId} to products:`, productIds);
 
-      // First, get the category to ensure it exists and to access its defaultPrice
+      // First, get the category to ensure it exists
       const category = await storage.getCategory(categoryId);
       if (!category) {
         return res.status(404).json({ message: "Category not found" });
       }
-      
+
       console.log(`Applying category ${category.name} with price ${category.defaultPrice} to ${productIds.length} products`);
 
       try {
-        // Process in bulk - more efficient than individual processing
+        // Process in bulk
         await storage.addBulkProductCategories(productIds, [categoryId]);
-        
-        // Get updated products after bulk operation
+
+        // Get updated products
         const updatedProducts = await Promise.all(
           productIds.map(productId => storage.getProduct(productId))
         );
-        
+
         console.log(`Successfully assigned category ${categoryId} to ${updatedProducts.length} products`);
-        
+
         res.json({
           message: "Bulk category assignment completed successfully",
           updatedCount: updatedProducts.length,
-          products: updatedProducts
+          products: updatedProducts.filter(p => p !== undefined)
         });
       } catch (error) {
         console.error(`Failed bulk category update:`, error);
