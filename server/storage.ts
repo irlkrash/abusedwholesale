@@ -629,113 +629,52 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  /**
+   * Add multiple categories to multiple products in bulk
+   */
   async addBulkProductCategories(productIds: number[], categoryIds: number[]): Promise<void> {
-    const client = await pool.connect();
+    console.log(`Adding categories ${categoryIds.join(',')} to products ${productIds.join(',')}`);
+
     try {
-      await client.query('BEGIN');
+      // First, get category information to access defaultPrice
+      const categoryPromises = categoryIds.map(id => this.getCategory(id));
+      const categories = await Promise.all(categoryPromises);
 
-      console.log('Starting bulk category assignment for products:', productIds, 'categories:', categoryIds);
-
-      // Use smaller batch size to avoid timeouts
-      const batchSize = 5;
-      const maxRetries = 3;
-      const failedUpdates: number[] = [];
-
-      // Process in smaller batches with retry logic
-      for (let i = 0; i < productIds.length; i += batchSize) {
-        const batchProductIds = productIds.slice(i, i + batchSize);
-        let retryCount = 0;
-        let batchSuccess = false;
-
-        while (!batchSuccess && retryCount < maxRetries) {
-          try {
-            // Remove existing categories for this batch
-            await db
-              .delete(productCategories)
-              .where(inArray(productCategories.productId, batchProductIds));
-
-            // Create category assignments for all products in batch
-            const values = batchProductIds.flatMap(productId =>
-              categoryIds.map(categoryId => ({
-                productId,
-                categoryId,
-              }))
-            );
-
-            if (values.length > 0) {
-              await db
-                .insert(productCategories)
-                .values(values)
-                .onConflictDoNothing();
-            }
-
-            batchSuccess = true;
-            console.log(`Successfully assigned categories to batch:`, batchProductIds);
-          } catch (error) {
-            retryCount++;
-            console.error(`Failed attempt ${retryCount} for batch:`, batchProductIds, error);
-            if (retryCount === maxRetries) {
-              failedUpdates.push(...batchProductIds);
-            }
-            // Short delay before retry
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
+      // Create an array of rows to insert for all product-category combinations
+      const values = [];
+      for (const productId of productIds) {
+        for (const categoryId of categoryIds) {
+          values.push({ productId, categoryId });
         }
       }
 
-      if (failedUpdates.length > 0) {
-        throw new Error(`Failed to update products: ${failedUpdates.join(', ')}`);
-      }
+      // Insert all rows in a single transaction for better performance
+      await this.db.transaction(async (tx) => {
+        await tx.insert(productCategories).values(values);
 
-      // Get category prices once for all categories
-      const categoryPrices = await db
-        .select({ defaultPrice: categoriesTable.defaultPrice })
-        .from(categoriesTable)
-        .where(inArray(categoriesTable.id, categoryIds));
+        // For each product, verify if a custom price exists
+        // If not, apply the category's default price
+        for (const productId of productIds) {
+          // Get current product to check for custom price
+          const product = await this.getProduct(productId);
 
-      const maxCategoryPrice = categoryPrices.length > 0
-        ? Math.max(...categoryPrices.map(c => Number(c.defaultPrice)))
-        : null;
+          // If no custom price is set, update the product with the category's default price
+          if (!product.customPrice && categories.length > 0) {
+            // Find the lowest category price
+            const lowestCategoryPrice = Math.min(...categories.map(c => c.defaultPrice));
 
-      console.log(`Updating products with category price: ${maxCategoryPrice}`);
-
-      // Update product prices in smaller batches
-      for (let i = 0; i < productIds.length; i += batchSize) {
-        const batchProductIds = productIds.slice(i, i + batchSize);
-        let retryCount = 0;
-        let batchSuccess = false;
-
-        while (!batchSuccess && retryCount < maxRetries) {
-          try {
-            await db
-              .update(productsTable)
-              .set({
-                categoryPrice: maxCategoryPrice,
-                updatedAt: new Date()
-              })
-              .where(inArray(productsTable.id, batchProductIds));
-
-            batchSuccess = true;
-            console.log(`Successfully updated prices for batch:`, batchProductIds);
-          } catch (error) {
-            retryCount++;
-            console.error(`Failed price update attempt ${retryCount} for batch:`, batchProductIds, error);
-            if (retryCount === maxRetries) {
-              failedUpdates.push(...batchProductIds);
-            }
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Update the product with the category's default price
+            await tx.update(productsTable)
+              .set({ categoryPrice: lowestCategoryPrice })
+              .where(eq(productsTable.id, productId));
           }
         }
-      }
+      });
 
-      await client.query('COMMIT');
-      console.log('Successfully completed bulk category assignment');
+      console.log(`Successfully added categories to ${productIds.length} products`);
     } catch (error) {
-      await client.query('ROLLBACK');
-      console.error('Error in addBulkProductCategories:', error);
+      console.error('Error adding bulk categories:', error);
       throw error;
-    } finally {
-      client.release();
     }
   }
 
@@ -746,7 +685,7 @@ export class DatabaseStorage implements IStorage {
         .from(categoriesTable)
         .where(eq(categoriesTable.id, id))
         .limit(1);
-      
+
       return result.length > 0 ? result[0] : null;
     } catch (error) {
       console.error('Error fetching category:', error);

@@ -34,6 +34,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ProductCarousel } from "@/components/product-carousel";
@@ -1063,7 +1064,7 @@ function AdminDashboard() {
                 >
                   {hideDetails ? "Show Details" : "Hide Details"}
                 </Button>
-                <BulkCategoryActions categories={categories} selectedProducts={selectedProducts} />
+                <BulkCategoryActions categories={categories} selectedProducts={selectedProducts} clearSelection={clearSelection} />
               </>
             )}
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -1079,7 +1080,8 @@ function AdminDashboard() {
                 </DialogHeader>
                 <ProductForm
                   onSubmit={(data) => createProductMutation.mutate(data)}
-                  isLoading={createProductMutation.isPending}                />
+                  isLoading={createProductMutation.isPending}
+                />
               </DialogContent>
             </Dialog>
           </div>
