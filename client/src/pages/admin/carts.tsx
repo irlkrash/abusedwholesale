@@ -164,7 +164,7 @@ const AdminCarts = () => {
                         <CardTitle className="text-xl flex items-center gap-2">
                           Cart #{cart.id} - ${cartTotal}
                           <span className="text-base font-normal text-muted-foreground">
-                            • {cart.customerName}
+                            • {cart.customerName} • {cart.items.length} items
                           </span>
                         </CardTitle>
                         <CardDescription>
