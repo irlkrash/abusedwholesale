@@ -145,13 +145,26 @@ const AdminCarts = () => {
                         <Button 
                           variant="outline"
                           onClick={() => {
+                            const totalItems = cart.items.length;
+                            
+                            // Show toast with item count
                             toast({
                               title: "Updating Products",
-                              description: "Marking products as unavailable...",
+                              description: `Marking ${totalItems} products as unavailable...`,
                             });
                             
-                            apiRequest("POST", `/api/carts/${cart.id}/make-items-unavailable`)
+                            // Show loading toast to indicate lengthy operation
+                            const loadingToast = toast({
+                              title: "Processing Request",
+                              description: "This may take a moment for large carts...",
+                              duration: 30000, // 30 seconds
+                            });
+                            
+                            apiRequest("POST", `/api/carts/${cart.id}/make-items-unavailable`, {}, 60000) // 60 second timeout
                               .then(async (response) => {
+                                // Dismiss the loading toast
+                                toast.dismiss(loadingToast);
+                                
                                 if (!response.ok) {
                                   const errorData = await response.json();
                                   throw new Error(errorData.message || "Failed to update products");

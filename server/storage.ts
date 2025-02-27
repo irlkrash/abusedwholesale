@@ -749,17 +749,21 @@ export class DatabaseStorage implements IStorage {
         throw new Error("Cart not found");
       }
 
-      // Process items in smaller batches
-      const batchSize = 5;
+      // Process items in larger batches for efficiency
+      const batchSize = 25; // Increased batch size from 5
       const maxRetries = 3;
       const failedUpdates: number[] = [];
+      const totalItems = cart.items.length;
+      
+      console.log(`Refreshing availability for ${totalItems} items in cart ${cartId}`);
 
       // Group items into batches
-      for (let i = 0; i < cart.items.length; i += batchSize) {
+      for (let i = 0; i < totalItems; i += batchSize) {
         const batchItems = cart.items.slice(i, i + batchSize);
+        console.log(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(totalItems/batchSize)} with ${batchItems.length} items`);
 
-        // Process each item in the batch
-        for (const item of batchItems) {
+        // Process items in parallel within each batch for better performance
+        const batchPromises = batchItems.map(async (item) => {
           let retryCount = 0;
           let success = false;
 
@@ -774,8 +778,7 @@ export class DatabaseStorage implements IStorage {
                 await db.update(cartItems)
                   .set({ isAvailable: false })
                   .where(eq(cartItems.id, item.id));
-                success = true;
-                continue;
+                return { id: item.id, success: true };
               }
 
               // Update the cart item's isAvailable field in the database
@@ -785,23 +788,44 @@ export class DatabaseStorage implements IStorage {
 
               success = true;
               console.log(`Successfully updated cart item ${item.id} availability to ${product.isAvailable}`);
+              return { id: item.id, success: true };
             } catch (error) {
               retryCount++;
               console.error(`Failed attempt ${retryCount} for item ${item.id}:`, error);
 
               if (retryCount === maxRetries) {
-                failedUpdates.push(item.id);
+                return { id: item.id, success: false };
               } else {
                 // Short delay before retry, increasing with each retry
-                await new Promise(resolve => setTimeout(resolve, retryCount * 1000));
+                await new Promise(resolve => setTimeout(resolve, retryCount * 500)); // Reduced delay
               }
             }
           }
+          
+          // If we get here, all retries failed
+          return { id: item.id, success: false };
+        });
+        
+        // Wait for all items in the batch to complete
+        const batchResults = await Promise.all(batchPromises);
+        
+        // Track failed updates
+        const batchFailures = batchResults.filter(result => !result.success);
+        failedUpdates.push(...batchFailures.map(failure => failure.id));
+        
+        // Add a small delay between batches to prevent database overload
+        if (i + batchSize < totalItems) {
+          await new Promise(resolve => setTimeout(resolve, 200));
         }
       }
 
       if (failedUpdates.length > 0) {
-        throw new Error(`Failed to update cart items: ${failedUpdates.join(', ')}`);
+        console.warn(`${failedUpdates.length} of ${totalItems} cart items failed to update: ${failedUpdates.join(', ')}`);
+        if (failedUpdates.length >= totalItems) {
+          throw new Error(`Failed to update all cart items: ${failedUpdates.join(', ')}`);
+        }
+      } else {
+        console.log(`Successfully updated all ${totalItems} cart items`);
       }
 
       await client.query('COMMIT');

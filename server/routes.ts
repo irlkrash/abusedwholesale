@@ -422,32 +422,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Extract all product IDs from cart
       const productIds = cartItems.map(item => item.productId);
-      console.log(`Updating availability for products: ${productIds.join(', ')}`);
+      console.log(`Updating availability for ${productIds.length} products: ${productIds.join(', ')}`);
 
-      // Update products in parallel with better error handling
-      const updates = await Promise.all(
-        productIds.map(async productId => {
-          try {
-            // Force update to ensure the change is applied
-            const updated = await storage.updateProduct(productId, { 
-              isAvailable: false
-            });
-            console.log(`Successfully updated product ${productId}`);
-            return { productId, success: true, product: updated };
-          } catch (error) {
-            console.error(`Failed to update product ${productId}:`, error);
-            return { productId, success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-          }
-        })
-      );
+      // Process in batches to avoid any potential timeout issues
+      const batchSize = 25; // Increased from previous small batches
+      const results = [];
+      const timeoutMs = 30000; // 30 second timeout per batch
+      
+      // Process batches sequentially to reduce DB load
+      for (let i = 0; i < productIds.length; i += batchSize) {
+        const batchProductIds = productIds.slice(i, i + batchSize);
+        console.log(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(productIds.length/batchSize)} with ${batchProductIds.length} products`);
+        
+        // Process each batch with a timeout
+        const batchResults = await Promise.all(
+          batchProductIds.map(async (productId) => {
+            try {
+              // Create a promise that times out after specified milliseconds
+              const updateWithTimeout = Promise.race([
+                storage.updateProduct(productId, { isAvailable: false }),
+                new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error(`Timeout updating product ${productId}`)), timeoutMs)
+                )
+              ]);
+              
+              const updated = await updateWithTimeout;
+              console.log(`Successfully updated product ${productId} to unavailable`);
+              return { productId, success: true, product: updated };
+            } catch (error) {
+              console.error(`Failed to update product ${productId}:`, error);
+              return { productId, success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+            }
+          })
+        );
+        
+        results.push(...batchResults);
+        
+        // Short delay between batches to avoid overwhelming the database
+        if (i + batchSize < productIds.length) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+      }
 
-      const successfulUpdates = updates.filter(update => update.success);
-      const failedUpdates = updates.filter(update => !update.success);
+      const successfulUpdates = results.filter(update => update.success);
+      const failedUpdates = results.filter(update => !update.success);
 
       // Also update availability in cart_items to maintain consistency
       try {
         // This will update the cart item records to reflect availability
         await storage.refreshCartItems(cartId);
+        console.log(`Successfully refreshed availability status for all cart items in cart ${cartId}`);
       } catch (refreshError) {
         console.error('Error refreshing cart items:', refreshError);
       }
