@@ -505,6 +505,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/carts/:cartId/items/:itemId", requireAdmin, async (req, res) => {
+    try {
+      const cartId = parseInt(req.params.cartId);
+      const itemId = parseInt(req.params.itemId);
+
+      if (isNaN(cartId) || isNaN(itemId)) {
+        return res.status(400).json({ message: "Invalid cart or item ID" });
+      }
+
+      const cart = await storage.getCart(cartId);
+      if (!cart) {
+        return res.status(404).json({ message: "Cart not found" });
+      }
+
+      await storage.deleteCartItem(cartId, itemId);
+      res.json({ message: "Cart item removed successfully" });
+    } catch (error) {
+      console.error('Error removing cart item:', error);
+      res.status(500).json({ 
+        message: "Failed to remove cart item",
+        error: error instanceof Error ? error.message : "Unknown error occurred"
+      });
+    }
+  });
+
   console.log('Creating HTTP server...');
   const httpServer = createServer(app);
 

@@ -81,6 +81,7 @@ const AdminCarts = () => {
       }
     },
     onSuccess: () => {
+      // Force refetch all carts to update the UI
       queryClient.invalidateQueries({ queryKey: ["/api/carts"] });
       toast({
         title: "Item removed",
