@@ -736,10 +736,7 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
-
-
-  async refreshCartItems(cartId: number): Promise<void> {
+async refreshCartItems(cartId: number): Promise<void> {
     try {
       // Get the current cart with items
       const cart = await this.getCart(cartId);
@@ -771,3 +768,6 @@ export const storage = new DatabaseStorage();
       throw error;
     }
   }
+}
+
+export const storage = new DatabaseStorage();
