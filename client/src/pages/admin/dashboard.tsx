@@ -73,30 +73,37 @@ interface ProductsResponse {
   lastPage: boolean;
 }
 
-const BulkCategoryActions = ({ categories, selectedProducts }: { categories: Category[]; selectedProducts: Set<number> }) => {
+const BulkCategoryActions = ({ categories, selectedProducts, clearSelection }: { categories: Category[]; selectedProducts: Set<number>; clearSelection: () => void }) => {
   const { toast } = useToast();
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const updateCategoriesMutation = useMutation({
     mutationFn: async ({ productIds, categoryId }: { productIds: number[]; categoryId: number }) => {
-      const response = await apiRequest("POST", "/api/products/bulk-assign-category", {
-        productIds,
-        categoryId
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to update categories');
+      setIsSubmitting(true);
+      try {
+        const response = await apiRequest("POST", "/api/products/bulk-assign-category", {
+          productIds,
+          categoryId
+        });
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to update categories');
+        }
+        return response.json();
+      } finally {
+        setIsSubmitting(false);
       }
-      return response.json();
     },
     onSuccess: () => {
       // Invalidate both products and categories queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       toast({
         title: "Success",
-        description: "Categories updated successfully",
+        description: `Updated ${selectedProducts.size} products with new category`,
       });
       setSelectedCategory(null);
+      clearSelection();
     },
     onError: (error: Error) => {
       toast({
@@ -110,13 +117,16 @@ const BulkCategoryActions = ({ categories, selectedProducts }: { categories: Cat
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline">
+        <Button variant="outline" disabled={selectedProducts.size === 0}>
           Update Categories ({selectedProducts.size} selected)
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Update Categories</DialogTitle>
+          <DialogDescription>
+            Assign a category to {selectedProducts.size} selected products. This will also update their pricing based on the category's default price.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div>
@@ -131,7 +141,7 @@ const BulkCategoryActions = ({ categories, selectedProducts }: { categories: Cat
                         setSelectedCategory(checked ? category.id : null);
                       }}
                     />
-                    <Label>{category.name} (${category.defaultPrice})</Label>
+                    <Label>{category.name} (${(category.defaultPrice/100).toFixed(2)})</Label>
                   </div>
                 ))}
               </div>
@@ -140,6 +150,7 @@ const BulkCategoryActions = ({ categories, selectedProducts }: { categories: Cat
         </div>
         <DialogFooter>
           <Button
+            disabled={!selectedCategory || selectedProducts.size === 0 || isSubmitting}
             onClick={() => {
               if (!selectedCategory || selectedProducts.size === 0) return;
               updateCategoriesMutation.mutate({

@@ -246,24 +246,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`Bulk assigning category ${categoryId} to products:`, productIds);
 
-      // Process each product
-      const results = await Promise.all(
-        productIds.map(async (productId) => {
-          try {
-            await storage.addProductCategories(productId, [categoryId]);
-            const updatedProduct = await storage.getProduct(productId);
-            return { productId, success: true, product: updatedProduct };
-          } catch (error) {
-            console.error(`Failed to update product ${productId}:`, error);
-            return { productId, success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-          }
-        })
-      );
+      // First, get the category to ensure it exists and to access its defaultPrice
+      const category = await storage.getCategory(categoryId);
+      if (!category) {
+        return res.status(404).json({ message: "Category not found" });
+      }
+      
+      console.log(`Applying category ${category.name} with price ${category.defaultPrice} to ${productIds.length} products`);
 
-      res.json({
-        message: "Bulk category assignment completed",
-        results
-      });
+      try {
+        // Process in bulk - more efficient than individual processing
+        await storage.addBulkProductCategories(productIds, [categoryId]);
+        
+        // Get updated products after bulk operation
+        const updatedProducts = await Promise.all(
+          productIds.map(productId => storage.getProduct(productId))
+        );
+        
+        console.log(`Successfully assigned category ${categoryId} to ${updatedProducts.length} products`);
+        
+        res.json({
+          message: "Bulk category assignment completed successfully",
+          updatedCount: updatedProducts.length,
+          products: updatedProducts
+        });
+      } catch (error) {
+        console.error(`Failed bulk category update:`, error);
+        res.status(500).json({ 
+          message: "Failed to update categories in bulk",
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        });
+      }
     } catch (error) {
       console.error('Error in bulk category assignment:', error);
       res.status(500).json({ 

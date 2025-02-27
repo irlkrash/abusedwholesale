@@ -697,6 +697,8 @@ export class DatabaseStorage implements IStorage {
         ? Math.max(...categoryPrices.map(c => Number(c.defaultPrice)))
         : null;
 
+      console.log(`Updating products with category price: ${maxCategoryPrice}`);
+
       // Update product prices in smaller batches
       for (let i = 0; i < productIds.length; i += batchSize) {
         const batchProductIds = productIds.slice(i, i + batchSize);
@@ -737,7 +739,22 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async refreshCartItems(cartId: number): Promise<void> {
+  async getCategory(id: number): Promise<Category | null> {
+    try {
+      const result = await db
+        .select()
+        .from(categoriesTable)
+        .where(eq(categoriesTable.id, id))
+        .limit(1);
+      
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('Error fetching category:', error);
+      throw error;
+    }
+  }
+
+async refreshCartItems(cartId: number): Promise<void> {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
