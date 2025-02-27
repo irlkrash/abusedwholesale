@@ -73,9 +73,12 @@ const AdminCarts = () => {
   });
 
   const removeItemMutation = useMutation({
-    mutationFn: async (cartId: number, itemId: number) => {
+    mutationFn: async ({ cartId, itemId }: { cartId: number; itemId: number }) => {
       const response = await apiRequest("DELETE", `/api/carts/${cartId}/items/${itemId}`);
-      if (!response.ok) throw new Error('Failed to remove item');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to remove item");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/carts"] });
@@ -295,7 +298,7 @@ const AdminCarts = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => removeItemMutation.mutate([cart.id, item.id])}
+                              onClick={() => removeItemMutation.mutate({cartId: cart.id, itemId: item.id})}
                             >
                               Remove
                             </Button>
