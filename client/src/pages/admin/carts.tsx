@@ -163,7 +163,9 @@ const AdminCarts = () => {
                             apiRequest("POST", `/api/carts/${cart.id}/make-items-unavailable`, {}, 120000) // 2 minute timeout
                               .then(async (response) => {
                                 // Dismiss the loading toast
-                                toast.dismiss(loadingToast);
+                                if (loadingToast) {
+                                  toast.dismiss(loadingToast);
+                                }
                                 
                                 if (!response.ok) {
                                   const errorData = await response.json();
