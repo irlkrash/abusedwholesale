@@ -754,26 +754,26 @@ export class DatabaseStorage implements IStorage {
       const maxRetries = 3;
       const failedUpdates: number[] = [];
       const totalItems = cart.items.length;
-      
+
       console.log(`Refreshing availability for ${totalItems} items in cart ${cartId}`);
 
       // First, fetch all product availability statuses in bulk to minimize database calls
       const productIds = cart.items.map(item => item.productId);
-      
+
       // Split into reasonable chunks for bulk query
       const productChunkSize = 100;
       const productAvailability = new Map<number, boolean>();
-      
+
       for (let i = 0; i < productIds.length; i += productChunkSize) {
         const chunkIds = productIds.slice(i, i + productChunkSize);
-        
+
         try {
           // Get availability status for multiple products at once
           const products = await db
             .select({ id: productsTable.id, isAvailable: productsTable.isAvailable })
             .from(productsTable)
             .where(inArray(productsTable.id, chunkIds));
-            
+
           // Store in map for quick lookup
           products.forEach(product => {
             productAvailability.set(product.id, !!product.isAvailable);
@@ -792,7 +792,7 @@ export class DatabaseStorage implements IStorage {
         const parallelBatchSize = 10;
         for (let j = 0; j < batchItems.length; j += parallelBatchSize) {
           const parallelBatch = batchItems.slice(j, j + parallelBatchSize);
-          
+
           const batchPromises = parallelBatch.map(async (item) => {
             let retryCount = 0;
             let success = false;
@@ -801,7 +801,7 @@ export class DatabaseStorage implements IStorage {
               try {
                 // Use pre-fetched product availability when possible
                 let isAvailable = false;
-                
+
                 if (productAvailability.has(item.productId)) {
                   isAvailable = productAvailability.get(item.productId) || false;
                 } else {
@@ -830,13 +830,13 @@ export class DatabaseStorage implements IStorage {
                 }
               }
             }
-            
+
             return { id: item.id, success: false };
           });
-          
+
           // Wait for this smaller parallel batch to complete
           const batchResults = await Promise.all(batchPromises);
-          
+
           // Track failed updates
           const batchFailures = batchResults.filter(result => !result.success);
           failedUpdates.push(...batchFailures.map(failure => failure.id));
@@ -857,6 +857,38 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       await client.query('ROLLBACK');
       console.error(`Error refreshing cart items for cart ${cartId}:`, error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async deleteCartItem(cartId: number, itemId: number): Promise<void> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      console.log(`Deleting item ${itemId} from cart ${cartId}`);
+
+      // Delete the specific cart item
+      const result = await db
+        .delete(cartItems)
+        .where(
+          and(
+            eq(cartItems.cartId, cartId),
+            eq(cartItems.id, itemId)
+          )
+        )
+        .returning();
+
+      if (result.length === 0) {
+        throw new Error(`Cart item ${itemId} not found in cart ${cartId}`);
+      }
+
+      console.log(`Successfully deleted item ${itemId} from cart ${cartId}`);
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error(`Error deleting cart item ${itemId} from cart ${cartId}:`, error);
       throw error;
     } finally {
       client.release();
