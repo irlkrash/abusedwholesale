@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { insertProductSchema, insertCartSchema, insertCategorySchema } from "@shared/schema";
+import { and, eq } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -331,13 +332,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const categories = req.body.categories || req.body.categoryIds;
       if (categories) {
         console.log('Updating product categories:', {productId, categories});
-        
+
         // Remove existing categories first
         const existingCategories = await storage.getProductCategories(productId);
         if (existingCategories.length > 0) {
           await storage.removeProductCategories(productId, existingCategories.map(c => c.id));
         }
-        
+
         // Add new categories if any are selected
         if (categories.length > 0) {
           await storage.addProductCategories(productId, categories);
@@ -347,7 +348,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update other product fields excluding category fields
       const {categories: _, categoryIds: __, ...updateFields} = req.body;
       const product = await storage.updateProduct(productId, updateFields);
-      
+
       // Fetch updated product with categories
       const updatedProduct = await storage.getProduct(productId);
       res.json(updatedProduct);
@@ -415,7 +416,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`Making items unavailable for cart ${cartId}`);
       const cartItems = cart.items;
-      
+
       if (cartItems.length === 0) {
         return res.status(400).json({ message: "No items in cart to update" });
       }
@@ -429,17 +430,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const results = [];
       const maxRetries = 3;
       const timeoutMs = 15000; // 15 second timeout per product update (shorter but more focused)
-      
+
       // Process batches sequentially with better error handling
       for (let i = 0; i < productIds.length; i += batchSize) {
         const batchProductIds = productIds.slice(i, i + batchSize);
         console.log(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(productIds.length/batchSize)} with ${batchProductIds.length} products`);
-        
+
         // Use a more reliable approach with retries for each product
         for (const productId of batchProductIds) {
           let retryCount = 0;
           let success = false;
-          
+
           while (!success && retryCount < maxRetries) {
             try {
               // Create a promise that times out after specified milliseconds
@@ -449,7 +450,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   setTimeout(() => reject(new Error(`Timeout updating product ${productId}`)), timeoutMs)
                 )
               ]);
-              
+
               const updated = await updateWithTimeout;
               console.log(`Successfully updated product ${productId} to unavailable`);
               results.push({ productId, success: true, product: updated });
@@ -457,7 +458,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             } catch (error) {
               retryCount++;
               console.error(`Failed attempt ${retryCount} for product ${productId}:`, error);
-              
+
               if (retryCount >= maxRetries) {
                 results.push({ 
                   productId, 
@@ -471,7 +472,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
         }
-        
+
         // No delay between batches - process continuously
       }
 

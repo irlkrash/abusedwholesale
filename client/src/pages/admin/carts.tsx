@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge"; // Added import for Badge component
 
 const AdminCarts = () => {
   const { user } = useAuth();
@@ -70,6 +71,28 @@ const AdminCarts = () => {
       });
     },
   });
+
+  const removeItemMutation = useMutation({
+    mutationFn: async (cartId: number, itemId: number) => {
+      const response = await apiRequest("DELETE", `/api/carts/${cartId}/items/${itemId}`);
+      if (!response.ok) throw new Error('Failed to remove item');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/carts"] });
+      toast({
+        title: "Item removed",
+        description: "The item has been successfully removed from the cart.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to remove item",
+        variant: "destructive",
+      });
+    },
+  });
+
 
   if (!user) {
     return null;
@@ -146,27 +169,27 @@ const AdminCarts = () => {
                           variant="outline"
                           onClick={() => {
                             const totalItems = cart.items.length;
-                            
+
                             // Show toast with item count
                             toast({
                               title: "Updating Products",
                               description: `Marking ${totalItems} products as unavailable...`,
                             });
-                            
+
                             // Show loading toast to indicate lengthy operation
                             const loadingToast = toast({
                               title: "Processing Request",
                               description: "This may take a moment for large carts...",
                               duration: 30000, // 30 seconds
                             });
-                            
+
                             apiRequest("POST", `/api/carts/${cart.id}/make-items-unavailable`, {}, 120000) // 2 minute timeout
                               .then(async (response) => {
                                 // Dismiss the loading toast
                                 if (loadingToast) {
                                   toast.dismiss(loadingToast);
                                 }
-                                
+
                                 if (!response.ok) {
                                   const errorData = await response.json();
                                   throw new Error(errorData.message || "Failed to update products");
@@ -177,11 +200,11 @@ const AdminCarts = () => {
                                 // Force refetch both queries to ensure UI is updated
                                 queryClient.invalidateQueries({ queryKey: ["/api/products"] });
                                 queryClient.invalidateQueries({ queryKey: ["/api/carts"] });
-                                
+
                                 // Show success message with details
                                 const failedCount = data.failedProducts ? data.failedProducts.length : 0;
                                 const successCount = data.updatedProducts ? data.updatedProducts.length : 0;
-                                
+
                                 if (failedCount > 0) {
                                   toast({
                                     title: "Products Updated",
@@ -263,10 +286,19 @@ const AdminCarts = () => {
                               <div className="flex justify-between items-center mt-1">
                                 <span className="text-lg font-semibold">${itemPrice}</span>
                                 <span className="text-xs text-muted-foreground">
-                                  {item.isAvailable ? 'Available' : 'Unavailable'}
+                                  <Badge variant={item.isAvailable ? "default" : "destructive"}>
+                                    {item.isAvailable ? "Available" : "Unavailable"}
+                                  </Badge>
                                 </span>
                               </div>
                             </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeItemMutation.mutate([cart.id, item.id])}
+                            >
+                              Remove
+                            </Button>
                           </div>
                         );
                       })}
