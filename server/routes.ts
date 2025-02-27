@@ -415,25 +415,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`Making items unavailable for cart ${cartId}`);
       const cartItems = cart.items;
+      
+      if (cartItems.length === 0) {
+        return res.status(400).json({ message: "No items in cart to update" });
+      }
 
-      // Update products in parallel
+      // Extract all product IDs from cart
+      const productIds = cartItems.map(item => item.productId);
+      console.log(`Updating availability for products: ${productIds.join(', ')}`);
+
+      // Update products in parallel with better error handling
       const updates = await Promise.all(
-        cartItems.map(async item => {
+        productIds.map(async productId => {
           try {
-            return await storage.updateProduct(item.productId, { isAvailable: false });
+            // Force update to ensure the change is applied
+            const updated = await storage.updateProduct(productId, { 
+              isAvailable: false
+            });
+            console.log(`Successfully updated product ${productId}`);
+            return { productId, success: true, product: updated };
           } catch (error) {
-            console.error(`Failed to update product ${item.productId}:`, error);
-            return null;
+            console.error(`Failed to update product ${productId}:`, error);
+            return { productId, success: false, error: error instanceof Error ? error.message : 'Unknown error' };
           }
         })
       );
 
-      const successfulUpdates = updates.filter(update => update !== null);
-      const failedUpdates = updates.length - successfulUpdates.length;
+      const successfulUpdates = updates.filter(update => update.success);
+      const failedUpdates = updates.filter(update => !update.success);
+
+      // Also update availability in cart_items to maintain consistency
+      try {
+        // This will update the cart item records to reflect availability
+        await storage.refreshCartItems(cartId);
+      } catch (refreshError) {
+        console.error('Error refreshing cart items:', refreshError);
+      }
 
       res.json({
-        message: `Successfully updated ${successfulUpdates.length} products${failedUpdates > 0 ? `, failed to update ${failedUpdates} products` : ''}`,
-        updatedProducts: successfulUpdates
+        message: `Successfully updated ${successfulUpdates.length} products${failedUpdates.length > 0 ? `, failed to update ${failedUpdates.length} products` : ''}`,
+        updatedProducts: successfulUpdates.map(u => u.product),
+        failedProducts: failedUpdates.map(f => f.productId)
       });
     } catch (error) {
       console.error('Error updating cart items:', error);

@@ -145,19 +145,34 @@ const AdminCarts = () => {
                         <Button 
                           variant="outline"
                           onClick={() => {
+                            toast({
+                              title: "Updating Products",
+                              description: "Marking products as unavailable...",
+                            });
+                            
                             apiRequest("POST", `/api/carts/${cart.id}/make-items-unavailable`)
-                              .then(() => {
+                              .then(async (response) => {
+                                if (!response.ok) {
+                                  const errorData = await response.json();
+                                  throw new Error(errorData.message || "Failed to update products");
+                                }
+                                return response.json();
+                              })
+                              .then((data) => {
+                                // Force refetch both queries to ensure UI is updated
                                 queryClient.invalidateQueries({ queryKey: ["/api/products"] });
                                 queryClient.invalidateQueries({ queryKey: ["/api/carts"] });
+                                
+                                // Show success message with details
                                 toast({
                                   title: "Products Updated",
-                                  description: "All products in this cart have been marked as unavailable",
+                                  description: `${data.updatedProducts.length} products marked as unavailable`,
                                 });
                               })
-                              .catch(() => {
+                              .catch((error) => {
                                 toast({
                                   title: "Error",
-                                  description: "Failed to update products",
+                                  description: error.message || "Failed to update products",
                                   variant: "destructive",
                                 });
                               });
