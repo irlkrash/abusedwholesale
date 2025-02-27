@@ -161,8 +161,11 @@ const AdminCarts = () => {
                   <CardHeader className="space-y-0 pb-4">
                     <div className="flex flex-wrap justify-between items-center gap-4">
                       <div className="space-y-1">
-                        <CardTitle className="text-xl">
+                        <CardTitle className="text-xl flex items-center gap-2">
                           Cart #{cart.id} - ${cartTotal}
+                          <span className="text-base font-normal text-muted-foreground">
+                            • {cart.customerName}
+                          </span>
                         </CardTitle>
                         <CardDescription>
                           {format(new Date(cart.createdAt), "PPp")}
