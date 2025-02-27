@@ -738,36 +738,36 @@ export class DatabaseStorage implements IStorage {
 
 export const storage = new DatabaseStorage();
 
-async refreshCartItems(cartId: number): Promise<void> {
-  try {
-    // Get the current cart with items
-    const cart = await this.getCart(cartId);
-    if (!cart) {
-      throw new Error("Cart not found");
-    }
-    
-    // For each item in the cart, refresh its availability status from the actual product
-    for (const item of cart.items) {
-      // Get the current product data
-      const product = await this.getProduct(item.productId);
-      if (!product) {
-        console.warn(`Product ${item.productId} in cart ${cartId} not found`);
-        continue;
+
+  async refreshCartItems(cartId: number): Promise<void> {
+    try {
+      // Get the current cart with items
+      const cart = await this.getCart(cartId);
+      if (!cart) {
+        throw new Error("Cart not found");
       }
       
-      // Check if the availability status needs to be updated
-      if (item.isAvailable !== product.isAvailable) {
-        // Update the cart item's isAvailable field in the database
-        await this.db.update(schema.cartItems)
-          .set({ isAvailable: product.isAvailable })
-          .where(eq(schema.cartItems.id, item.id))
-          .execute();
+      // For each item in the cart, refresh its availability status from the actual product
+      for (const item of cart.items) {
+        // Get the current product data
+        const product = await this.getProduct(item.productId);
+        if (!product) {
+          console.warn(`Product ${item.productId} in cart ${cartId} not found`);
+          continue;
+        }
         
-        console.log(`Updated cart item ${item.id} availability to ${product.isAvailable}`);
+        // Check if the availability status needs to be updated
+        if (item.isAvailable !== product.isAvailable) {
+          // Update the cart item's isAvailable field in the database
+          await db.update(cartItems)
+            .set({ isAvailable: product.isAvailable })
+            .where(eq(cartItems.id, item.id));
+          
+          console.log(`Updated cart item ${item.id} availability to ${product.isAvailable}`);
+        }
       }
+    } catch (error) {
+      console.error(`Error refreshing cart items for cart ${cartId}:`, error);
+      throw error;
     }
-  } catch (error) {
-    console.error(`Error refreshing cart items for cart ${cartId}:`, error);
-    throw error;
   }
-}
