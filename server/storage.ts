@@ -32,6 +32,7 @@ export interface IStorage {
   getProductCategories(productId: number): Promise<Category[]>;
   getCategoriesWithCounts(): Promise<(Category & { productCount: number })[]>;
   addBulkProductCategories(productIds: number[], categoryIds: number[]): Promise<void>;
+  refreshCartItems(cartId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -766,8 +767,14 @@ export class DatabaseStorage implements IStorage {
             try {
               // Get the current product data
               const product = await this.getProduct(item.productId);
+
+              // If product doesn't exist, mark it as unavailable without retrying
               if (!product) {
-                console.warn(`Product ${item.productId} in cart ${cartId} not found`);
+                console.log(`Product ${item.productId} not found, marking as unavailable`);
+                await db.update(cartItems)
+                  .set({ isAvailable: false })
+                  .where(eq(cartItems.id, item.id));
+                success = true;
                 continue;
               }
 
@@ -781,11 +788,13 @@ export class DatabaseStorage implements IStorage {
             } catch (error) {
               retryCount++;
               console.error(`Failed attempt ${retryCount} for item ${item.id}:`, error);
+
               if (retryCount === maxRetries) {
                 failedUpdates.push(item.id);
+              } else {
+                // Short delay before retry, increasing with each retry
+                await new Promise(resolve => setTimeout(resolve, retryCount * 1000));
               }
-              // Short delay before retry
-              await new Promise(resolve => setTimeout(resolve, 1000));
             }
           }
         }
