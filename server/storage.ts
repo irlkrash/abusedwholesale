@@ -627,7 +627,7 @@ export class DatabaseStorage implements IStorage {
       throw error;
     }
   }
-  
+
   async addBulkProductCategories(productIds: number[], categoryIds: number[]): Promise<void> {
     const client = await pool.connect();
     try {
@@ -737,35 +737,72 @@ export class DatabaseStorage implements IStorage {
   }
 
   async refreshCartItems(cartId: number): Promise<void> {
+    const client = await pool.connect();
     try {
+      await client.query('BEGIN');
+      console.log(`Starting cart items refresh for cart ${cartId}`);
+
       // Get the current cart with items
       const cart = await this.getCart(cartId);
       if (!cart) {
         throw new Error("Cart not found");
       }
-      
-      // For each item in the cart, refresh its availability status from the actual product
-      for (const item of cart.items) {
-        // Get the current product data
-        const product = await this.getProduct(item.productId);
-        if (!product) {
-          console.warn(`Product ${item.productId} in cart ${cartId} not found`);
-          continue;
-        }
-        
-        // Check if the availability status needs to be updated
-        if (item.isAvailable !== product.isAvailable) {
-          // Update the cart item's isAvailable field in the database
-          await db.update(cartItems)
-            .set({ isAvailable: product.isAvailable })
-            .where(eq(cartItems.id, item.id));
-          
-          console.log(`Updated cart item ${item.id} availability to ${product.isAvailable}`);
+
+      // Process items in smaller batches
+      const batchSize = 5;
+      const maxRetries = 3;
+      const failedUpdates: number[] = [];
+
+      // Group items into batches
+      for (let i = 0; i < cart.items.length; i += batchSize) {
+        const batchItems = cart.items.slice(i, i + batchSize);
+
+        // Process each item in the batch
+        for (const item of batchItems) {
+          let retryCount = 0;
+          let success = false;
+
+          while (!success && retryCount < maxRetries) {
+            try {
+              // Get the current product data
+              const product = await this.getProduct(item.productId);
+              if (!product) {
+                console.warn(`Product ${item.productId} in cart ${cartId} not found`);
+                continue;
+              }
+
+              // Update the cart item's isAvailable field in the database
+              await db.update(cartItems)
+                .set({ isAvailable: product.isAvailable })
+                .where(eq(cartItems.id, item.id));
+
+              success = true;
+              console.log(`Successfully updated cart item ${item.id} availability to ${product.isAvailable}`);
+            } catch (error) {
+              retryCount++;
+              console.error(`Failed attempt ${retryCount} for item ${item.id}:`, error);
+              if (retryCount === maxRetries) {
+                failedUpdates.push(item.id);
+              }
+              // Short delay before retry
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+          }
         }
       }
+
+      if (failedUpdates.length > 0) {
+        throw new Error(`Failed to update cart items: ${failedUpdates.join(', ')}`);
+      }
+
+      await client.query('COMMIT');
+      console.log(`Successfully completed cart items refresh for cart ${cartId}`);
     } catch (error) {
+      await client.query('ROLLBACK');
       console.error(`Error refreshing cart items for cart ${cartId}:`, error);
       throw error;
+    } finally {
+      client.release();
     }
   }
 }
