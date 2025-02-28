@@ -444,70 +444,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const productIds = cartItems.map(item => item.productId);
       console.log(`Updating availability for ${productIds.length} products: ${productIds.join(', ')}`);
 
-      // Use larger batch size to process more items at once
-      const batchSize = 50;
+      // Process all products in a single batch
       const results = [];
       const maxRetries = 3;
-      const timeoutMs = 15000; // 15 second timeout per product update (shorter but more focused)
 
-      // Process batches sequentially with better error handling
-      for (let i = 0; i < productIds.length; i += batchSize) {
-        const batchProductIds = productIds.slice(i, i + batchSize);
-        console.log(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(productIds.length/batchSize)} with ${batchProductIds.length} products`);
+      // Process all products together for better performance
+      for (const productId of productIds) {
+        let retryCount = 0;
+        let success = false;
 
-        // Use a more reliable approach with retries for each product
-        for (const productId of batchProductIds) {
-          let retryCount = 0;
-          let success = false;
+        while (!success && retryCount < maxRetries) {
+          try {
+            const updated = await storage.updateProduct(productId, { isAvailable: false });
+            console.log(`Successfully updated product ${productId} to unavailable`);
+            results.push({ productId, success: true, product: updated });
+            success = true;
+          } catch (error) {
+            retryCount++;
+            console.error(`Failed attempt ${retryCount} for product ${productId}:`, error);
 
-          while (!success && retryCount < maxRetries) {
-            try {
-              // Create a promise that times out after specified milliseconds
-              const updateWithTimeout = Promise.race([
-                storage.updateProduct(productId, { isAvailable: false }),
-                new Promise((_, reject) => 
-                  setTimeout(() => reject(new Error(`Timeout updating product ${productId}`)), timeoutMs)
-                )
-              ]);
-
-              const updated = await updateWithTimeout;
-              console.log(`Successfully updated product ${productId} to unavailable`);
-              results.push({ productId, success: true, product: updated });
-              success = true;
-            } catch (error) {
-              retryCount++;
-              console.error(`Failed attempt ${retryCount} for product ${productId}:`, error);
-
-              if (retryCount >= maxRetries) {
-                results.push({ 
-                  productId, 
-                  success: false, 
-                  error: error instanceof Error ? error.message : 'Unknown error' 
-                });
-              } else {
-                // Exponential backoff for retries
-                await new Promise(resolve => setTimeout(resolve, 500 * retryCount));
-              }
+            if (retryCount >= maxRetries) {
+              results.push({ 
+                productId, 
+                success: false, 
+                error: error instanceof Error ? error.message : 'Unknown error' 
+              });
+            } else {
+              // Short delay before retry
+              await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
             }
           }
         }
-
-        // No delay between batches - process continuously
       }
 
       const successfulUpdates = results.filter(update => update.success);
       const failedUpdates = results.filter(update => !update.success);
 
       // Update cart items in background
-      // Don't wait for this to complete before sending response
-      (async () => {
-        try {
-          await storage.refreshCartItems(cartId);
+      storage.refreshCartItems(cartId)
+        .then(() => {
           console.log(`Successfully refreshed availability status for all cart items in cart ${cartId}`);
-        } catch (refreshError) {
+        })
+        .catch((refreshError) => {
           console.error('Error refreshing cart items:', refreshError);
-        }
-      })();
+        });
 
       // Return results immediately
       res.json({

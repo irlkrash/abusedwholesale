@@ -297,7 +297,7 @@ export class DatabaseStorage implements IStorage {
         throw new Error('Failed to fetch updated product');
       }
 
-      console.log('Successfully updated product with categories and prices:', updatedProduct);
+      console.log('Successfully updated product:', updatedProduct);
       return updatedProduct;
 
     } catch (error) {
@@ -681,7 +681,7 @@ export class DatabaseStorage implements IStorage {
           const highestCategoryPrice = Math.max(...validCategories.map(c => c.defaultPrice));
 
           await db.update(productsTable)
-            .set({ 
+            .set({
               categoryPrice: highestCategoryPrice,
               updatedAt: new Date()
             })
