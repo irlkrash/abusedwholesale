@@ -177,13 +177,7 @@ export default function HomePage() {
     });
   }, [hasNextSoldPage, isFetchingNextSoldPage, soldProducts.length]);
 
-  // Effect for loading more available products
   useEffect(() => {
-    console.log("Setting up observer for available products...", {
-      hasNextPage: hasNextAvailablePage,
-      ref: loadMoreRef.current ? "exists" : "missing"
-    });
-    
     const loadMoreElement = loadMoreRef.current;
     if (!loadMoreElement) return;
 
@@ -194,58 +188,38 @@ export default function HomePage() {
           void fetchNextAvailablePage();
         }
       },
-      { threshold: 0.1, rootMargin: '100px' }
+      { threshold: 0.1, rootMargin: '200px' }
     );
 
     observerAvailable.observe(loadMoreElement);
-    console.log("Available products observer attached");
 
     return () => {
       observerAvailable.unobserve(loadMoreElement);
       observerAvailable.disconnect();
-      console.log("Available products observer detached");
     };
-  }, [hasNextAvailablePage, isFetchingNextAvailablePage, fetchNextAvailablePage, loadMoreRef.current]);
+  }, [loadMoreRef.current, hasNextAvailablePage, isFetchingNextAvailablePage, fetchNextAvailablePage]);
 
-  // Effect for loading more sold products
   useEffect(() => {
-    // Use a small delay to ensure the DOM has updated
-    const timer = setTimeout(() => {
-      console.log("Setting up observer for sold products...", {
-        hasNextPage: hasNextSoldPage,
-        ref: loadMoreSoldRef.current ? "exists" : "missing"
-      });
-      
-      const loadMoreSoldElement = loadMoreSoldRef.current;
-      if (!loadMoreSoldElement) {
-        console.log("Sold products loading element not found in DOM yet");
-        return;
-      }
+    const loadMoreSoldElement = loadMoreSoldRef.current;
+    if (!loadMoreSoldElement) return;
 
-      const observerSold = new IntersectionObserver(
-        (entries) => {
-          if (entries[0].isIntersecting && hasNextSoldPage && !isFetchingNextSoldPage) {
-            console.log("Loading more sold products...");
-            void fetchNextSoldPage();
-          }
-        },
-        { threshold: 0.1, rootMargin: '100px' }
-      );
-
-      observerSold.observe(loadMoreSoldElement);
-      console.log("Sold products observer attached");
-
-      return () => {
-        if (loadMoreSoldElement) {
-          observerSold.unobserve(loadMoreSoldElement);
+    const observerSold = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextSoldPage && !isFetchingNextSoldPage) {
+          console.log("Loading more sold products...");
+          void fetchNextSoldPage();
         }
-        observerSold.disconnect();
-        console.log("Sold products observer detached");
-      };
-    }, 50);
+      },
+      { threshold: 0.1, rootMargin: '200px' }
+    );
 
-    return () => clearTimeout(timer);
-  }, [hasNextSoldPage, isFetchingNextSoldPage, fetchNextSoldPage, soldProducts.length]);
+    observerSold.observe(loadMoreSoldElement);
+
+    return () => {
+      observerSold.unobserve(loadMoreSoldElement);
+      observerSold.disconnect();
+    };
+  }, [loadMoreSoldRef.current, hasNextSoldPage, isFetchingNextSoldPage, fetchNextSoldPage]);
 
   const toggleCategory = (categoryId: number) => {
     setSelectedCategories(prev => {
@@ -397,21 +371,11 @@ export default function HomePage() {
           className="space-y-4"
           onValueChange={(value) => {
             if (value === "available") {
-              console.log("Switching to available products tab");
+              console.log("Refetching available products");
               refetchAvailable();
-              // Force observer to re-evaluate after tab switch
-              setTimeout(() => {
-                console.log("Re-triggering available observer check");
-                window.dispatchEvent(new Event('scroll'));
-              }, 100);
             } else if (value === "sold") {
-              console.log("Switching to sold products tab");
+              console.log("Refetching sold products");
               refetchSold();
-              // Force observer to re-evaluate after tab switch
-              setTimeout(() => {
-                console.log("Re-triggering sold observer check");
-                window.dispatchEvent(new Event('scroll'));
-              }, 100);
             }
           }}
         >
@@ -463,17 +427,9 @@ export default function HomePage() {
                     )
                   ))}
                 </div>
-                <div 
-                  ref={loadMoreRef} 
-                  className="h-20 flex items-center justify-center mt-4 mb-8 p-4 border-t border-muted"
-                  data-testid="available-load-more"
-                >
-                  {isFetchingNextAvailablePage ? (
+                <div ref={loadMoreRef} className="h-20 flex items-center justify-center mt-8">
+                  {isFetchingNextAvailablePage && (
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                  ) : hasNextAvailablePage ? (
-                    <div className="text-muted-foreground text-sm">Scroll for more available products</div>
-                  ) : (
-                    <div className="text-muted-foreground text-sm">No more available products</div>
                   )}
                 </div>
               </>
@@ -519,17 +475,13 @@ export default function HomePage() {
                     )
                   ))}
                 </div>
-                <div 
-                  ref={loadMoreSoldRef} 
-                  className="h-20 flex items-center justify-center mt-4 mb-8 p-4 border-t border-muted"
-                  data-testid="sold-load-more"
-                >
+                <div ref={loadMoreSoldRef} className="h-24 flex items-center justify-center mt-8">
                   {isFetchingNextSoldPage ? (
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                   ) : hasNextSoldPage ? (
-                    <div className="text-muted-foreground text-sm">Scroll for more sold items</div>
+                    <div className="text-muted-foreground text-sm">Scroll for more products</div>
                   ) : (
-                    <div className="text-muted-foreground text-sm">No more sold items</div>
+                    <div className="text-muted-foreground text-sm">No more products</div>
                   )}
                 </div>
               </>
