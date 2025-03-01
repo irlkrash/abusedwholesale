@@ -84,7 +84,7 @@ export default function HomePage() {
 
       const data = await response.json();
       return {
-        data: Array.isArray(data.data) ? data.data : [],
+        data: data.data.filter((product: Product) => product.isAvailable),
         nextPage: data.data && data.data.length === 12 ? pageParam + 1 : undefined,
         lastPage: !data.data || data.data.length < 12
       };
@@ -118,7 +118,7 @@ export default function HomePage() {
 
       const data = await response.json();
       return {
-        data: Array.isArray(data.data) ? data.data : [],
+        data: data.data.filter((product: Product) => !product.isAvailable),
         nextPage: data.data && data.data.length === 12 ? pageParam + 1 : undefined,
         lastPage: !data.data || data.data.length < 12
       };
@@ -184,12 +184,6 @@ export default function HomePage() {
       return;
     }
 
-    // Calculate the effective price (custom price or lowest category price)
-    const effectivePrice = product.customPrice ?? 
-      (product.categories?.length 
-        ? Math.min(...product.categories.map(cat => Number(cat.defaultPrice)))
-        : 0);
-
     const cartItem: CartItem = {
       productId: product.id,
       name: product.name,
@@ -197,8 +191,8 @@ export default function HomePage() {
       images: product.images,
       fullImages: product.fullImages || [],
       isAvailable: product.isAvailable,
-      price: String(Number(effectivePrice)),
-      createdAt: new Date().toISOString()
+      price: Number(product.customPrice ?? Math.min(...(product.categories?.map(cat => Number(cat.defaultPrice)) ?? [0]))),
+      createdAt: new Date()
     };
 
     setCartItems(prev => [...prev, cartItem]);
