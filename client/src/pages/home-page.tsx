@@ -64,7 +64,7 @@ export default function HomePage() {
     queryKey: ["/api/products/available", Array.from(selectedCategories)],
     queryFn: async ({ pageParam = 1 }) => {
       console.log("Fetching available products:", { pageParam, queryParams: `page=${pageParam}&limit=24&isAvailable=true` });
-      
+
       const queryParams = new URLSearchParams({
         page: pageParam.toString(),
         limit: '24',
@@ -153,7 +153,7 @@ export default function HomePage() {
   // Extract products from query results
   const availableProducts = availableProductsData?.pages?.flatMap(page => page.data) ?? [];
   const soldProducts = soldProductsData?.pages?.flatMap(page => page.data) ?? [];
-  
+
   console.log("Current product counts:", {
     available: availableProducts.length,
     sold: soldProducts.length,
@@ -180,7 +180,7 @@ export default function HomePage() {
   useEffect(() => {
     const loadMoreElement = loadMoreRef.current;
     if (!loadMoreElement) return;
-    
+
     const observerAvailable = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNextAvailablePage && !isFetchingNextAvailablePage) {
@@ -202,7 +202,7 @@ export default function HomePage() {
   useEffect(() => {
     const loadMoreSoldElement = loadMoreSoldRef.current;
     if (!loadMoreSoldElement) return;
-    
+
     const observerSold = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNextSoldPage && !isFetchingNextSoldPage) {
@@ -475,14 +475,13 @@ export default function HomePage() {
                     )
                   ))}
                 </div>
-                <div ref={loadMoreSoldRef} className="h-20 flex items-center justify-center mt-8">
-                  {isFetchingNextSoldPage && (
+                <div ref={loadMoreSoldRef} className="h-24 flex items-center justify-center mt-8">
+                  {isFetchingNextSoldPage ? (
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                  )}
-                </div>
-                <div ref={loadMoreSoldRef} className="h-20 flex items-center justify-center mt-8">
-                  {isFetchingNextSoldPage && (
-                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  ) : hasNextSoldPage ? (
+                    <div className="text-muted-foreground text-sm">Scroll for more products</div>
+                  ) : (
+                    <div className="text-muted-foreground text-sm">No more products</div>
                   )}
                 </div>
               </>
