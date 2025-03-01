@@ -75,6 +75,8 @@ export default function HomePage() {
         );
       }
 
+      console.log("Fetching available products:", { pageParam, queryParams: queryParams.toString() });
+
       const response = await apiRequest(
         "GET",
         `/api/products?${queryParams.toString()}`
@@ -83,10 +85,16 @@ export default function HomePage() {
       if (!response.ok) throw new Error('Failed to fetch available products');
 
       const data = await response.json();
+      console.log("Available products response:", { 
+        pageParam, 
+        dataLength: data.data.length,
+        hasMore: data.data.length === 24
+      });
+
       return {
-        data: data.data.filter((product: Product) => product.isAvailable),
-        nextPage: data.data && data.data.length === 24 ? pageParam + 1 : undefined,
-        lastPage: !data.data || data.data.length < 24
+        data: data.data,
+        nextPage: data.data.length === 24 ? pageParam + 1 : undefined,
+        lastPage: data.data.length < 24
       };
     },
     initialPageParam: 1,
@@ -109,6 +117,8 @@ export default function HomePage() {
         isAvailable: 'false'
       });
 
+      console.log("Fetching sold products:", { pageParam, queryParams: queryParams.toString() });
+
       const response = await apiRequest(
         "GET",
         `/api/products?${queryParams.toString()}`
@@ -117,10 +127,16 @@ export default function HomePage() {
       if (!response.ok) throw new Error('Failed to fetch sold products');
 
       const data = await response.json();
+      console.log("Sold products response:", { 
+        pageParam, 
+        dataLength: data.data.length,
+        hasMore: data.data.length === 24
+      });
+
       return {
-        data: data.data.filter((product: Product) => !product.isAvailable),
-        nextPage: data.data && data.data.length === 24 ? pageParam + 1 : undefined,
-        lastPage: !data.data || data.data.length < 24
+        data: data.data,
+        nextPage: data.data.length === 24 ? pageParam + 1 : undefined,
+        lastPage: data.data.length < 24
       };
     },
     initialPageParam: 1,
@@ -130,6 +146,11 @@ export default function HomePage() {
   // Extract products from query results
   const availableProducts = availableProductsData?.pages?.flatMap(page => page.data) ?? [];
   const soldProducts = soldProductsData?.pages?.flatMap(page => page.data) ?? [];
+
+  console.log("Current product counts:", {
+    available: availableProducts.length,
+    sold: soldProducts.length
+  });
 
   useEffect(() => {
     const observerAvailable = new IntersectionObserver(
