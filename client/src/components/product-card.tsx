@@ -11,9 +11,16 @@ interface ProductCardProps {
   onAddToCart: () => void;
   priority?: boolean;
   showDetails?: boolean;
+  disableAddToCart?: boolean;
 }
 
-export function ProductCard({ product, onAddToCart, priority = false, showDetails = false }: ProductCardProps) {
+export function ProductCard({ 
+  product, 
+  onAddToCart, 
+  priority = false, 
+  showDetails = false,
+  disableAddToCart = false 
+}: ProductCardProps) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedFullImage, setSelectedFullImage] = useState<string | null>(null);
 
@@ -69,11 +76,12 @@ export function ProductCard({ product, onAddToCart, priority = false, showDetail
       </CardContent>
       <CardFooter className="p-6">
         <Button 
-          onClick={onAddToCart}
-          disabled={!product.isAvailable}
+          onClick={disableAddToCart ? undefined : onAddToCart}
+          disabled={disableAddToCart || !product.isAvailable}
           className="w-full"
+          variant={disableAddToCart ? "secondary" : "default"}
         >
-          {product.isAvailable ? "Add to Cart" : "Currently Unavailable"}
+          {disableAddToCart ? "Sold" : product.isAvailable ? "Add to Cart" : "Currently Unavailable"}
         </Button>
       </CardFooter>
 
