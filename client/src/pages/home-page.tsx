@@ -156,11 +156,30 @@ export default function HomePage() {
   
   console.log("Current product counts:", {
     available: availableProducts.length,
-    sold: soldProducts.length
+    sold: soldProducts.length,
+    hasMoreAvailable: hasNextAvailablePage,
+    hasMoreSold: hasNextSoldPage
   });
 
   useEffect(() => {
-    if (!loadMoreRef.current) return;
+    console.log("Available products pagination state changed:", { 
+      hasNextPage: hasNextAvailablePage, 
+      isFetching: isFetchingNextAvailablePage,
+      productCount: availableProducts.length 
+    });
+  }, [hasNextAvailablePage, isFetchingNextAvailablePage, availableProducts.length]);
+
+  useEffect(() => {
+    console.log("Sold products pagination state changed:", { 
+      hasNextPage: hasNextSoldPage, 
+      isFetching: isFetchingNextSoldPage,
+      productCount: soldProducts.length 
+    });
+  }, [hasNextSoldPage, isFetchingNextSoldPage, soldProducts.length]);
+
+  useEffect(() => {
+    const loadMoreElement = loadMoreRef.current;
+    if (!loadMoreElement) return;
     
     const observerAvailable = new IntersectionObserver(
       (entries) => {
@@ -169,19 +188,20 @@ export default function HomePage() {
           void fetchNextAvailablePage();
         }
       },
-      { threshold: 0.1, rootMargin: '100px' }
+      { threshold: 0.1, rootMargin: '200px' }
     );
 
-    observerAvailable.observe(loadMoreRef.current);
+    observerAvailable.observe(loadMoreElement);
 
     return () => {
-      if (loadMoreRef.current) observerAvailable.unobserve(loadMoreRef.current);
+      observerAvailable.unobserve(loadMoreElement);
       observerAvailable.disconnect();
     };
-  }, [hasNextAvailablePage, isFetchingNextAvailablePage, fetchNextAvailablePage]);
+  }, [loadMoreRef.current, hasNextAvailablePage, isFetchingNextAvailablePage, fetchNextAvailablePage]);
 
   useEffect(() => {
-    if (!loadMoreSoldRef.current) return;
+    const loadMoreSoldElement = loadMoreSoldRef.current;
+    if (!loadMoreSoldElement) return;
     
     const observerSold = new IntersectionObserver(
       (entries) => {
@@ -190,16 +210,16 @@ export default function HomePage() {
           void fetchNextSoldPage();
         }
       },
-      { threshold: 0.1, rootMargin: '100px' }
+      { threshold: 0.1, rootMargin: '200px' }
     );
 
-    observerSold.observe(loadMoreSoldRef.current);
+    observerSold.observe(loadMoreSoldElement);
 
     return () => {
-      if (loadMoreSoldRef.current) observerSold.unobserve(loadMoreSoldRef.current);
+      observerSold.unobserve(loadMoreSoldElement);
       observerSold.disconnect();
     };
-  }, [hasNextSoldPage, isFetchingNextSoldPage, fetchNextSoldPage]);
+  }, [loadMoreSoldRef.current, hasNextSoldPage, isFetchingNextSoldPage, fetchNextSoldPage]);
 
   const toggleCategory = (categoryId: number) => {
     setSelectedCategories(prev => {
@@ -460,24 +480,11 @@ export default function HomePage() {
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                   )}
                 </div>
-                {hasNextSoldPage && (
-                  <div className="flex justify-center mt-4">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => fetchNextSoldPage()}
-                      disabled={isFetchingNextSoldPage}
-                    >
-                      {isFetchingNextSoldPage ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Loading...
-                        </>
-                      ) : (
-                        'Load More'
-                      )}
-                    </Button>
-                  </div>
-                )}
+                <div ref={loadMoreSoldRef} className="h-20 flex items-center justify-center mt-8">
+                  {isFetchingNextSoldPage && (
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  )}
+                </div>
               </>
             ) : (
               <Card>
