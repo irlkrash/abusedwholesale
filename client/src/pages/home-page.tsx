@@ -109,6 +109,7 @@ export default function HomePage() {
     isLoading: isLoadingSold,
     isError: isErrorSold,
     error: errorSold,
+    refetch: refetchSold
   } = useInfiniteQuery({
     queryKey: ["/api/products/sold", Array.from(selectedCategories)],
     queryFn: async ({ pageParam = 1 }) => {
@@ -159,35 +160,46 @@ export default function HomePage() {
   });
 
   useEffect(() => {
+    if (!loadMoreRef.current) return;
+    
     const observerAvailable = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNextAvailablePage && !isFetchingNextAvailablePage) {
+          console.log("Loading more available products...");
           void fetchNextAvailablePage();
         }
       },
       { threshold: 0.1, rootMargin: '100px' }
     );
 
+    observerAvailable.observe(loadMoreRef.current);
+
+    return () => {
+      if (loadMoreRef.current) observerAvailable.unobserve(loadMoreRef.current);
+      observerAvailable.disconnect();
+    };
+  }, [hasNextAvailablePage, isFetchingNextAvailablePage, fetchNextAvailablePage]);
+
+  useEffect(() => {
+    if (!loadMoreSoldRef.current) return;
+    
     const observerSold = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNextSoldPage && !isFetchingNextSoldPage) {
+          console.log("Loading more sold products...");
           void fetchNextSoldPage();
         }
       },
       { threshold: 0.1, rootMargin: '100px' }
     );
 
-    if (loadMoreRef.current) observerAvailable.observe(loadMoreRef.current);
-    if (loadMoreSoldRef.current) observerSold.observe(loadMoreSoldRef.current);
+    observerSold.observe(loadMoreSoldRef.current);
 
     return () => {
-      if (loadMoreRef.current) observerAvailable.unobserve(loadMoreRef.current);
       if (loadMoreSoldRef.current) observerSold.unobserve(loadMoreSoldRef.current);
-      observerAvailable.disconnect();
       observerSold.disconnect();
     };
-  }, [hasNextAvailablePage, isFetchingNextAvailablePage, fetchNextAvailablePage,
-      hasNextSoldPage, isFetchingNextSoldPage, fetchNextSoldPage]);
+  }, [hasNextSoldPage, isFetchingNextSoldPage, fetchNextSoldPage]);
 
   const toggleCategory = (categoryId: number) => {
     setSelectedCategories(prev => {
@@ -334,7 +346,19 @@ export default function HomePage() {
         )}
 
         {/* Products Tabs */}
-        <Tabs defaultValue="available" className="space-y-4">
+        <Tabs 
+          defaultValue="available" 
+          className="space-y-4"
+          onValueChange={(value) => {
+            if (value === "available") {
+              console.log("Refetching available products");
+              refetchAvailable();
+            } else if (value === "sold") {
+              console.log("Refetching sold products");
+              refetchSold();
+            }
+          }}
+        >
           <TabsList>
             <TabsTrigger value="available" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
@@ -436,6 +460,24 @@ export default function HomePage() {
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                   )}
                 </div>
+                {hasNextSoldPage && (
+                  <div className="flex justify-center mt-4">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => fetchNextSoldPage()}
+                      disabled={isFetchingNextSoldPage}
+                    >
+                      {isFetchingNextSoldPage ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Loading...
+                        </>
+                      ) : (
+                        'Load More'
+                      )}
+                    </Button>
+                  </div>
+                )}
               </>
             ) : (
               <Card>
