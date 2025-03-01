@@ -13,7 +13,7 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser & { isAdmin?: boolean }): Promise<User>;
-  getProducts(offset?: number, limit?: number, categoryIds?: number[]): Promise<Product[]>;
+  getProducts(offset?: number, limit?: number, categoryIds?: number[], showUnavailable?: boolean): Promise<Product[]>;
   getProduct(id: number): Promise<Product | undefined>;
   createProduct(product: Omit<Product, 'id'> & { categories?: number[] }): Promise<Product>;
   updateProduct(id: number, product: Partial<Product> & { categories?: number[] }): Promise<Product>;
@@ -33,6 +33,7 @@ export interface IStorage {
   getCategoriesWithCounts(): Promise<(Category & { productCount: number })[]>;
   addBulkProductCategories(productIds: number[], categoryIds: number[]): Promise<void>;
   refreshCartItems(cartId: number): Promise<void>;
+  deleteCartItem(cartId: number, itemId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -92,9 +93,9 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getProducts(pageOffset = 0, pageLimit = 12, categoryIds?: number[]): Promise<Product[]> {
+  async getProducts(pageOffset = 0, pageLimit = 12, categoryIds?: number[], showUnavailable?: boolean): Promise<Product[]> {
     try {
-      console.log(`Fetching products with offset: ${pageOffset}, limit: ${pageLimit}, categories: ${categoryIds}`);
+      console.log(`Fetching products with offset: ${pageOffset}, limit: ${pageLimit}, categories: ${categoryIds}, showUnavailable: ${showUnavailable}`);
 
       const limit = Math.max(1, Math.min(100, pageLimit));
 
@@ -122,6 +123,13 @@ export class DatabaseStorage implements IStorage {
           categoriesTable,
           eq(productCategories.categoryId, categoriesTable.id)
         );
+
+      // Add availability filter unless specifically showing unavailable items
+      if (!showUnavailable) {
+        query = query.where(eq(productsTable.isAvailable, true));
+      } else {
+        query = query.where(eq(productsTable.isAvailable, false));
+      }
 
       // Add category filter if categoryIds is provided
       if (categoryIds && categoryIds.length > 0) {
@@ -609,12 +617,16 @@ export class DatabaseStorage implements IStorage {
           name: categoriesTable.name,
           defaultPrice: categoriesTable.defaultPrice,
           createdAt: categoriesTable.createdAt,
-          productCount: sql<number>`count(${productCategories.productId})::int`,
+          productCount: sql<number>`count(CASE WHEN ${productsTable.isAvailable} = true THEN ${productCategories.productId} END)::int`,
         })
         .from(categoriesTable)
         .leftJoin(
           productCategories,
           eq(categoriesTable.id, productCategories.categoryId)
+        )
+        .leftJoin(
+          productsTable,
+          eq(productCategories.productId, productsTable.id)
         )
         .groupBy(categoriesTable.id)
         .orderBy(desc(categoriesTable.createdAt));
