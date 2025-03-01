@@ -140,7 +140,8 @@ export default function HomePage() {
         ? Math.min(...product.categories.map(cat => Number(cat.defaultPrice)))
         : 0);
 
-    const cartItem: CartItem = {
+    // Create a temporary cart item - actual id and cartId will be assigned when saved
+    const cartItem: Partial<CartItem> = {
       productId: product.id,
       name: product.name,
       description: product.description,
@@ -151,7 +152,7 @@ export default function HomePage() {
       createdAt: new Date()
     };
 
-    setCartItems(prev => [...prev, cartItem]);
+    setCartItems(prev => [...prev, cartItem as CartItem]);
     toast({
       title: "Added to cart",
       description: "Item has been added to your cart.",

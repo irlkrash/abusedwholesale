@@ -94,8 +94,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Category routes
   app.get("/api/categories", async (req, res) => {
     try {
-      // Updated to only count available products
-      const categories = await storage.getCategoriesWithCounts(true); // Pass true to only count available items
+      const categories = await storage.getCategoriesWithCounts();
       res.json(categories);
     } catch (error) {
       console.error('Error fetching categories:', error);
