@@ -4,7 +4,7 @@ import { Product, CartItem, Category } from "@shared/schema";
 import { ProductCard } from "@/components/product-card";
 import { CartOverlay } from "@/components/cart-overlay";
 import { Button } from "@/components/ui/button";
-import { Menu, ShoppingCart, LogIn, Loader2 } from "lucide-react";
+import { Menu, ShoppingCart, LogIn, Loader2, Package } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +22,12 @@ import {
   Card,
   CardContent,
 } from "@/components/ui/card";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
 export default function HomePage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -30,8 +36,9 @@ export default function HomePage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const soldLoadMoreRef = useRef<HTMLDivElement>(null);
 
-  // Update categories query to get counts
+  // Update categories query to get counts (only available items)
   const { data: categories = [] } = useQuery<(Category & { productCount: number })[]>({
     queryKey: ["/api/categories"],
     queryFn: async () => {
@@ -41,58 +48,70 @@ export default function HomePage() {
     },
   });
 
+  // Query for available products
   const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-    isError,
-    error,
-    refetch
+    data: availableData,
+    fetchNextPage: fetchNextAvailablePage,
+    hasNextPage: hasNextAvailablePage,
+    isFetchingNextPage: isFetchingNextAvailablePage,
+    isLoading: isLoadingAvailable,
+    isError: isErrorAvailable,
+    error: errorAvailable,
+    refetch: refetchAvailable
   } = useInfiniteQuery({
-    queryKey: ["/api/products", Array.from(selectedCategories)],
+    queryKey: ["/api/products", Array.from(selectedCategories), "available"],
     queryFn: async ({ pageParam = 1 }) => {
-      try {
-        const queryParams = new URLSearchParams({
-          page: pageParam.toString(),
-          limit: '12'
-        });
+      const queryParams = new URLSearchParams({
+        page: pageParam.toString(),
+        limit: '12',
+        showUnavailable: 'false'
+      });
 
-        // Add category filter parameters
-        if (selectedCategories.size > 0) {
-          Array.from(selectedCategories).forEach(categoryId =>
-            queryParams.append('categoryId', categoryId.toString())
-          );
-        }
-
-        const response = await apiRequest(
-          "GET",
-          `/api/products?${queryParams.toString()}`
+      if (selectedCategories.size > 0) {
+        Array.from(selectedCategories).forEach(categoryId =>
+          queryParams.append('categoryId', categoryId.toString())
         );
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch products');
-        }
-
-        const data = await response.json();
-        return {
-          data: Array.isArray(data.data) ? data.data : [],
-          nextPage: data.data && data.data.length === 12 ? pageParam + 1 : undefined,
-          lastPage: !data.data || data.data.length < 12
-        };
-      } catch (err) {
-        console.error("Failed to fetch products:", err);
-        throw err;
       }
+
+      const response = await apiRequest(
+        "GET",
+        `/api/products?${queryParams.toString()}`
+      );
+
+      if (!response.ok) throw new Error('Failed to fetch products');
+      return await response.json();
     },
     initialPageParam: 1,
     getNextPageParam: (lastPage) => lastPage.nextPage,
   });
 
-  // Safely extract products with null checks
-  const allProducts = data?.pages?.flatMap(page => page.data ?? []) ?? [];
+  // Query for sold (unavailable) products
+  const {
+    data: soldData,
+    fetchNextPage: fetchNextSoldPage,
+    hasNextPage: hasNextSoldPage,
+    isFetchingNextPage: isFetchingNextSoldPage,
+    isLoading: isLoadingSold,
+  } = useInfiniteQuery({
+    queryKey: ["/api/products", "sold"],
+    queryFn: async ({ pageParam = 1 }) => {
+      const response = await apiRequest(
+        "GET",
+        `/api/products?page=${pageParam}&limit=12&showUnavailable=true`
+      );
 
+      if (!response.ok) throw new Error('Failed to fetch sold products');
+      return await response.json();
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.nextPage,
+  });
+
+  // Extract products from query results
+  const availableProducts = availableData?.pages?.flatMap(page => page.data ?? []) ?? [];
+  const soldProducts = soldData?.pages?.flatMap(page => page.data ?? []) ?? [];
+
+  // Category toggle handler
   const toggleCategory = (categoryId: number) => {
     setSelectedCategories(prev => {
       const newSet = new Set(prev);
@@ -105,6 +124,7 @@ export default function HomePage() {
     });
   };
 
+  // Cart handlers
   const handleAddToCart = (product: Product) => {
     if (cartItems.some(item => item.productId === product.id)) {
       toast({
@@ -115,7 +135,6 @@ export default function HomePage() {
       return;
     }
 
-    // Calculate the effective price (custom price or lowest category price)
     const effectivePrice = product.customPrice ?? 
       (product.categories?.length 
         ? Math.min(...product.categories.map(cat => Number(cat.defaultPrice)))
@@ -128,8 +147,8 @@ export default function HomePage() {
       images: product.images,
       fullImages: product.fullImages || [],
       isAvailable: product.isAvailable,
-      price: String(Number(effectivePrice)),
-      createdAt: new Date().toISOString()
+      price: effectivePrice,
+      createdAt: new Date()
     };
 
     setCartItems(prev => [...prev, cartItem]);
@@ -139,36 +158,44 @@ export default function HomePage() {
     });
   };
 
+  // Intersection observers for infinite scroll
   useEffect(() => {
-    const observer = new IntersectionObserver(
+    const availableObserver = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          void fetchNextPage();
+        if (entries[0].isIntersecting && hasNextAvailablePage && !isFetchingNextAvailablePage) {
+          void fetchNextAvailablePage();
         }
       },
-      {
-        threshold: 0.1,
-        rootMargin: '100px'
-      }
+      { threshold: 0.1, rootMargin: '100px' }
     );
 
-    const currentRef = loadMoreRef.current;
-    if (currentRef) {
-      observer.observe(currentRef);
-    }
+    const soldObserver = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextSoldPage && !isFetchingNextSoldPage) {
+          void fetchNextSoldPage();
+        }
+      },
+      { threshold: 0.1, rootMargin: '100px' }
+    );
+
+    if (loadMoreRef.current) availableObserver.observe(loadMoreRef.current);
+    if (soldLoadMoreRef.current) soldObserver.observe(soldLoadMoreRef.current);
 
     return () => {
-      if (currentRef) {
-        observer.unobserve(currentRef);
-      }
-      observer.disconnect();
+      if (loadMoreRef.current) availableObserver.unobserve(loadMoreRef.current);
+      if (soldLoadMoreRef.current) soldObserver.unobserve(soldLoadMoreRef.current);
+      availableObserver.disconnect();
+      soldObserver.disconnect();
     };
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [
+    hasNextAvailablePage, isFetchingNextAvailablePage, fetchNextAvailablePage,
+    hasNextSoldPage, isFetchingNextSoldPage, fetchNextSoldPage
+  ]);
 
   // Effect to refetch when categories change
   useEffect(() => {
-    void refetch();
-  }, [selectedCategories, refetch]);
+    void refetchAvailable();
+  }, [selectedCategories, refetchAvailable]);
 
   const NavMenu = () => (
     <>
@@ -264,59 +291,116 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Products Grid */}
-        {isLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {Array.from({ length: 8 }).map((_, index) => (
-              <Card key={index} className="animate-pulse">
-                <CardContent className="p-0">
-                  <div className="w-full h-48 bg-muted"></div>
-                  <div className="p-4 space-y-3">
-                    <div className="h-4 bg-muted rounded w-3/4"></div>
-                    <div className="h-4 bg-muted rounded w-1/2"></div>
-                  </div>
+        {/* Products Tabs */}
+        <Tabs defaultValue="available" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="available">Available Items</TabsTrigger>
+            <TabsTrigger value="sold">Sold Items</TabsTrigger>
+          </TabsList>
+
+          {/* Available Products Tab */}
+          <TabsContent value="available">
+            {isLoadingAvailable ? (
+              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {Array.from({ length: 8 }).map((_, index) => (
+                  <Card key={index} className="animate-pulse">
+                    <CardContent className="p-0">
+                      <div className="w-full h-48 bg-muted"></div>
+                      <div className="p-4 space-y-3">
+                        <div className="h-4 bg-muted rounded w-3/4"></div>
+                        <div className="h-4 bg-muted rounded w-1/2"></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : isErrorAvailable ? (
+              <Card>
+                <CardContent className="p-6 text-center text-muted-foreground">
+                  Error loading products. Please try again later.
+                  {errorAvailable instanceof Error && <p>{errorAvailable.message}</p>}
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        ) : isError ? (
-          <Card>
-            <CardContent className="p-6 text-center text-muted-foreground">
-              Error loading products. Please try again later.
-              {error instanceof Error && <p>{error.message}</p>}
-            </CardContent>
-          </Card>
-        ) : allProducts.length > 0 ? (
-          <>
-            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {allProducts.map((product, index) => (
-                product && (
-                  <ProductCard
-                    key={`${product.id}-${index}`}
-                    product={product}
-                    onAddToCart={() => handleAddToCart(product)}
-                    priority={index < 8}
-                    showDetails={false}
-                  />
-                )
-              ))}
-            </div>
+            ) : availableProducts.length > 0 ? (
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {availableProducts.map((product, index) => (
+                    product && (
+                      <ProductCard
+                        key={`${product.id}-${index}`}
+                        product={product}
+                        onAddToCart={() => handleAddToCart(product)}
+                        priority={index < 8}
+                        showDetails={false}
+                      />
+                    )
+                  ))}
+                </div>
 
-            <div ref={loadMoreRef} className="h-20 flex items-center justify-center mt-8">
-              {isFetchingNextPage && (
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-              )}
-            </div>
-          </>
-        ) : (
-          <Card>
-            <CardContent className="p-6 text-center text-muted-foreground">
-              {selectedCategories.size > 0
-                ? "No products found in the selected categories."
-                : "No products available."}
-            </CardContent>
-          </Card>
-        )}
+                <div ref={loadMoreRef} className="h-20 flex items-center justify-center mt-8">
+                  {isFetchingNextAvailablePage && (
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  )}
+                </div>
+              </>
+            ) : (
+              <Card>
+                <CardContent className="p-6 text-center text-muted-foreground">
+                  {selectedCategories.size > 0
+                    ? "No available products found in the selected categories."
+                    : "No available products found."}
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* Sold Products Tab */}
+          <TabsContent value="sold">
+            {isLoadingSold ? (
+              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {Array.from({ length: 8 }).map((_, index) => (
+                  <Card key={index} className="animate-pulse">
+                    <CardContent className="p-0">
+                      <div className="w-full h-48 bg-muted"></div>
+                      <div className="p-4 space-y-3">
+                        <div className="h-4 bg-muted rounded w-3/4"></div>
+                        <div className="h-4 bg-muted rounded w-1/2"></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : soldProducts.length > 0 ? (
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {soldProducts.map((product, index) => (
+                    product && (
+                      <ProductCard
+                        key={`${product.id}-${index}`}
+                        product={product}
+                        onAddToCart={() => handleAddToCart(product)}
+                        priority={index < 8}
+                        showDetails={false}
+                      />
+                    )
+                  ))}
+                </div>
+
+                <div ref={soldLoadMoreRef} className="h-20 flex items-center justify-center mt-8">
+                  {isFetchingNextSoldPage && (
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  )}
+                </div>
+              </>
+            ) : (
+              <Card>
+                <CardContent className="p-6 text-center text-muted-foreground">
+                  No sold items to display.
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
 
         <CartOverlay
           isOpen={isCartOpen}

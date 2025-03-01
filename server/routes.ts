@@ -94,7 +94,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Category routes
   app.get("/api/categories", async (req, res) => {
     try {
-      const categories = await storage.getCategoriesWithCounts();
+      // Updated to only count available products
+      const categories = await storage.getCategoriesWithCounts(true); // Pass true to only count available items
       res.json(categories);
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -292,7 +293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update GET /api/products to handle category filtering and pricing
+  // Update GET /api/products to handle category filtering, pricing, and availability
   app.get("/api/products", async (req, res) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
@@ -303,10 +304,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           [parseInt(req.query.categoryId as string)] 
         : undefined;
       const offset = (page - 1) * limit;
+      const showUnavailable = req.query.showUnavailable === 'true';
 
-      console.log(`Fetching products page ${page} with limit ${limit}, categoryId: ${categoryId}`);
-      const products = await storage.getProducts(offset, limit, categoryId);
-      console.log(`Found ${products.length} products in categories:`, categoryId);
+      console.log(`Fetching products page ${page} with limit ${limit}, categoryId: ${categoryId}, showUnavailable: ${showUnavailable}`);
+      const products = await storage.getProducts(offset, limit, categoryId, showUnavailable);
+      console.log(`Found ${products.length} products matching criteria`);
 
       res.json({
         data: products || [],
