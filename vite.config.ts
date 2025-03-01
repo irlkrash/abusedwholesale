@@ -13,13 +13,13 @@ export default defineConfig({
     runtimeErrorOverlay(),
     themePlugin(),
     ...(process.env.NODE_ENV !== "production" &&
-    process.env.REPL_ID !== undefined
-      ? [
-          await import("@replit/vite-plugin-cartographer").then((m) =>
-            m.cartographer(),
-          ),
-        ]
-      : []),
+      process.env.REPL_ID !== undefined
+        ? [
+            await import("@replit/vite-plugin-cartographer").then((m) =>
+              m.cartographer(),
+            ),
+          ]
+        : []),
   ],
   resolve: {
     alias: {
@@ -28,7 +28,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    exclude: ["@tanstack/react-query"],
+    exclude: ["@tanstack/react-query", "embla-carousel-react"], // Added embla-carousel-react to exclude list
     force: true
   },
   root: path.resolve(__dirname, "client"),
