@@ -65,7 +65,7 @@ export default function HomePage() {
     queryFn: async ({ pageParam = 1 }) => {
       const queryParams = new URLSearchParams({
         page: pageParam.toString(),
-        limit: '24',  // Increased page size
+        limit: '12',
         isAvailable: 'true'
       });
 
@@ -75,8 +75,6 @@ export default function HomePage() {
         );
       }
 
-      console.log("Fetching available products:", { pageParam, queryParams: queryParams.toString() });
-
       const response = await apiRequest(
         "GET",
         `/api/products?${queryParams.toString()}`
@@ -85,16 +83,10 @@ export default function HomePage() {
       if (!response.ok) throw new Error('Failed to fetch available products');
 
       const data = await response.json();
-      console.log("Available products response:", { 
-        pageParam, 
-        dataLength: data.data.length,
-        hasMore: data.data.length === 24
-      });
-
       return {
-        data: data.data,
-        nextPage: data.data.length === 24 ? pageParam + 1 : undefined,
-        lastPage: data.data.length < 24
+        data: Array.isArray(data.data) ? data.data : [],
+        nextPage: data.data && data.data.length === 12 ? pageParam + 1 : undefined,
+        lastPage: !data.data || data.data.length < 12
       };
     },
     initialPageParam: 1,
@@ -113,11 +105,9 @@ export default function HomePage() {
     queryFn: async ({ pageParam = 1 }) => {
       const queryParams = new URLSearchParams({
         page: pageParam.toString(),
-        limit: '24',  // Increased page size
+        limit: '12',
         isAvailable: 'false'
       });
-
-      console.log("Fetching sold products:", { pageParam, queryParams: queryParams.toString() });
 
       const response = await apiRequest(
         "GET",
@@ -127,16 +117,10 @@ export default function HomePage() {
       if (!response.ok) throw new Error('Failed to fetch sold products');
 
       const data = await response.json();
-      console.log("Sold products response:", { 
-        pageParam, 
-        dataLength: data.data.length,
-        hasMore: data.data.length === 24
-      });
-
       return {
-        data: data.data,
-        nextPage: data.data.length === 24 ? pageParam + 1 : undefined,
-        lastPage: data.data.length < 24
+        data: Array.isArray(data.data) ? data.data : [],
+        nextPage: data.data && data.data.length === 12 ? pageParam + 1 : undefined,
+        lastPage: !data.data || data.data.length < 12
       };
     },
     initialPageParam: 1,
@@ -147,30 +131,23 @@ export default function HomePage() {
   const availableProducts = availableProductsData?.pages?.flatMap(page => page.data) ?? [];
   const soldProducts = soldProductsData?.pages?.flatMap(page => page.data) ?? [];
 
-  console.log("Current product counts:", {
-    available: availableProducts.length,
-    sold: soldProducts.length
-  });
-
   useEffect(() => {
     const observerAvailable = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNextAvailablePage && !isFetchingNextAvailablePage) {
-          console.log("Loading more available products...");
           void fetchNextAvailablePage();
         }
       },
-      { threshold: 0.1, rootMargin: '200px' }  // Increased margin to load earlier
+      { threshold: 0.1, rootMargin: '100px' }
     );
 
     const observerSold = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNextSoldPage && !isFetchingNextSoldPage) {
-          console.log("Loading more sold products...");
           void fetchNextSoldPage();
         }
       },
-      { threshold: 0.1, rootMargin: '200px' }  // Increased margin to load earlier
+      { threshold: 0.1, rootMargin: '100px' }
     );
 
     if (loadMoreRef.current) observerAvailable.observe(loadMoreRef.current);
@@ -207,6 +184,12 @@ export default function HomePage() {
       return;
     }
 
+    // Calculate the effective price (custom price or lowest category price)
+    const effectivePrice = product.customPrice ?? 
+      (product.categories?.length 
+        ? Math.min(...product.categories.map(cat => Number(cat.defaultPrice)))
+        : 0);
+
     const cartItem: CartItem = {
       productId: product.id,
       name: product.name,
@@ -214,8 +197,8 @@ export default function HomePage() {
       images: product.images,
       fullImages: product.fullImages || [],
       isAvailable: product.isAvailable,
-      price: Number(product.customPrice ?? Math.min(...(product.categories?.map(cat => Number(cat.defaultPrice)) ?? [0]))),
-      createdAt: new Date()
+      price: String(Number(effectivePrice)),
+      createdAt: new Date().toISOString()
     };
 
     setCartItems(prev => [...prev, cartItem]);
