@@ -63,6 +63,8 @@ export default function HomePage() {
   } = useInfiniteQuery({
     queryKey: ["/api/products/available", Array.from(selectedCategories)],
     queryFn: async ({ pageParam = 1 }) => {
+      console.log("Fetching available products:", { pageParam, queryParams: `page=${pageParam}&limit=24&isAvailable=true` });
+      
       const queryParams = new URLSearchParams({
         page: pageParam.toString(),
         limit: '24',
@@ -150,6 +152,11 @@ export default function HomePage() {
   // Extract products from query results
   const availableProducts = availableProductsData?.pages?.flatMap(page => page.data) ?? [];
   const soldProducts = soldProductsData?.pages?.flatMap(page => page.data) ?? [];
+  
+  console.log("Current product counts:", {
+    available: availableProducts.length,
+    sold: soldProducts.length
+  });
 
   useEffect(() => {
     const observerAvailable = new IntersectionObserver(
