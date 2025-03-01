@@ -197,12 +197,13 @@ export default function HomePage() {
       observerAvailable.unobserve(loadMoreElement);
       observerAvailable.disconnect();
     };
-  }, [loadMoreRef.current, hasNextAvailablePage, isFetchingNextAvailablePage, fetchNextAvailablePage]);
+  }, [hasNextAvailablePage, isFetchingNextAvailablePage, fetchNextAvailablePage]);
 
   useEffect(() => {
     const loadMoreSoldElement = loadMoreSoldRef.current;
     if (!loadMoreSoldElement) return;
 
+    console.log("Setting up observer for sold products...");
     const observerSold = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNextSoldPage && !isFetchingNextSoldPage) {
@@ -219,7 +220,7 @@ export default function HomePage() {
       observerSold.unobserve(loadMoreSoldElement);
       observerSold.disconnect();
     };
-  }, [loadMoreSoldRef.current, hasNextSoldPage, isFetchingNextSoldPage, fetchNextSoldPage]);
+  }, [hasNextSoldPage, isFetchingNextSoldPage, fetchNextSoldPage]);
 
   const toggleCategory = (categoryId: number) => {
     setSelectedCategories(prev => {
@@ -479,9 +480,9 @@ export default function HomePage() {
                   {isFetchingNextSoldPage ? (
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                   ) : hasNextSoldPage ? (
-                    <div className="text-muted-foreground text-sm">Scroll for more products</div>
+                    <div className="text-muted-foreground text-sm">Scroll for more sold items</div>
                   ) : (
-                    <div className="text-muted-foreground text-sm">No more products</div>
+                    <div className="text-muted-foreground text-sm">No more sold items</div>
                   )}
                 </div>
               </>
