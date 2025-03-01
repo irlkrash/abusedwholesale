@@ -59,7 +59,7 @@ export default function HomePage() {
     error: errorAvailable,
     refetch: refetchAvailable
   } = useInfiniteQuery({
-    queryKey: ["/api/products", Array.from(selectedCategories), "available"],
+    queryKey: ["/api/products", "available", Array.from(selectedCategories)],
     queryFn: async ({ pageParam = 1 }) => {
       const queryParams = new URLSearchParams({
         page: pageParam.toString(),
@@ -79,7 +79,12 @@ export default function HomePage() {
       );
 
       if (!response.ok) throw new Error('Failed to fetch products');
-      return await response.json();
+      const data = await response.json();
+      return {
+        data: data.data || [],
+        nextPage: data.nextPage,
+        lastPage: data.lastPage
+      };
     },
     initialPageParam: 1,
     getNextPageParam: (lastPage) => lastPage.nextPage,
@@ -101,15 +106,20 @@ export default function HomePage() {
       );
 
       if (!response.ok) throw new Error('Failed to fetch sold products');
-      return await response.json();
+      const data = await response.json();
+      return {
+        data: data.data || [],
+        nextPage: data.nextPage,
+        lastPage: data.lastPage
+      };
     },
     initialPageParam: 1,
     getNextPageParam: (lastPage) => lastPage.nextPage,
   });
 
   // Extract products from query results
-  const availableProducts = availableData?.pages?.flatMap(page => page.data ?? []) ?? [];
-  const soldProducts = soldData?.pages?.flatMap(page => page.data ?? []) ?? [];
+  const availableProducts = availableData?.pages?.flatMap(page => page.data) ?? [];
+  const soldProducts = soldData?.pages?.flatMap(page => page.data) ?? [];
 
   // Category toggle handler
   const toggleCategory = (categoryId: number) => {
@@ -140,19 +150,20 @@ export default function HomePage() {
         ? Math.min(...product.categories.map(cat => Number(cat.defaultPrice)))
         : 0);
 
-    // Create a temporary cart item - actual id and cartId will be assigned when saved
-    const cartItem: Partial<CartItem> = {
+    const cartItem: CartItem = {
+      id: Math.random(), // Temporary ID for frontend only
+      cartId: -1, // Temporary cartId for frontend only
       productId: product.id,
       name: product.name,
-      description: product.description,
-      images: product.images,
+      description: product.description || '',
+      images: product.images || [],
       fullImages: product.fullImages || [],
       isAvailable: product.isAvailable,
       price: effectivePrice,
       createdAt: new Date()
     };
 
-    setCartItems(prev => [...prev, cartItem as CartItem]);
+    setCartItems(prev => [...prev, cartItem]);
     toast({
       title: "Added to cart",
       description: "Item has been added to your cart.",
