@@ -370,12 +370,13 @@ export default function HomePage() {
           defaultValue="available" 
           className="space-y-4"
           onValueChange={(value) => {
+            console.log("Tab changed to:", value);
             if (value === "available") {
               console.log("Refetching available products");
-              refetchAvailable();
+              void refetchAvailable();
             } else if (value === "sold") {
               console.log("Refetching sold products");
-              refetchSold();
+              void refetchSold();
             }
           }}
         >
