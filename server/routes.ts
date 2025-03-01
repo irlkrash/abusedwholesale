@@ -292,7 +292,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update GET /api/products to handle category filtering, pricing, and availability
+  // Update GET /api/products to handle category filtering and pricing
   app.get("/api/products", async (req, res) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
@@ -303,11 +303,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           [parseInt(req.query.categoryId as string)] 
         : undefined;
       const offset = (page - 1) * limit;
-      const showUnavailable = req.query.showUnavailable === 'true';
 
-      console.log(`Fetching products page ${page} with limit ${limit}, categoryId: ${categoryId}, showUnavailable: ${showUnavailable}`);
-      const products = await storage.getProducts(offset, limit, categoryId, showUnavailable);
-      console.log(`Found ${products.length} products matching criteria`);
+      console.log(`Fetching products page ${page} with limit ${limit}, categoryId: ${categoryId}`);
+      const products = await storage.getProducts(offset, limit, categoryId);
+      console.log(`Found ${products.length} products in categories:`, categoryId);
 
       res.json({
         data: products || [],
