@@ -65,7 +65,7 @@ export default function HomePage() {
     queryFn: async ({ pageParam = 1 }) => {
       const queryParams = new URLSearchParams({
         page: pageParam.toString(),
-        limit: '12',
+        limit: '24',
         isAvailable: 'true'
       });
 
@@ -83,10 +83,15 @@ export default function HomePage() {
       if (!response.ok) throw new Error('Failed to fetch available products');
 
       const data = await response.json();
+      console.log("Available products response:", {
+        pageParam,
+        dataLength: data.data.length,
+        hasMore: !!data.nextPage
+      });
       return {
         data: Array.isArray(data.data) ? data.data : [],
-        nextPage: data.data && data.data.length === 12 ? pageParam + 1 : undefined,
-        lastPage: !data.data || data.data.length < 12
+        nextPage: data.data && data.data.length === 24 ? pageParam + 1 : undefined,
+        lastPage: !data.data || data.data.length < 24
       };
     },
     initialPageParam: 1,
@@ -100,14 +105,24 @@ export default function HomePage() {
     hasNextPage: hasNextSoldPage,
     isFetchingNextPage: isFetchingNextSoldPage,
     isLoading: isLoadingSold,
+    isError: isErrorSold,
+    error: errorSold,
   } = useInfiniteQuery({
-    queryKey: ["/api/products/sold"],
+    queryKey: ["/api/products/sold", Array.from(selectedCategories)],
     queryFn: async ({ pageParam = 1 }) => {
+      console.log("Fetching sold products:", { pageParam, queryParams: `page=${pageParam}&limit=24&isAvailable=false` });
+
       const queryParams = new URLSearchParams({
         page: pageParam.toString(),
-        limit: '12',
+        limit: '24',
         isAvailable: 'false'
       });
+
+      if (selectedCategories.size > 0) {
+        Array.from(selectedCategories).forEach(categoryId =>
+          queryParams.append('categoryId', categoryId.toString())
+        );
+      }
 
       const response = await apiRequest(
         "GET",
@@ -117,10 +132,15 @@ export default function HomePage() {
       if (!response.ok) throw new Error('Failed to fetch sold products');
 
       const data = await response.json();
+      console.log("Sold products response:", {
+        pageParam,
+        dataLength: data.data.length,
+        hasMore: !!data.nextPage
+      });
       return {
         data: Array.isArray(data.data) ? data.data : [],
-        nextPage: data.data && data.data.length === 12 ? pageParam + 1 : undefined,
-        lastPage: !data.data || data.data.length < 12
+        nextPage: data.data && data.data.length === 24 ? pageParam + 1 : undefined,
+        lastPage: !data.data || data.data.length < 24
       };
     },
     initialPageParam: 1,

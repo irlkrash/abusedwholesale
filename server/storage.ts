@@ -92,9 +92,9 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getProducts(pageOffset = 0, pageLimit = 12, categoryIds?: number[]): Promise<Product[]> {
+  async getProducts(pageOffset = 0, pageLimit = 12, categoryIds?: number[], isAvailable?: boolean): Promise<Product[]> {
     try {
-      console.log(`Fetching products with offset: ${pageOffset}, limit: ${pageLimit}, categories: ${categoryIds}`);
+      console.log(`Fetching products with offset: ${pageOffset}, limit: ${pageLimit}, categories: ${categoryIds}, isAvailable: ${isAvailable}`);
 
       const limit = Math.max(1, Math.min(100, pageLimit));
 
@@ -122,6 +122,11 @@ export class DatabaseStorage implements IStorage {
           categoriesTable,
           eq(productCategories.categoryId, categoriesTable.id)
         );
+
+      // Add availability filter if provided
+      if (isAvailable !== undefined) {
+        query = query.where(eq(productsTable.isAvailable, isAvailable));
+      }
 
       // Add category filter if categoryIds is provided
       if (categoryIds && categoryIds.length > 0) {

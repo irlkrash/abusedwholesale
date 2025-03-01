@@ -297,6 +297,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 12;
+      const isAvailable = req.query.isAvailable === 'true' ? true : 
+                         (req.query.isAvailable === 'false' ? false : undefined);
       const categoryId = req.query.categoryId ? 
         Array.isArray(req.query.categoryId) ? 
           req.query.categoryId.map(id => parseInt(id as string)) :
@@ -304,8 +306,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         : undefined;
       const offset = (page - 1) * limit;
 
-      console.log(`Fetching products page ${page} with limit ${limit}, categoryId: ${categoryId}`);
-      const products = await storage.getProducts(offset, limit, categoryId);
+      console.log(`Fetching products page ${page} with limit ${limit}, categoryId: ${categoryId}, isAvailable: ${isAvailable}`);
+      const products = await storage.getProducts(offset, limit, categoryId, isAvailable);
       console.log(`Found ${products.length} products in categories:`, categoryId);
 
       res.json({
