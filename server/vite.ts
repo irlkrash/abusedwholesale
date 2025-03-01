@@ -6,6 +6,7 @@ import { createServer as createViteServer, createLogger } from "vite";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 import { type Server } from "http";
+import http from 'http';
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
 
@@ -88,3 +89,27 @@ export function serveStatic(app: Express) {
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
+
+const app = express();
+const httpServer = http.createServer(app);
+
+const startServer = async (initialPort: number): Promise<void> => {
+  try {
+    console.log('Environment:', process.env.NODE_ENV);
+    console.log('Starting server on port:', initialPort);
+
+    await new Promise<void>((resolve, reject) => {
+      httpServer.listen(initialPort, '0.0.0.0', () => {
+        console.log(`Server started successfully on port ${initialPort}`);
+        resolve();
+      });
+    });
+    await setupVite(app, httpServer);
+  } catch (error) {
+    console.error("Failed to start server:", error);
+    process.exit(1);
+  }
+};
+
+
+export default startServer;
