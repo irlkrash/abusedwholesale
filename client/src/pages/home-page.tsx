@@ -209,33 +209,43 @@ export default function HomePage() {
 
   // Effect for loading more sold products
   useEffect(() => {
-    console.log("Setting up observer for sold products...", {
-      hasNextPage: hasNextSoldPage,
-      ref: loadMoreSoldRef.current ? "exists" : "missing"
-    });
-    
-    const loadMoreSoldElement = loadMoreSoldRef.current;
-    if (!loadMoreSoldElement) return;
+    // Use a small delay to ensure the DOM has updated
+    const timer = setTimeout(() => {
+      console.log("Setting up observer for sold products...", {
+        hasNextPage: hasNextSoldPage,
+        ref: loadMoreSoldRef.current ? "exists" : "missing"
+      });
+      
+      const loadMoreSoldElement = loadMoreSoldRef.current;
+      if (!loadMoreSoldElement) {
+        console.log("Sold products loading element not found in DOM yet");
+        return;
+      }
 
-    const observerSold = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNextSoldPage && !isFetchingNextSoldPage) {
-          console.log("Loading more sold products...");
-          void fetchNextSoldPage();
+      const observerSold = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting && hasNextSoldPage && !isFetchingNextSoldPage) {
+            console.log("Loading more sold products...");
+            void fetchNextSoldPage();
+          }
+        },
+        { threshold: 0.1, rootMargin: '100px' }
+      );
+
+      observerSold.observe(loadMoreSoldElement);
+      console.log("Sold products observer attached");
+
+      return () => {
+        if (loadMoreSoldElement) {
+          observerSold.unobserve(loadMoreSoldElement);
         }
-      },
-      { threshold: 0.1, rootMargin: '100px' }
-    );
+        observerSold.disconnect();
+        console.log("Sold products observer detached");
+      };
+    }, 50);
 
-    observerSold.observe(loadMoreSoldElement);
-    console.log("Sold products observer attached");
-
-    return () => {
-      observerSold.unobserve(loadMoreSoldElement);
-      observerSold.disconnect();
-      console.log("Sold products observer detached");
-    };
-  }, [hasNextSoldPage, isFetchingNextSoldPage, fetchNextSoldPage, loadMoreSoldRef.current]);
+    return () => clearTimeout(timer);
+  }, [hasNextSoldPage, isFetchingNextSoldPage, fetchNextSoldPage, soldProducts.length]);
 
   const toggleCategory = (categoryId: number) => {
     setSelectedCategories(prev => {
@@ -387,11 +397,21 @@ export default function HomePage() {
           className="space-y-4"
           onValueChange={(value) => {
             if (value === "available") {
-              console.log("Refetching available products");
+              console.log("Switching to available products tab");
               refetchAvailable();
+              // Force observer to re-evaluate after tab switch
+              setTimeout(() => {
+                console.log("Re-triggering available observer check");
+                window.dispatchEvent(new Event('scroll'));
+              }, 100);
             } else if (value === "sold") {
-              console.log("Refetching sold products");
+              console.log("Switching to sold products tab");
               refetchSold();
+              // Force observer to re-evaluate after tab switch
+              setTimeout(() => {
+                console.log("Re-triggering sold observer check");
+                window.dispatchEvent(new Event('scroll'));
+              }, 100);
             }
           }}
         >
