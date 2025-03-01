@@ -65,7 +65,7 @@ export default function HomePage() {
     queryFn: async ({ pageParam = 1 }) => {
       const queryParams = new URLSearchParams({
         page: pageParam.toString(),
-        limit: '12',
+        limit: '24',  // Increased page size
         isAvailable: 'true'
       });
 
@@ -85,8 +85,8 @@ export default function HomePage() {
       const data = await response.json();
       return {
         data: data.data.filter((product: Product) => product.isAvailable),
-        nextPage: data.data && data.data.length === 12 ? pageParam + 1 : undefined,
-        lastPage: !data.data || data.data.length < 12
+        nextPage: data.data && data.data.length === 24 ? pageParam + 1 : undefined,
+        lastPage: !data.data || data.data.length < 24
       };
     },
     initialPageParam: 1,
@@ -105,7 +105,7 @@ export default function HomePage() {
     queryFn: async ({ pageParam = 1 }) => {
       const queryParams = new URLSearchParams({
         page: pageParam.toString(),
-        limit: '12',
+        limit: '24',  // Increased page size
         isAvailable: 'false'
       });
 
@@ -119,8 +119,8 @@ export default function HomePage() {
       const data = await response.json();
       return {
         data: data.data.filter((product: Product) => !product.isAvailable),
-        nextPage: data.data && data.data.length === 12 ? pageParam + 1 : undefined,
-        lastPage: !data.data || data.data.length < 12
+        nextPage: data.data && data.data.length === 24 ? pageParam + 1 : undefined,
+        lastPage: !data.data || data.data.length < 24
       };
     },
     initialPageParam: 1,
@@ -135,19 +135,21 @@ export default function HomePage() {
     const observerAvailable = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNextAvailablePage && !isFetchingNextAvailablePage) {
+          console.log("Loading more available products...");
           void fetchNextAvailablePage();
         }
       },
-      { threshold: 0.1, rootMargin: '100px' }
+      { threshold: 0.1, rootMargin: '200px' }  // Increased margin to load earlier
     );
 
     const observerSold = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNextSoldPage && !isFetchingNextSoldPage) {
+          console.log("Loading more sold products...");
           void fetchNextSoldPage();
         }
       },
-      { threshold: 0.1, rootMargin: '100px' }
+      { threshold: 0.1, rootMargin: '200px' }  // Increased margin to load earlier
     );
 
     if (loadMoreRef.current) observerAvailable.observe(loadMoreRef.current);
