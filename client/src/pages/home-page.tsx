@@ -177,7 +177,13 @@ export default function HomePage() {
     });
   }, [hasNextSoldPage, isFetchingNextSoldPage, soldProducts.length]);
 
+  // Effect for loading more available products
   useEffect(() => {
+    console.log("Setting up observer for available products...", {
+      hasNextPage: hasNextAvailablePage,
+      ref: loadMoreRef.current ? "exists" : "missing"
+    });
+    
     const loadMoreElement = loadMoreRef.current;
     if (!loadMoreElement) return;
 
@@ -188,22 +194,29 @@ export default function HomePage() {
           void fetchNextAvailablePage();
         }
       },
-      { threshold: 0.1, rootMargin: '200px' }
+      { threshold: 0.1, rootMargin: '100px' }
     );
 
     observerAvailable.observe(loadMoreElement);
+    console.log("Available products observer attached");
 
     return () => {
       observerAvailable.unobserve(loadMoreElement);
       observerAvailable.disconnect();
+      console.log("Available products observer detached");
     };
-  }, [hasNextAvailablePage, isFetchingNextAvailablePage, fetchNextAvailablePage]);
+  }, [hasNextAvailablePage, isFetchingNextAvailablePage, fetchNextAvailablePage, loadMoreRef.current]);
 
+  // Effect for loading more sold products
   useEffect(() => {
+    console.log("Setting up observer for sold products...", {
+      hasNextPage: hasNextSoldPage,
+      ref: loadMoreSoldRef.current ? "exists" : "missing"
+    });
+    
     const loadMoreSoldElement = loadMoreSoldRef.current;
     if (!loadMoreSoldElement) return;
 
-    console.log("Setting up observer for sold products...");
     const observerSold = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNextSoldPage && !isFetchingNextSoldPage) {
@@ -211,16 +224,18 @@ export default function HomePage() {
           void fetchNextSoldPage();
         }
       },
-      { threshold: 0.1, rootMargin: '200px' }
+      { threshold: 0.1, rootMargin: '100px' }
     );
 
     observerSold.observe(loadMoreSoldElement);
+    console.log("Sold products observer attached");
 
     return () => {
       observerSold.unobserve(loadMoreSoldElement);
       observerSold.disconnect();
+      console.log("Sold products observer detached");
     };
-  }, [hasNextSoldPage, isFetchingNextSoldPage, fetchNextSoldPage]);
+  }, [hasNextSoldPage, isFetchingNextSoldPage, fetchNextSoldPage, loadMoreSoldRef.current]);
 
   const toggleCategory = (categoryId: number) => {
     setSelectedCategories(prev => {
@@ -428,9 +443,17 @@ export default function HomePage() {
                     )
                   ))}
                 </div>
-                <div ref={loadMoreRef} className="h-20 flex items-center justify-center mt-8">
-                  {isFetchingNextAvailablePage && (
+                <div 
+                  ref={loadMoreRef} 
+                  className="h-20 flex items-center justify-center mt-4 mb-8 p-4 border-t border-muted"
+                  data-testid="available-load-more"
+                >
+                  {isFetchingNextAvailablePage ? (
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  ) : hasNextAvailablePage ? (
+                    <div className="text-muted-foreground text-sm">Scroll for more available products</div>
+                  ) : (
+                    <div className="text-muted-foreground text-sm">No more available products</div>
                   )}
                 </div>
               </>
@@ -476,7 +499,11 @@ export default function HomePage() {
                     )
                   ))}
                 </div>
-                <div ref={loadMoreSoldRef} className="h-24 flex items-center justify-center mt-8">
+                <div 
+                  ref={loadMoreSoldRef} 
+                  className="h-20 flex items-center justify-center mt-4 mb-8 p-4 border-t border-muted"
+                  data-testid="sold-load-more"
+                >
                   {isFetchingNextSoldPage ? (
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                   ) : hasNextSoldPage ? (
