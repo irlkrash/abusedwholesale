@@ -427,9 +427,13 @@ export default function HomePage() {
                     )
                   ))}
                 </div>
-                <div ref={loadMoreRef} className="h-20 flex items-center justify-center mt-8">
-                  {isFetchingNextAvailablePage && (
+                <div ref={loadMoreRef} className="h-24 flex items-center justify-center mt-8">
+                  {isFetchingNextAvailablePage ? (
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  ) : hasNextAvailablePage ? (
+                    <div className="text-muted-foreground text-sm">Scroll for more products</div>
+                  ) : (
+                    <div className="text-muted-foreground text-sm">No more products</div>
                   )}
                 </div>
               </>
