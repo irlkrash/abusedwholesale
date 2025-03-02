@@ -30,9 +30,10 @@ export interface IStorage {
   addProductCategories(productId: number, categoryIds: number[]): Promise<void>;
   removeProductCategories(productId: number, categoryIds: number[]): Promise<void>;
   getProductCategories(productId: number): Promise<Category[]>;
-  getCategoriesWithCounts(): Promise<(Category & { productCount: number })[]>;
+  getCategoriesWithCounts(countAvailableOnly?: boolean): Promise<(Category & { productCount: number })[]>;
   addBulkProductCategories(productIds: number[], categoryIds: number[]): Promise<void>;
   refreshCartItems(cartId: number): Promise<void>;
+  deleteCartItem(cartId: number, itemId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -606,30 +607,51 @@ export class DatabaseStorage implements IStorage {
       client.release();
     }
   }
-  async getCategoriesWithCounts(): Promise<(Category & { productCount: number })[]> {
+  async getCategoriesWithCounts(countAvailableOnly: boolean = false): Promise<(Category & { productCount: number })[]> {
     try {
-      const categoriesWithCounts = await db
-        .select({
-          id: categoriesTable.id,
-          name: categoriesTable.name,
-          defaultPrice: categoriesTable.defaultPrice,
-          createdAt: categoriesTable.createdAt,
-          productCount: sql<number>`count(${productCategories.productId})::int`,
-        })
-        .from(categoriesTable)
-        .leftJoin(
-          productCategories,
-          eq(categoriesTable.id, productCategories.categoryId)
-        )
-        .groupBy(categoriesTable.id)
-        .orderBy(desc(categoriesTable.createdAt));
+      // Get categories with product counts in a single query using a lateral join
+      // If countAvailableOnly is true, only count available products
+      const result = await db.execute(
+        countAvailableOnly 
+          ? sql`
+              SELECT 
+                c.id, 
+                c.name, 
+                c.default_price as "defaultPrice",
+                c.created_at as "createdAt",
+                COUNT(CASE WHEN p.is_available = true THEN pc.product_id END) as "productCount"
+              FROM 
+                categories c
+              LEFT JOIN 
+                product_categories pc ON c.id = pc.category_id
+              LEFT JOIN
+                products p ON pc.product_id = p.id
+              GROUP BY 
+                c.id
+              ORDER BY 
+                c.name ASC
+            `
+          : sql`
+              SELECT 
+                c.id, 
+                c.name, 
+                c.default_price as "defaultPrice",
+                c.created_at as "createdAt",
+                COUNT(pc.product_id) as "productCount"
+              FROM 
+                categories c
+              LEFT JOIN 
+                product_categories pc ON c.id = pc.category_id
+              GROUP BY 
+                c.id
+              ORDER BY 
+                c.name ASC
+            `
+      );
 
-      return categoriesWithCounts.map(category => ({
-        ...category,
-        productCount: category.productCount || 0
-      }));
+      return result.rows as (Category & { productCount: number })[];
     } catch (error) {
-      console.error('Error in getCategoriesWithCounts:', error);
+      console.error('Error getting categories with counts:', error);
       throw error;
     }
   }

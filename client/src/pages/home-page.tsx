@@ -238,17 +238,30 @@ export default function HomePage() {
     }
   }, [selectedCategories, currentTab]);
 
+  // Handlers for UI interactions
   const toggleCategory = (categoryId: number) => {
-    setSelectedCategories(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(categoryId)) {
-        newSet.delete(categoryId);
-      } else {
-        newSet.add(categoryId);
-      }
-      return newSet;
+    const newCategories = new Set(selectedCategories);
+    if (newCategories.has(categoryId)) {
+      newCategories.delete(categoryId);
+    } else {
+      newCategories.add(categoryId);
+    }
+    setSelectedCategories(newCategories);
+
+    // Log category change for debugging
+    console.log("Category or tab changed:", {
+      currentTab,
+      selectedCategories: Array.from(newCategories)
     });
   };
+
+  // Update queries when tab changes
+  useEffect(() => {
+    // Query invalidation for categories when tab changes
+    queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+
+    console.log("Tab changed to:", currentTab);
+  }, [currentTab, queryClient]);
 
   const handleAddToCart = (product: Product) => {
     if (cartItems.some(item => item.productId === product.id)) {
