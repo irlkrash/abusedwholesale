@@ -184,7 +184,7 @@ const AdminCarts = () => {
                             });
 
                             // Show loading toast to indicate lengthy operation
-                            const loadingToast = toast({
+                            const loadingToastId = toast({
                               title: "Processing Request",
                               description: "This may take a moment for large carts...",
                               duration: 30000, // 30 seconds
@@ -193,8 +193,8 @@ const AdminCarts = () => {
                             apiRequest("POST", `/api/carts/${cart.id}/make-items-unavailable`, {}, 120000) // 2 minute timeout
                               .then(async (response) => {
                                 // Dismiss the loading toast
-                                if (loadingToast) {
-                                  toast.dismiss(loadingToast);
+                                if (loadingToastId) {
+                                  toast.dismiss(loadingToastId);
                                 }
 
                                 if (!response.ok) {
