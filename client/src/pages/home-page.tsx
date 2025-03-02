@@ -218,6 +218,14 @@ export default function HomePage() {
       },
       { threshold: 0.1, rootMargin: '200px' }
     );
+    
+    observerSold.observe(loadMoreSoldElement);
+    
+    return () => {
+      observerSold.unobserve(loadMoreSoldElement);
+      observerSold.disconnect();
+    };
+  }, [loadMoreSoldRef.current, hasNextSoldPage, isFetchingNextSoldPage, fetchNextSoldPage]);
 
     observerSold.observe(loadMoreSoldElement);
 
