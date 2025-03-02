@@ -221,13 +221,16 @@ export default function HomePage() {
   ]);
 
   useEffect(() => {
-    console.log("Tab or filters changed:", {
+    console.log("Category or tab changed:", {
       currentTab,
       selectedCategories: Array.from(selectedCategories)
     });
 
     if (currentTab === "available") {
-      queryClient.invalidateQueries({ queryKey: ["/api/products/available", Array.from(selectedCategories)] });
+      // Invalidate and refetch available products when categories change
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/products/available", Array.from(selectedCategories)] 
+      });
       void refetchAvailable();
     } else {
       queryClient.invalidateQueries({ queryKey: ["/api/products/sold", Array.from(selectedCategories)] });
