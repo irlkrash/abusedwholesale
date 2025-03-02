@@ -124,7 +124,7 @@ export class DatabaseStorage implements IStorage {
           eq(productCategories.categoryId, categoriesTable.id)
         );
 
-      // Add availability filter if provided
+      // Add availability filter if provided - this needs to be applied regardless of category filter
       if (isAvailable !== undefined) {
         query = query.where(eq(productsTable.isAvailable, isAvailable));
       }

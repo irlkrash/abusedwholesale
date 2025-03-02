@@ -221,22 +221,22 @@ export default function HomePage() {
   ]);
 
   useEffect(() => {
-    console.log("Category or tab changed:", {
-      currentTab,
-      selectedCategories: Array.from(selectedCategories)
-    });
+    console.log(`Refreshing queries for tab: ${currentTab}, categories: ${Array.from(selectedCategories)}`);
 
     if (currentTab === "available") {
       // Invalidate and refetch available products when categories change
+      // This ensures we always use isAvailable=true with the selected categories
       queryClient.invalidateQueries({ 
         queryKey: ["/api/products/available", Array.from(selectedCategories)] 
       });
       void refetchAvailable();
     } else {
-      queryClient.invalidateQueries({ queryKey: ["/api/products/sold", Array.from(selectedCategories)] });
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/products/sold", Array.from(selectedCategories)] 
+      });
       void refetchSold();
     }
-  }, [selectedCategories, currentTab]);
+  }, [selectedCategories, currentTab, refetchAvailable, refetchSold, queryClient]);
 
   // Handlers for UI interactions
   const toggleCategory = (categoryId: number) => {
