@@ -42,6 +42,7 @@ export default function HomePage() {
   const { toast } = useToast();
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const loadMoreSoldRef = useRef<HTMLDivElement>(null);
+  const [currentTab, setCurrentTab] = useState<"available" | "sold">("available");
 
   // Categories query with available product count
   const { data: categories = [] } = useQuery<(Category & { productCount: number })[]>({
@@ -139,6 +140,12 @@ export default function HomePage() {
         }
 
         const data = await response.json();
+        console.log("Sold products response:", {
+          pageParam,
+          dataLength: data.data?.length,
+          hasMore: data.data?.length === PRODUCTS_PER_PAGE
+        });
+
         return {
           data: Array.isArray(data.data) ? data.data : [],
           nextPage: data.data && data.data.length === PRODUCTS_PER_PAGE ? pageParam + 1 : undefined,
@@ -163,15 +170,6 @@ export default function HomePage() {
     hasMoreAvailable: hasNextAvailablePage,
     hasMoreSold: hasNextSoldPage
   });
-
-  // Update the useEffect for sold products
-  useEffect(() => {
-    console.log("Sold products pagination state changed:", { 
-      hasNextPage: hasNextSoldPage, 
-      isFetching: isFetchingNextSoldPage,
-      productCount: soldProducts.length 
-    });
-  }, [hasNextSoldPage, isFetchingNextSoldPage, soldProducts.length]);
 
   // Intersection observer setup
   useEffect(() => {
@@ -198,10 +196,18 @@ export default function HomePage() {
     const availableRef = loadMoreRef.current;
     const soldRef = loadMoreSoldRef.current;
 
-    if (availableRef) {
+    console.log("Setting up observers for tab:", currentTab, {
+      hasAvailableRef: !!availableRef,
+      hasSoldRef: !!soldRef,
+      hasNextAvailable: hasNextAvailablePage,
+      hasNextSold: hasNextSoldPage
+    });
+
+    if (currentTab === "available" && availableRef) {
       observerAvailable.observe(availableRef);
     }
-    if (soldRef) {
+
+    if (currentTab === "sold" && soldRef) {
       observerSold.observe(soldRef);
     }
 
@@ -216,9 +222,25 @@ export default function HomePage() {
       observerSold.disconnect();
     };
   }, [
+    currentTab,
     hasNextAvailablePage, isFetchingNextAvailablePage, fetchNextAvailablePage,
     hasNextSoldPage, isFetchingNextSoldPage, fetchNextSoldPage
   ]);
+
+  useEffect(() => {
+    console.log("Tab or filters changed:", {
+      currentTab,
+      selectedCategories: Array.from(selectedCategories)
+    });
+
+    if (currentTab === "available") {
+      queryClient.invalidateQueries({ queryKey: ["/api/products/available", Array.from(selectedCategories)] });
+      void refetchAvailable();
+    } else {
+      queryClient.invalidateQueries({ queryKey: ["/api/products/sold", Array.from(selectedCategories)] });
+      void refetchSold();
+    }
+  }, [selectedCategories, currentTab]);
 
   const toggleCategory = (categoryId: number) => {
     setSelectedCategories(prev => {
@@ -243,8 +265,8 @@ export default function HomePage() {
     }
 
     // Calculate the effective price (custom price or lowest category price)
-    const effectivePrice = product.customPrice ?? 
-      (product.categories?.length 
+    const effectivePrice = product.customPrice ??
+      (product.categories?.length
         ? Math.min(...product.categories.map(cat => Number(cat.defaultPrice)))
         : 0);
 
@@ -266,10 +288,6 @@ export default function HomePage() {
     });
   };
 
-  useEffect(() => {
-    void refetchAvailable();
-    void refetchSold();
-  }, [selectedCategories, refetchAvailable, refetchSold]);
 
   const NavMenu = () => (
     <>
@@ -366,18 +384,12 @@ export default function HomePage() {
         )}
 
         {/* Products Tabs */}
-        <Tabs 
-          defaultValue="available" 
+        <Tabs
+          defaultValue="available"
           className="space-y-4"
-          onValueChange={(value) => {
+          onValueChange={(value: "available" | "sold") => {
             console.log("Tab changed to:", value);
-            if (value === "available") {
-              console.log("Refetching available products");
-              void refetchAvailable();
-            } else if (value === "sold") {
-              console.log("Refetching sold products");
-              void refetchSold();
-            }
+            setCurrentTab(value);
           }}
         >
           <TabsList>
@@ -506,7 +518,6 @@ export default function HomePage() {
             )}
           </TabsContent>
         </Tabs>
-
         <CartOverlay
           isOpen={isCartOpen}
           onOpenChange={setIsCartOpen}
