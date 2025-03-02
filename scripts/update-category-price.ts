@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 
 async function updateCategoryPrice() {
   try {
-    console.log("Updating Heavy Jackets category price to $30...");
+    console.log("Updating Heavy Jackets category price to $0.30...");
     
     // Find the Heavy Jackets category
     const categoryResult = await db
@@ -21,13 +21,13 @@ async function updateCategoryPrice() {
     const category = categoryResult[0];
     console.log(`Found category: ${category.name} (ID: ${category.id}) with current price: $${category.defaultPrice}`);
     
-    // Update the category price (stored in cents, so $30 = 3000 cents)
+    // Update the category price (stored in cents, so $0.30 = 30 cents)
     const result = await db
       .update(categories)
-      .set({ defaultPrice: 3000 })
+      .set({ defaultPrice: 30 })
       .where(eq(categories.id, category.id));
     
-    console.log(`Successfully updated 'Heavy Jackets' price to $30`);
+    console.log(`Successfully updated 'Heavy Jackets' price to $0.30`);
   } catch (error) {
     console.error("Error updating category price:", error);
   } finally {
