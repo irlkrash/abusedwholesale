@@ -341,11 +341,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid product ID" });
       }
 
-      console.log('Updating product categories:', {
+      console.log('Updating product:', {
         productId,
         body: req.body,
-        categories: req.body.categories
+        categories: req.body.categories,
+        customPrice: req.body.customPrice
       });
+
+      // Get existing product categories if we're setting a custom price but not changing categories
+      let existingCategories = [];
+      if (req.body.customPrice !== undefined && !req.body.categories && !req.body.categoryIds) {
+        existingCategories = await storage.getProductCategories(productId);
+        console.log('Setting custom price while preserving existing categories:', existingCategories);
+      }
 
       // Validate category IDs if present
       if (req.body.categories) {
@@ -361,18 +369,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Handle category updates
       const categories = req.body.categories || req.body.categoryIds;
-      if (categories) {
-        console.log('Updating product categories:', {productId, categories});
-
-        // Remove existing categories first
-        const existingCategories = await storage.getProductCategories(productId);
-        if (existingCategories.length > 0) {
-          await storage.removeProductCategories(productId, existingCategories.map(c => c.id));
+      if (categories || existingCategories.length > 0) {
+        let categoryIds = categories;
+        
+        // If we're setting a custom price but not changing categories, use existing categories
+        if (!categories && existingCategories.length > 0) {
+          categoryIds = existingCategories.map(c => c.id);
         }
+        
+        if (categoryIds) {
+          console.log('Updating product categories:', {productId, categoryIds});
 
-        // Add new categories if any are selected
-        if (categories.length > 0) {
-          await storage.addProductCategories(productId, categories);
+          // Remove existing categories first
+          const currentCategories = await storage.getProductCategories(productId);
+          if (currentCategories.length > 0) {
+            await storage.removeProductCategories(productId, currentCategories.map(c => c.id));
+          }
+
+          // Add new or preserved categories
+          if (categoryIds.length > 0) {
+            await storage.addProductCategories(productId, categoryIds);
+          }
         }
       }
 
