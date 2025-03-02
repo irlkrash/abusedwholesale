@@ -184,9 +184,6 @@ export default function HomePage() {
 
   // Intersection observer setup
   useEffect(() => {
-    const loadMoreElement = loadMoreRef.current;
-    if (!loadMoreElement) return;
-
     const observerAvailable = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNextAvailablePage && !isFetchingNextAvailablePage) {
@@ -196,18 +193,6 @@ export default function HomePage() {
       },
       { threshold: 0.1, rootMargin: '200px' }
     );
-
-    observerAvailable.observe(loadMoreElement);
-
-    return () => {
-      observerAvailable.unobserve(loadMoreElement);
-      observerAvailable.disconnect();
-    };
-  }, [loadMoreRef.current, hasNextAvailablePage, isFetchingNextAvailablePage, fetchNextAvailablePage]);
-
-  useEffect(() => {
-    const loadMoreSoldElement = loadMoreSoldRef.current;
-    if (!loadMoreSoldElement) return;
 
     const observerSold = new IntersectionObserver(
       (entries) => {
@@ -219,13 +204,25 @@ export default function HomePage() {
       { threshold: 0.1, rootMargin: '200px' }
     );
 
-    observerSold.observe(loadMoreSoldElement);
+    if (loadMoreRef.current) {
+      observerAvailable.observe(loadMoreRef.current);
+    }
+    if (loadMoreSoldRef.current) {
+      observerSold.observe(loadMoreSoldRef.current);
+    }
 
     return () => {
-      observerSold.unobserve(loadMoreSoldElement);
+      if (loadMoreRef.current) {
+        observerAvailable.unobserve(loadMoreRef.current);
+      }
+      if (loadMoreSoldRef.current) {
+        observerSold.unobserve(loadMoreSoldRef.current);
+      }
+      observerAvailable.disconnect();
       observerSold.disconnect();
     };
-  }, [loadMoreSoldRef.current, hasNextSoldPage, isFetchingNextSoldPage, fetchNextSoldPage]);
+  }, [loadMoreRef.current, hasNextAvailablePage, isFetchingNextAvailablePage, fetchNextAvailablePage,
+      loadMoreSoldRef.current, hasNextSoldPage, isFetchingNextSoldPage, fetchNextSoldPage]);
 
   const toggleCategory = (categoryId: number) => {
     setSelectedCategories(prev => {
@@ -275,7 +272,8 @@ export default function HomePage() {
 
   useEffect(() => {
     void refetchAvailable();
-  }, [selectedCategories, refetchAvailable]);
+    void refetchSold();
+  }, [selectedCategories, refetchAvailable, refetchSold]);
 
   const NavMenu = () => (
     <>
