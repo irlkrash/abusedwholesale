@@ -116,38 +116,44 @@ export default function HomePage() {
   } = useInfiniteQuery({
     queryKey: ["/api/products/sold", Array.from(selectedCategories)],
     queryFn: async ({ pageParam = 1 }) => {
-      console.log("Fetching sold products:", { pageParam, queryParams: `page=${pageParam}&limit=${PRODUCTS_PER_PAGE}&isAvailable=false` });
+      try {
+        const queryParams = new URLSearchParams({
+          page: pageParam.toString(),
+          limit: PRODUCTS_PER_PAGE.toString(),
+          isAvailable: 'false'
+        });
 
-      const queryParams = new URLSearchParams({
-        page: pageParam.toString(),
-        limit: PRODUCTS_PER_PAGE.toString(),
-        isAvailable: 'false'
-      });
+        if (selectedCategories.size > 0) {
+          Array.from(selectedCategories).forEach(categoryId =>
+            queryParams.append('categoryId', categoryId.toString())
+          );
+        }
 
-      if (selectedCategories.size > 0) {
-        Array.from(selectedCategories).forEach(categoryId =>
-          queryParams.append('categoryId', categoryId.toString())
+        const response = await apiRequest(
+          "GET",
+          `/api/products?${queryParams.toString()}`
         );
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch sold products');
+        }
+
+        const data = await response.json();
+        console.log("Sold products response:", { 
+          pageParam, 
+          dataLength: data.data.length, 
+          hasMore: data.data.length === PRODUCTS_PER_PAGE 
+        });
+
+        return {
+          data: Array.isArray(data.data) ? data.data : [],
+          nextPage: data.data && data.data.length === PRODUCTS_PER_PAGE ? pageParam + 1 : undefined,
+          lastPage: !data.data || data.data.length < PRODUCTS_PER_PAGE
+        };
+      } catch (err) {
+        console.error("Failed to fetch sold products:", err);
+        throw err;
       }
-
-      const response = await apiRequest(
-        "GET",
-        `/api/products?${queryParams.toString()}`
-      );
-
-      if (!response.ok) throw new Error('Failed to fetch sold products');
-
-      const data = await response.json();
-      console.log("Sold products response:", {
-        pageParam,
-        dataLength: data.data.length,
-        hasMore: !!data.nextPage
-      });
-      return {
-        data: Array.isArray(data.data) ? data.data : [],
-        nextPage: data.data && data.data.length === PRODUCTS_PER_PAGE ? pageParam + 1 : undefined,
-        lastPage: !data.data || data.data.length < PRODUCTS_PER_PAGE
-      };
     },
     initialPageParam: 1,
     getNextPageParam: (lastPage) => lastPage.nextPage,
@@ -163,15 +169,6 @@ export default function HomePage() {
     hasMoreAvailable: hasNextAvailablePage,
     hasMoreSold: hasNextSoldPage
   });
-
-  // Update the useEffect for available products
-  useEffect(() => {
-    console.log("Available products pagination state changed:", { 
-      hasNextPage: hasNextAvailablePage, 
-      isFetching: isFetchingNextAvailablePage,
-      productCount: availableProducts.length 
-    });
-  }, [hasNextAvailablePage, isFetchingNextAvailablePage, availableProducts.length]);
 
   // Update the useEffect for sold products
   useEffect(() => {
@@ -191,7 +188,7 @@ export default function HomePage() {
           void fetchNextAvailablePage();
         }
       },
-      { threshold: 0.1, rootMargin: '200px' }
+      { threshold: 0.1, rootMargin: '100px' }
     );
 
     const observerSold = new IntersectionObserver(
@@ -201,28 +198,33 @@ export default function HomePage() {
           void fetchNextSoldPage();
         }
       },
-      { threshold: 0.1, rootMargin: '200px' }
+      { threshold: 0.1, rootMargin: '100px' }
     );
 
-    if (loadMoreRef.current) {
-      observerAvailable.observe(loadMoreRef.current);
+    const availableRef = loadMoreRef.current;
+    const soldRef = loadMoreSoldRef.current;
+
+    if (availableRef) {
+      observerAvailable.observe(availableRef);
     }
-    if (loadMoreSoldRef.current) {
-      observerSold.observe(loadMoreSoldRef.current);
+    if (soldRef) {
+      observerSold.observe(soldRef);
     }
 
     return () => {
-      if (loadMoreRef.current) {
-        observerAvailable.unobserve(loadMoreRef.current);
+      if (availableRef) {
+        observerAvailable.unobserve(availableRef);
       }
-      if (loadMoreSoldRef.current) {
-        observerSold.unobserve(loadMoreSoldRef.current);
+      if (soldRef) {
+        observerSold.unobserve(soldRef);
       }
       observerAvailable.disconnect();
       observerSold.disconnect();
     };
-  }, [loadMoreRef.current, hasNextAvailablePage, isFetchingNextAvailablePage, fetchNextAvailablePage,
-      loadMoreSoldRef.current, hasNextSoldPage, isFetchingNextSoldPage, fetchNextSoldPage]);
+  }, [
+    hasNextAvailablePage, isFetchingNextAvailablePage, fetchNextAvailablePage,
+    hasNextSoldPage, isFetchingNextSoldPage, fetchNextSoldPage
+  ]);
 
   const toggleCategory = (categoryId: number) => {
     setSelectedCategories(prev => {
@@ -468,6 +470,13 @@ export default function HomePage() {
                   </Card>
                 ))}
               </div>
+            ) : isErrorSold ? (
+              <Card>
+                <CardContent className="p-6 text-center text-muted-foreground">
+                  Error loading products. Please try again later.
+                  {errorSold instanceof Error && <p>{errorSold.message}</p>}
+                </CardContent>
+              </Card>
             ) : soldProducts.length > 0 ? (
               <>
                 <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
