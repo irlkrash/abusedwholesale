@@ -30,6 +30,13 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Update the limit constant to match both queries
 const PRODUCTS_PER_PAGE = 24;
@@ -38,6 +45,8 @@ export default function HomePage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<Set<number>>(new Set());
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
   const { user } = useAuth();
   const { toast } = useToast();
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -64,14 +73,15 @@ export default function HomePage() {
     error: errorAvailable,
     refetch: refetchAvailable
   } = useInfiniteQuery({
-    queryKey: ["/api/products/available", Array.from(selectedCategories)],
+    queryKey: ["/api/products/available", Array.from(selectedCategories), sortOrder],
     queryFn: async ({ pageParam = 1 }) => {
-      console.log("Fetching available products:", { pageParam, queryParams: `page=${pageParam}&limit=${PRODUCTS_PER_PAGE}&isAvailable=true` });
+      console.log("Fetching available products:", { pageParam, queryParams: `page=${pageParam}&limit=${PRODUCTS_PER_PAGE}&isAvailable=true&sortOrder=${sortOrder}` });
 
       const queryParams = new URLSearchParams({
         page: pageParam.toString(),
         limit: PRODUCTS_PER_PAGE.toString(),
-        isAvailable: 'true'
+        isAvailable: 'true',
+        sortOrder: sortOrder
       });
 
       if (selectedCategories.size > 0) {
@@ -103,7 +113,7 @@ export default function HomePage() {
     getNextPageParam: (lastPage) => lastPage.nextPage,
   });
 
-  // Sold products query
+  // Update the sold products query
   const {
     data: soldProductsData,
     fetchNextPage: fetchNextSoldPage,
@@ -114,14 +124,15 @@ export default function HomePage() {
     error: errorSold,
     refetch: refetchSold
   } = useInfiniteQuery({
-    queryKey: ["/api/products/sold", Array.from(selectedCategories)],
+    queryKey: ["/api/products/sold", Array.from(selectedCategories), sortOrder],
     queryFn: async ({ pageParam = 1 }) => {
-      console.log("Fetching sold products:", { pageParam, queryParams: `page=${pageParam}&limit=${PRODUCTS_PER_PAGE}&isAvailable=false` });
+      console.log("Fetching sold products:", { pageParam, queryParams: `page=${pageParam}&limit=${PRODUCTS_PER_PAGE}&isAvailable=false&sortOrder=${sortOrder}` });
 
       const queryParams = new URLSearchParams({
         page: pageParam.toString(),
         limit: PRODUCTS_PER_PAGE.toString(),
-        isAvailable: 'false'
+        isAvailable: 'false',
+        sortOrder: sortOrder
       });
 
       if (selectedCategories.size > 0) {
@@ -166,26 +177,26 @@ export default function HomePage() {
 
   // Update the useEffect for available products
   useEffect(() => {
-    console.log("Available products pagination state changed:", { 
-      hasNextPage: hasNextAvailablePage, 
+    console.log("Available products pagination state changed:", {
+      hasNextPage: hasNextAvailablePage,
       isFetching: isFetchingNextAvailablePage,
-      productCount: availableProducts.length 
+      productCount: availableProducts.length
     });
   }, [hasNextAvailablePage, isFetchingNextAvailablePage, availableProducts.length]);
 
   // Update the useEffect for sold products
   useEffect(() => {
-    console.log("Sold products pagination state changed:", { 
-      hasNextPage: hasNextSoldPage, 
+    console.log("Sold products pagination state changed:", {
+      hasNextPage: hasNextSoldPage,
       isFetching: isFetchingNextSoldPage,
-      productCount: soldProducts.length 
+      productCount: soldProducts.length
     });
   }, [hasNextSoldPage, isFetchingNextSoldPage, soldProducts.length]);
 
   // Intersection observer setup
   useEffect(() => {
     const loadMoreElement = loadMoreRef.current;
-    if (!loadMoreElement) return;
+    const loadMoreSoldElement = loadMoreSoldRef.current;
 
     const observerAvailable = new IntersectionObserver(
       (entries) => {
@@ -197,18 +208,6 @@ export default function HomePage() {
       { threshold: 0.1, rootMargin: '200px' }
     );
 
-    observerAvailable.observe(loadMoreElement);
-
-    return () => {
-      observerAvailable.unobserve(loadMoreElement);
-      observerAvailable.disconnect();
-    };
-  }, [loadMoreRef.current, hasNextAvailablePage, isFetchingNextAvailablePage, fetchNextAvailablePage]);
-
-  useEffect(() => {
-    const loadMoreSoldElement = loadMoreSoldRef.current;
-    if (!loadMoreSoldElement) return;
-
     const observerSold = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNextSoldPage && !isFetchingNextSoldPage) {
@@ -218,22 +217,19 @@ export default function HomePage() {
       },
       { threshold: 0.1, rootMargin: '200px' }
     );
-    
-    observerSold.observe(loadMoreSoldElement);
-    
-    return () => {
-      observerSold.unobserve(loadMoreSoldElement);
-      observerSold.disconnect();
-    };
-  }, [loadMoreSoldRef.current, hasNextSoldPage, isFetchingNextSoldPage, fetchNextSoldPage]);
 
-    observerSold.observe(loadMoreSoldElement);
+    if (loadMoreElement) observerAvailable.observe(loadMoreElement);
+    if (loadMoreSoldElement) observerSold.observe(loadMoreSoldElement);
 
     return () => {
-      observerSold.unobserve(loadMoreSoldElement);
+      if (loadMoreElement) observerAvailable.unobserve(loadMoreElement);
+      if (loadMoreSoldElement) observerSold.unobserve(loadMoreSoldElement);
+      observerAvailable.disconnect();
       observerSold.disconnect();
     };
-  }, [loadMoreSoldRef.current, hasNextSoldPage, isFetchingNextSoldPage, fetchNextSoldPage]);
+  }, [loadMoreRef, loadMoreSoldRef, hasNextAvailablePage, isFetchingNextAvailablePage, fetchNextAvailablePage,
+    hasNextSoldPage, isFetchingNextSoldPage, fetchNextSoldPage]);
+
 
   const toggleCategory = (categoryId: number) => {
     setSelectedCategories(prev => {
@@ -258,8 +254,8 @@ export default function HomePage() {
     }
 
     // Calculate the effective price (custom price or lowest category price)
-    const effectivePrice = product.customPrice ?? 
-      (product.categories?.length 
+    const effectivePrice = product.customPrice ??
+      (product.categories?.length
         ? Math.min(...product.categories.map(cat => Number(cat.defaultPrice)))
         : 0);
 
@@ -281,9 +277,11 @@ export default function HomePage() {
     });
   };
 
+  // Effect to update queries when categories change
   useEffect(() => {
     void refetchAvailable();
-  }, [selectedCategories, refetchAvailable]);
+    void refetchSold();
+  }, [selectedCategories, refetchAvailable, refetchSold, sortOrder]);
 
   const NavMenu = () => (
     <>
@@ -380,8 +378,8 @@ export default function HomePage() {
         )}
 
         {/* Products Tabs */}
-        <Tabs 
-          defaultValue="available" 
+        <Tabs
+          defaultValue="available"
           className="space-y-4"
           onValueChange={(value) => {
             console.log("Tab changed to:", value);
@@ -404,6 +402,27 @@ export default function HomePage() {
               Sold Items
             </TabsTrigger>
           </TabsList>
+
+          {/* Add sort order control */}
+          <div className="flex justify-end mb-4">
+            <Select
+              value={sortOrder}
+              onValueChange={(value: "asc" | "desc") => {
+                setSortOrder(value);
+                // Force refetch when sort order changes
+                void refetchAvailable();
+                void refetchSold();
+              }}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Sort order" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="desc">Newest first</SelectItem>
+                <SelectItem value="asc">Oldest first</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           <TabsContent value="available">
             {isLoadingAvailable ? (
@@ -478,6 +497,13 @@ export default function HomePage() {
                   </Card>
                 ))}
               </div>
+            ) : isErrorSold ? (
+              <Card>
+                <CardContent className="p-6 text-center text-muted-foreground">
+                  Error loading products. Please try again later.
+                  {errorSold instanceof Error && <p>{errorSold.message}</p>}
+                </CardContent>
+              </Card>
             ) : soldProducts.length > 0 ? (
               <>
                 <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
