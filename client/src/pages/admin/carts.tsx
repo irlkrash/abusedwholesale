@@ -33,7 +33,7 @@ import { Badge } from "@/components/ui/badge"; // Added import for Badge compone
 
 const AdminCarts = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
+  const { toast, dismiss } = useToast(); // Corrected import to include dismiss
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const { data: carts = [], isLoading: cartsLoading, error: cartsError } = useQuery<Cart[]>({
@@ -194,7 +194,7 @@ const AdminCarts = () => {
                               .then(async (response) => {
                                 // Dismiss the loading toast
                                 if (loadingToastId) {
-                                  toast.dismiss(loadingToastId);
+                                  dismiss(loadingToastId); // Corrected to use dismiss
                                 }
 
                                 if (!response.ok) {
