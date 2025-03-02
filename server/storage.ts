@@ -253,16 +253,31 @@ export class DatabaseStorage implements IStorage {
       const { categories: categoryIds, ...productUpdates } = updates;
       let categoryPrice = null;
 
-      // If categories are being updated, calculate the new category price
-      if (categoryIds !== undefined && categoryIds.length > 0) {
-        // Get the highest default price from assigned categories
-        const categoryPrices = await db
-          .select({ defaultPrice: categoriesTable.defaultPrice })
-          .from(categoriesTable)
-          .where(inArray(categoriesTable.id, categoryIds));
-
-        if (categoryPrices.length > 0) {
-          categoryPrice = Math.max(...categoryPrices.map(c => Number(c.defaultPrice)));
+      // Calculate the new category price if either:
+      // 1. Categories are being explicitly updated
+      // 2. Categories aren't being updated but we need to maintain the current category price
+      if (categoryIds !== undefined) {
+        if (categoryIds.length > 0) {
+          // Get the highest default price from assigned categories
+          const categoryPrices = await db
+            .select({ defaultPrice: categoriesTable.defaultPrice })
+            .from(categoriesTable)
+            .where(inArray(categoriesTable.id, categoryIds));
+  
+          if (categoryPrices.length > 0) {
+            categoryPrice = Math.max(...categoryPrices.map(c => Number(c.defaultPrice)));
+          }
+        }
+      } else if (productUpdates.customPrice !== undefined) {
+        // If setting a custom price but not changing categories, preserve the current category price
+        const currentProduct = await db
+          .select()
+          .from(productsTable)
+          .where(eq(productsTable.id, id))
+          .limit(1);
+          
+        if (currentProduct.length > 0) {
+          categoryPrice = currentProduct[0].categoryPrice;
         }
       }
 
@@ -301,6 +316,10 @@ export class DatabaseStorage implements IStorage {
             .insert(productCategories)
             .values(categoryEntries);
         }
+      } else if (productUpdates.customPrice !== undefined) {
+        // If we're just updating the custom price, make sure we don't lose category assignments
+        console.log('Setting custom price while preserving categories');
+        // No need to modify categories if not explicitly provided
       }
 
       await client.query('COMMIT');
