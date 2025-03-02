@@ -31,6 +31,9 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 
+// Update the limit constant to match both queries
+const PRODUCTS_PER_PAGE = 24;
+
 export default function HomePage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -63,11 +66,11 @@ export default function HomePage() {
   } = useInfiniteQuery({
     queryKey: ["/api/products/available", Array.from(selectedCategories)],
     queryFn: async ({ pageParam = 1 }) => {
-      console.log("Fetching available products:", { pageParam, queryParams: `page=${pageParam}&limit=24&isAvailable=true` });
+      console.log("Fetching available products:", { pageParam, queryParams: `page=${pageParam}&limit=${PRODUCTS_PER_PAGE}&isAvailable=true` });
 
       const queryParams = new URLSearchParams({
         page: pageParam.toString(),
-        limit: '24',
+        limit: PRODUCTS_PER_PAGE.toString(),
         isAvailable: 'true'
       });
 
@@ -92,8 +95,8 @@ export default function HomePage() {
       });
       return {
         data: Array.isArray(data.data) ? data.data : [],
-        nextPage: data.data && data.data.length === 24 ? pageParam + 1 : undefined,
-        lastPage: !data.data || data.data.length < 24
+        nextPage: data.data && data.data.length === PRODUCTS_PER_PAGE ? pageParam + 1 : undefined,
+        lastPage: !data.data || data.data.length < PRODUCTS_PER_PAGE
       };
     },
     initialPageParam: 1,
@@ -113,11 +116,11 @@ export default function HomePage() {
   } = useInfiniteQuery({
     queryKey: ["/api/products/sold", Array.from(selectedCategories)],
     queryFn: async ({ pageParam = 1 }) => {
-      console.log("Fetching sold products:", { pageParam, queryParams: `page=${pageParam}&limit=24&isAvailable=false` });
+      console.log("Fetching sold products:", { pageParam, queryParams: `page=${pageParam}&limit=${PRODUCTS_PER_PAGE}&isAvailable=false` });
 
       const queryParams = new URLSearchParams({
         page: pageParam.toString(),
-        limit: '24',
+        limit: PRODUCTS_PER_PAGE.toString(),
         isAvailable: 'false'
       });
 
@@ -142,8 +145,8 @@ export default function HomePage() {
       });
       return {
         data: Array.isArray(data.data) ? data.data : [],
-        nextPage: data.data && data.data.length === 24 ? pageParam + 1 : undefined,
-        lastPage: !data.data || data.data.length < 24
+        nextPage: data.data && data.data.length === PRODUCTS_PER_PAGE ? pageParam + 1 : undefined,
+        lastPage: !data.data || data.data.length < PRODUCTS_PER_PAGE
       };
     },
     initialPageParam: 1,
@@ -161,6 +164,7 @@ export default function HomePage() {
     hasMoreSold: hasNextSoldPage
   });
 
+  // Update the useEffect for available products
   useEffect(() => {
     console.log("Available products pagination state changed:", { 
       hasNextPage: hasNextAvailablePage, 
@@ -169,6 +173,7 @@ export default function HomePage() {
     });
   }, [hasNextAvailablePage, isFetchingNextAvailablePage, availableProducts.length]);
 
+  // Update the useEffect for sold products
   useEffect(() => {
     console.log("Sold products pagination state changed:", { 
       hasNextPage: hasNextSoldPage, 
@@ -177,6 +182,7 @@ export default function HomePage() {
     });
   }, [hasNextSoldPage, isFetchingNextSoldPage, soldProducts.length]);
 
+  // Intersection observer setup
   useEffect(() => {
     const loadMoreElement = loadMoreRef.current;
     if (!loadMoreElement) return;
