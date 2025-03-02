@@ -139,12 +139,6 @@ export default function HomePage() {
         }
 
         const data = await response.json();
-        console.log("Sold products response:", { 
-          pageParam, 
-          dataLength: data.data.length, 
-          hasMore: data.data.length === PRODUCTS_PER_PAGE 
-        });
-
         return {
           data: Array.isArray(data.data) ? data.data : [],
           nextPage: data.data && data.data.length === PRODUCTS_PER_PAGE ? pageParam + 1 : undefined,
