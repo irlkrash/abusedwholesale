@@ -309,7 +309,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`Fetching products page ${page} with limit ${limit}, categoryId: ${categoryId}, isAvailable: ${isAvailable}`);
       const products = await storage.getProducts(offset, limit, categoryId, isAvailable);
+      
+      // Log more detailed information for debugging
       console.log(`Found ${products.length} products in categories:`, categoryId);
+      if (categoryId && isAvailable !== undefined) {
+        const availableCount = products.filter(p => p.isAvailable === true).length;
+        console.log(`Available products: ${availableCount}/${products.length}`);
+        if (availableCount !== products.length && isAvailable === true) {
+          console.warn(`Warning: Found ${products.length - availableCount} unavailable products despite isAvailable=true filter`);
+        }
+      }
 
       res.json({
         data: products || [],

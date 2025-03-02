@@ -124,9 +124,12 @@ export class DatabaseStorage implements IStorage {
           eq(productCategories.categoryId, categoriesTable.id)
         );
 
-      // Add availability filter if provided - this needs to be applied regardless of category filter
+      // Create an array of conditions to be combined later
+      const conditions = [];
+
+      // Add availability filter if provided
       if (isAvailable !== undefined) {
-        query = query.where(eq(productsTable.isAvailable, isAvailable));
+        conditions.push(eq(productsTable.isAvailable, isAvailable));
       }
 
       // Add category filter if categoryIds is provided
@@ -137,7 +140,12 @@ export class DatabaseStorage implements IStorage {
           .from(productCategories)
           .where(inArray(productCategories.categoryId, categoryIds));
 
-        query = query.where(inArray(productsTable.id, productsInCategories));
+        conditions.push(inArray(productsTable.id, productsInCategories));
+      }
+
+      // Apply all conditions if any exist
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
       }
 
       const result = await query

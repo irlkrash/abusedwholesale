@@ -67,31 +67,45 @@ export default function HomePage() {
   } = useInfiniteQuery({
     queryKey: ["/api/products/available", Array.from(selectedCategories)],
     queryFn: async ({ pageParam = 1 }) => {
-      const queryParams = new URLSearchParams({
-        page: pageParam.toString(),
-        limit: PRODUCTS_PER_PAGE.toString(),
-        isAvailable: 'true'
-      });
+      try {
+        const queryParams = new URLSearchParams({
+          page: pageParam.toString(),
+          limit: PRODUCTS_PER_PAGE.toString(),
+          isAvailable: 'true' // This is critical - always filter for available products
+        });
 
-      if (selectedCategories.size > 0) {
-        Array.from(selectedCategories).forEach(categoryId =>
-          queryParams.append('categoryId', categoryId.toString())
+        if (selectedCategories.size > 0) {
+          Array.from(selectedCategories).forEach(categoryId =>
+            queryParams.append('categoryId', categoryId.toString())
+          );
+        }
+
+        console.log(`Fetching available products with params: ${queryParams.toString()}`);
+        const response = await apiRequest(
+          "GET",
+          `/api/products?${queryParams.toString()}`
         );
+
+        if (!response.ok) throw new Error('Failed to fetch available products');
+
+        const data = await response.json();
+        
+        // Extra validation to ensure only available products are included
+        const filteredData = Array.isArray(data.data) 
+          ? data.data.filter(product => product.isAvailable === true)
+          : [];
+          
+        console.log(`Received ${data.data?.length} products, filtered to ${filteredData.length} available products`);
+        
+        return {
+          data: filteredData,
+          nextPage: filteredData.length === PRODUCTS_PER_PAGE ? pageParam + 1 : undefined,
+          lastPage: filteredData.length < PRODUCTS_PER_PAGE
+        };
+      } catch (err) {
+        console.error("Failed to fetch available products:", err);
+        throw err;
       }
-
-      const response = await apiRequest(
-        "GET",
-        `/api/products?${queryParams.toString()}`
-      );
-
-      if (!response.ok) throw new Error('Failed to fetch available products');
-
-      const data = await response.json();
-      return {
-        data: Array.isArray(data.data) ? data.data : [],
-        nextPage: data.data && data.data.length === PRODUCTS_PER_PAGE ? pageParam + 1 : undefined,
-        lastPage: !data.data || data.data.length < PRODUCTS_PER_PAGE
-      };
     },
     initialPageParam: 1,
     getNextPageParam: (lastPage) => lastPage.nextPage,
@@ -237,6 +251,19 @@ export default function HomePage() {
       void refetchSold();
     }
   }, [selectedCategories, currentTab, refetchAvailable, refetchSold, queryClient]);
+
+  // Add debug logging for the API responses
+  useEffect(() => {
+    if (availableProductsData) {
+      console.log("Available products after filtering:", {
+        categories: Array.from(selectedCategories),
+        products: availableProductsData.pages.flatMap(page => page.data),
+        isAvailable: availableProductsData.pages.flatMap(page => 
+          page.data.map(product => product.isAvailable)
+        )
+      });
+    }
+  }, [availableProductsData, selectedCategories]);
 
   // Handlers for UI interactions
   const toggleCategory = (categoryId: number) => {
