@@ -67,8 +67,6 @@ export default function HomePage() {
   } = useInfiniteQuery({
     queryKey: ["/api/products/available", Array.from(selectedCategories)],
     queryFn: async ({ pageParam = 1 }) => {
-      console.log("Fetching available products:", { pageParam, queryParams: `page=${pageParam}&limit=${PRODUCTS_PER_PAGE}&isAvailable=true` });
-
       const queryParams = new URLSearchParams({
         page: pageParam.toString(),
         limit: PRODUCTS_PER_PAGE.toString(),
@@ -89,11 +87,6 @@ export default function HomePage() {
       if (!response.ok) throw new Error('Failed to fetch available products');
 
       const data = await response.json();
-      console.log("Available products response:", {
-        pageParam,
-        dataLength: data.data.length,
-        hasMore: !!data.nextPage
-      });
       return {
         data: Array.isArray(data.data) ? data.data : [],
         nextPage: data.data && data.data.length === PRODUCTS_PER_PAGE ? pageParam + 1 : undefined,
@@ -363,7 +356,7 @@ export default function HomePage() {
 
       <main className="container mx-auto px-4 py-8">
         {/* Categories Section */}
-        {categories.length > 0 && (
+        {currentTab === "available" && categories.length > 0 && (
           <div className="mb-8">
             <h2 className="text-lg font-semibold mb-4">Categories</h2>
             <ScrollArea className="w-full">
